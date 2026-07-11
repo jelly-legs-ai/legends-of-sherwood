@@ -1,0 +1,30 @@
+# Replit configuration for Legends of Sherwood
+run = "npm start"
+entrypoint = "server/index.js"
+modules = ["nodejs-20"]
+
+hidden = [".config", "node_modules", "data/backups"]
+
+[nix]
+channel = "stable-24_05"
+
+[env]
+# Bind all interfaces; Replit provides the public port automatically.
+HOST = "0.0.0.0"
+# Game data persists in ./data (on Replit's persistent workspace/VM disk).
+# To use Replit's managed PostgreSQL instead, add a PostgreSQL database in the
+# Replit UI — it injects DATABASE_URL and the server switches automatically.
+
+# The game server both serves the client and handles WebSockets on one port.
+[[ports]]
+localPort = 8123
+externalPort = 80
+
+[deployment]
+# Use a Reserved VM deployment so the world process stays always-on and the
+# data disk persists (Autoscale would spin the process down and lose live state).
+deploymentTarget = "vm"
+run = ["npm", "start"]
+
+[unitTest]
+language = "nodejs"

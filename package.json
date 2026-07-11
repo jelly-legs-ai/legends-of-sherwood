@@ -1,0 +1,21 @@
+{
+  "name": "legends-of-sherwood",
+  "version": "0.1.0",
+  "description": "Isometric MMORPG set in 12th-14th century Sherwood, with the $Shilling reward token. One world, one channel, many outlaws.",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js --dev"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "optionalDependencies": {
+    "pg": "^8.13.1"
+  },
+  "license": "MIT"
+}

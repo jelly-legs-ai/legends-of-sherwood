@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Legends of Sherwood</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>🏹</text></svg>">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- Login -->
+<div id="login" class="modal-backdrop">
+  <div class="login-box">
+    <h1>Legends of Sherwood</h1>
+    <p class="tagline">An outlaw's tale of steel, longbows and old magic — rob from the rich, earn true $Shillings.</p>
+    <canvas id="preview" width="128" height="128"></canvas>
+    <div class="row"><label>Name</label><input id="name" maxlength="16" placeholder="e.g. Wolfshead"></div>
+    <div class="row"><label>Body</label>
+      <select id="sex"><option value="male">Male</option><option value="female">Female</option></select>
+      <select id="skin"><option>light</option><option>olive</option><option>taupe</option><option>brown</option><option>black</option></select>
+    </div>
+    <div class="row"><label>Hair</label>
+      <select id="hairstyle"><option>plain</option><option>bangs</option><option>bedhead</option><option>braid</option><option>buzzcut</option><option>curly_long</option></select>
+      <select id="haircolor"><option>dark_brown</option><option>black</option><option>light_brown</option><option>blonde</option><option>ginger</option><option>gray</option></select>
+    </div>
+    <button id="play">Enter Sherwood</button>
+    <p id="login-status"></p>
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div id="orbs">
+    <div class="orb hp"><div class="fill"></div><span id="hp-txt">10</span></div>
+    <div class="orb pray"><div class="fill"></div><span id="pray-txt">1</span></div>
+    <div class="orb energy"><div class="fill"></div><span id="energy-txt">100</span></div>
+  </div>
+  <div id="token-hud" title="$Shilling balance (banked / at-risk pouch)">🪙 <b id="shl">0</b><span id="pouch"></span></div>
+  <div id="zone-name"></div>
+  <canvas id="minimap" width="176" height="176"></canvas>
+  <div id="event-banner" class="hidden"></div>
+
+  <div id="side">
+    <div id="tabs">
+      <button data-tab="inv" class="on" title="Inventory">🎒</button>
+      <button data-tab="equip" title="Equipment">🛡️</button>
+      <button data-tab="skills" title="Skills">📈</button>
+      <button data-tab="quests" title="Quests">📜</button>
+      <button data-tab="prayer" title="Prayers">✨</button>
+      <button data-tab="magic" title="Spellbook">🔮</button>
+      <button data-tab="craft" title="Crafting">🔨</button>
+    </div>
+    <div id="panel"></div>
+  </div>
+
+  <div id="ability-bar"></div>
+
+  <div id="chat">
+    <div id="chat-log"></div>
+    <input id="chat-in" maxlength="200" placeholder="Say something… (/y to yell, /duel name stake)">
+  </div>
+
+  <div id="dialogue" class="hidden">
+    <div id="dlg-name"></div>
+    <div id="dlg-line"></div>
+    <div id="dlg-opts"></div>
+  </div>
+
+  <div id="bigwin" class="hidden">
+    <div id="bigwin-head"><span id="bigwin-title"></span><button id="bigwin-x">✕</button></div>
+    <div id="bigwin-body"></div>
+  </div>
+
+  <div id="ctx" class="hidden"></div>
+  <div id="toasts"></div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
