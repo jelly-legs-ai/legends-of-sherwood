@@ -44,7 +44,9 @@ function chunkCanvas(plane, cx, cy) {
   for (let j = 0; j < CH; j++) for (let i = 0; i < CH; i++) {
     const x = cx * CH + i, y = cy * CH + j;
     const t = tileAtPlane(plane, x, y);
-    const [lx, ly] = [(i - j) * TW / 2 + ox, (i + j) * TH / 2 + oy];
+    // Diamond centred on the LOGICAL tile centre (x+0.5, y+0.5) so terrain,
+    // entities and mouse picking all share one grid.
+    const [lx, ly] = [(i - j) * TW / 2 + ox, (i + j) * TH / 2 + oy + TH / 2];
     const col = TILE_COLOR[t] || ['#f0f', '#a0a'];
     const shade = hashXY(x, y);
     g.fillStyle = shade > 0.5 ? col[0] : col[1];
@@ -142,7 +144,7 @@ export class Renderer {
     for (let cy = c0y; cy <= c1y; cy++) for (let cx = c0x; cx <= c1x; cx++) {
       const cc = chunkCanvas(plane, cx, cy);
       const [bx, by] = toScreen(cx * CH, cy * CH);
-      ctx.drawImage(cc, originX + bx - CH * TW / 2, originY + by - 48 - TH / 2);
+      ctx.drawImage(cc, originX + bx - CH * TW / 2, originY + by - 48);
     }
 
     // ---- collect drawables (entities + nodes + farming), depth sort ----

@@ -179,7 +179,38 @@ export function findPath(plane, sx, sy, tx, ty) {
   const path = [];
   let cur = { x: tx, y: ty };
   while (cur && !(cur.x === sx && cur.y === sy)) { path.unshift({ x: cur.x, y: cur.y }); cur = came.get(key(cur.x, cur.y)); }
-  return path;
+  return smoothPath(plane, sx, sy, path);
+}
+
+// String-pulling: collapse A* staircase zigzags into straight runs wherever the
+// direct line between waypoints stays walkable (with body clearance). Diagonal
+// travel becomes one smooth segment with a stable facing instead of tile-by-tile
+// direction flips.
+function smoothPath(plane, sx, sy, path) {
+  if (!path || path.length < 3) return path;
+  const pts = [{ x: sx, y: sy }, ...path];
+  const out = [];
+  let i = 0;
+  while (i < pts.length - 1) {
+    let j = pts.length - 1;
+    while (j > i + 1 && !lineWalkable(plane, pts[i].x + 0.5, pts[i].y + 0.5, pts[j].x + 0.5, pts[j].y + 0.5)) j--;
+    out.push(pts[j]);
+    i = j;
+  }
+  return out;
+}
+function lineWalkable(plane, x0, y0, x1, y1) {
+  const d = Math.hypot(x1 - x0, y1 - y0);
+  const steps = Math.max(1, Math.ceil(d * 4));
+  for (let s = 1; s <= steps; s++) {
+    const t = s / steps;
+    const x = x0 + (x1 - x0) * t, y = y0 + (y1 - y0) * t;
+    // sample with ~0.3-tile clearance so smoothed paths never hug corners
+    if (isBlocked(plane, x | 0, y | 0)) return false;
+    if (isBlocked(plane, (x + 0.3) | 0, y | 0) || isBlocked(plane, (x - 0.3) | 0, y | 0)) return false;
+    if (isBlocked(plane, x | 0, (y + 0.3) | 0) || isBlocked(plane, x | 0, (y - 0.3) | 0)) return false;
+  }
+  return true;
 }
 
 // ---------------- combat ----------------

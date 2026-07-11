@@ -246,6 +246,37 @@ export class World {
     return false;
   }
 
+  // Follow a waypoint path with a per-tick distance budget that carries across
+  // waypoints — crossing a waypoint never eats the rest of the tick's movement,
+  // so diagonal travel stays perfectly smooth instead of stutter-stepping.
+  followPath(e, speed, dt) {
+    let budget = speed * dt;
+    let movedAny = false;
+    let guard = 0;
+    while (budget > 0.002 && e.path && e.path.length && guard++ < 8) {
+      const wp = e.path[0];
+      const tx = wp.x + 0.5, ty = wp.y + 0.5;
+      const dx = tx - e.x, dy = ty - e.y;
+      const d = Math.hypot(dx, dy);
+      if (d < 0.05) { e.path.shift(); continue; }
+      const step = Math.min(d, budget);
+      let nx = e.x + (dx / d) * step, ny = e.y + (dy / d) * step;
+      if (isBlocked(e.plane, nx | 0, ny | 0)) {
+        if (!isBlocked(e.plane, nx | 0, e.y | 0)) ny = e.y;
+        else if (!isBlocked(e.plane, e.x | 0, ny | 0)) nx = e.x;
+        else { e.path.shift(); continue; }        // blocked toward this waypoint; try the next
+      }
+      const consumed = Math.hypot(nx - e.x, ny - e.y);
+      if (consumed < 0.001) { e.path.shift(); continue; } // sliding made no progress
+      e.x = nx; e.y = ny;
+      e.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 3 : 1) : (dy > 0 ? 2 : 0);
+      budget -= consumed;
+      movedAny = true;
+    }
+    if (movedAny) this.gridMove(e);
+    return movedAny;
+  }
+
   tickPlayer(p, now, dt) {
     tickCombat(this, p, now);
     // movement: follow path or velocity
@@ -259,9 +290,7 @@ export class World {
       if (moved) p.path = null;
     } else if (p.path && p.path.length) {
       const speed = p.run && p.energy > 0 ? WORLD.RUN_SPEED : WORLD.WALK_SPEED;
-      const wp = p.path[0];
-      if (this.moveEntity(p, wp.x + 0.5, wp.y + 0.5, speed, dt)) p.path.shift();
-      moved = true;
+      moved = this.followPath(p, speed, dt);
     }
     if (moved) {
       p.anim = 'walk';

@@ -100,6 +100,9 @@ G.net.on(MSG.SNAP, (m) => {
     e.anim = u[4]; e.seq = u[5];
     if (u[6] >= 0) e.hp = u[6];
     if (u[7]) e.vis = u[7];
+    // lerp over the real measured snapshot interval so network jitter
+    // doesn't cause freeze-then-jump motion
+    e.lerpMs = Math.min(220, Math.max(60, now - e.tUpd));
     e.tUpd = now;
   }
   for (const id of m.leave) { G.entities.delete(id); if (id === G.myId) G.me = null; }
@@ -226,15 +229,23 @@ canvas.addEventListener('contextmenu', (e) => {
 });
 
 function hitTest(sx, sy) {
-  let best = null, bestD = 30;
+  // Elliptical hit regions matched to what's actually drawn: characters are
+  // tall sprites standing ABOVE their ground anchor; ground items sit low.
+  let best = null, bestScore = 1;
   for (const e of G.entities.values()) {
     if (e.id === G.myId) continue;
+    const scale = e.scale || 1;
     const [ex, ey] = R.screenOf(0, e.rx, e.ry);
-    const d = Math.hypot(ex - sx, ey - sy + 24);
-    if (d < bestD) { bestD = d; best = e; }
+    const small = e.k === 'item' || e.k === 'shil' || e.k === 'fire';
+    const cx = ex, cy = ey - (small ? 8 : 28 * scale);   // sprite body centre
+    const rx = small ? 14 : 18 * Math.max(1, scale);
+    const ry = small ? 12 : 32 * scale;
+    const score = Math.hypot((sx - cx) / rx, (sy - cy) / ry);
+    if (score < bestScore) { bestScore = score; best = e; }
   }
   return best;
 }
+window._hitTest = hitTest; // debug
 function clickEntity(ent, e, menu) {
   const send = G.net.send.bind(G.net);
   if (G.selSpell && (ent.k === 'mob' || ent.k === 'player')) {
@@ -267,10 +278,22 @@ function clickGround(e, menu) {
   const x = Math.floor(tx), y = Math.floor(ty);
   const plane = G.self?.plane ?? 0;
   const send = G.net.send.bind(G.net);
-  // node?
-  let nodeType = null;
-  if (plane === PLANE.OVERWORLD) nodeType = computeWorld().nodes.get(x + ',' + y);
-  else if (plane >= PLANE.DUNGEON_BASE) {
+  // node? Check the clicked tile first, then the tiles "in front" (south-east)
+  // whose tall sprites — tree canopies, rock tops — visually cover the click.
+  let nodeType = null, nodeX = x, nodeY = y;
+  if (plane === PLANE.OVERWORLD) {
+    const { nodes } = computeWorld();
+    for (let k = 0; k <= 2 && !nodeType; k++) {
+      const cx2 = x + k, cy2 = y + k;
+      const type = nodes.get(cx2 + ',' + cy2);
+      if (!type) continue;
+      if (k > 0) { // only claim the click if that node's sprite really covers it
+        const [ex, ey] = R.screenOf(0, cx2 + 0.5, cy2 + 0.5);
+        if (Math.abs(e.clientX - ex) > 32 || e.clientY < ey - 70 || e.clientY > ey + 14) continue;
+      }
+      nodeType = type; nodeX = cx2; nodeY = cy2;
+    }
+  } else if (plane >= PLANE.DUNGEON_BASE) {
     const f = dungeonFloor(plane - PLANE.DUNGEON_BASE);
     if (Math.hypot(x - f.entrance.x, y - f.entrance.y) < 2 || Math.hypot(x - f.exit.x, y - f.exit.y) < 2) nodeType = 'dungeon_ladder';
   } else if (plane >= PLANE.HOUSE_BASE) {
@@ -278,12 +301,12 @@ function clickGround(e, menu) {
     return;
   }
   if (nodeType && !menu) {
-    send({ t: MSG.ACTION, x, y, seed: G.selectedSeed });
+    send({ t: MSG.ACTION, x: nodeX, y: nodeY, seed: G.selectedSeed });
     return;
   }
   if (menu) {
     const opts = [['🚶 Walk here', () => send({ t: MSG.MOVE, x, y, run: false })], ['🏃 Run here', () => send({ t: MSG.MOVE, x, y, run: true })]];
-    if (nodeType) opts.unshift([actionLabel(nodeType), () => send({ t: MSG.ACTION, x, y, seed: G.selectedSeed })]);
+    if (nodeType) opts.unshift([actionLabel(nodeType), () => send({ t: MSG.ACTION, x: nodeX, y: nodeY, seed: G.selectedSeed })]);
     ctxWithWalk(e, opts);
     return;
   }
@@ -321,9 +344,9 @@ function loop() {
   if (document.hidden) setTimeout(loop, 100);
   else requestAnimationFrame(loop);
   const now = performance.now();
-  // interpolate entities
+  // interpolate entities over each one's measured snapshot interval
   for (const e of G.entities.values()) {
-    const t = Math.min(1, (now - e.tUpd) / 100);
+    const t = Math.min(1, (now - e.tUpd) / (e.lerpMs || 100));
     e.rx = e.px + (e.tx - e.px) * t;
     e.ry = e.py + (e.ty - e.py) * t;
   }
