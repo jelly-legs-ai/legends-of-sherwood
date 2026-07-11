@@ -6,6 +6,9 @@ import { ITEMS } from '/shared/data/items.js';
 import { RECIPES, SPELLS, PRAYERS, ABILITIES, DUNGEON, FURNITURE } from '/shared/data/skills.js';
 import { QUESTS } from '/shared/data/quests.js';
 import { itemIcon } from './sprites.js';
+import { worldMapCanvas } from './renderer.js';
+import { TOWNS } from '/shared/data/world.js';
+import { REGIONS, WILDERNESS_Y } from '/shared/constants.js';
 
 const $ = (s) => document.querySelector(s);
 let G = null; // game state ref
@@ -412,6 +415,53 @@ export function openHouse(furniture) {
     leave.style.marginTop = '10px';
     leave.onclick = () => { G.net.send({ t: MSG.HOUSE, leave: 1 }); closeWin(); };
     body.appendChild(leave);
+  });
+}
+
+// ---------------- world map ----------------
+const REGION_LABELS = [
+  ['The Wild Lands ☠', 288, 48], ['Northmoor', 240, 170], ['The Grey Peaks', 490, 240],
+  ['Sherwood Forest', 290, 285], ['Barnsdale Meadows', 130, 300], ['The Fenwold', 465, 455],
+  ['Elderglade Wildwood', 270, 505],
+];
+export function openWorldMap() {
+  openWin('🌐 Map of Sherwood & the North', (body) => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;width:520px;margin:0 auto';
+    const c = document.createElement('canvas');
+    c.width = 520; c.height = 520;
+    c.style.cssText = 'width:520px;height:520px;border:2px solid #55431c;border-radius:6px;image-rendering:auto';
+    const g = c.getContext('2d');
+    const sc = 520 / 576;
+    g.drawImage(worldMapCanvas(), 0, 0, 576, 576, 0, 0, 520, 520);
+    // region names
+    g.font = 'italic 13px Georgia'; g.textAlign = 'center';
+    for (const [name, x, y] of REGION_LABELS) {
+      g.fillStyle = '#00000090'; g.fillText(name, x * sc + 1, y * sc + 1);
+      g.fillStyle = '#f4e9c8'; g.fillText(name, x * sc, y * sc);
+    }
+    // towns
+    g.font = 'bold 12px Georgia';
+    for (const t of Object.values(TOWNS)) {
+      g.fillStyle = '#ffd75e'; g.strokeStyle = '#000'; g.lineWidth = 1;
+      g.beginPath(); g.arc(t.cx * sc, t.cy * sc, 4, 0, 7); g.fill(); g.stroke();
+      g.fillStyle = '#00000090'; g.fillText(t.name, t.cx * sc + 1, t.cy * sc - 8 + 1);
+      g.fillStyle = '#ffe98a'; g.fillText(t.name, t.cx * sc, t.cy * sc - 8);
+    }
+    // player marker
+    if (G.self && G.self.plane === 0) {
+      const px = G.self.x * sc, py = G.self.y * sc;
+      g.fillStyle = '#ffffff'; g.strokeStyle = '#000';
+      g.beginPath(); g.arc(px, py, 5, 0, 7); g.fill(); g.stroke();
+      g.fillStyle = '#00000090'; g.fillText('You', px + 1, py - 9 + 1);
+      g.fillStyle = '#ffffff'; g.fillText('You', px, py - 9);
+    }
+    wrap.appendChild(c);
+    const note = document.createElement('div');
+    note.style.cssText = 'text-align:center;color:#b3a06d;font-size:12px;margin-top:6px';
+    note.textContent = 'North of the red line lies the Wild Lands — PvP is enabled and your $Shilling pouch is at risk.';
+    body.appendChild(wrap);
+    body.appendChild(note);
   });
 }
 

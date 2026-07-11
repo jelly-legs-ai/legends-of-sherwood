@@ -77,6 +77,7 @@ G.net.on(MSG.WELCOME, (m) => {
   $('#login').classList.add('hidden');
   $('#hud').classList.remove('hidden');
   UI.initUI(G);
+  $('#map-btn').onclick = () => UI.openWorldMap();
   UI.renderAbilities();
   UI.chatLine(`<span class="sys">Welcome to Sherwood, ${m.name}. Robin Hood awaits in Loxley — look for the ❗</span>`);
   UI.updateOrbs();
@@ -363,7 +364,7 @@ function loop() {
       R.ctx.beginPath(); R.ctx.ellipse(sx, sy, 16 * (1 - t) + 4, 8 * (1 - t) + 2, 0, 0, 7); R.ctx.stroke();
     }
     $('#zone-name').textContent = zoneName();
-    if (now - (G._mm || 0) > 500) { drawMinimap($('#minimap'), Object.assign(G.me, { plane: G.self.plane })); G._mm = now; }
+    if (now - (G._mm || 0) > 400) { drawMinimap($('#minimap'), Object.assign(G.me, { plane: G.self.plane }), G.entities); G._mm = now; }
     UI.tickCooldowns();
   }
 }

@@ -29,6 +29,28 @@ const WATERS = new Set([TILE.OCEAN, TILE.WATER, TILE.RIVER, TILE.WATER_SWAMP]);
 
 function hashXY(x, y) { let h = (x * 73856093) ^ (y * 19349663); h = (h ^ (h >> 13)) * 0x5bd1e995; return ((h ^ (h >> 15)) >>> 0) / 4294967296; }
 
+// Smooth value noise (bilinear over a 5-tile lattice): neighbouring tiles get
+// near-identical shades, so terrain reads as continuous ground, not a grid.
+function smoothNoise(x, y) {
+  const s = 5;
+  const gx = x / s, gy = y / s;
+  const x0 = Math.floor(gx), y0 = Math.floor(gy);
+  const tx = gx - x0, ty = gy - y0;
+  const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty);
+  const a = hashXY(x0, y0), b = hashXY(x0 + 1, y0), c = hashXY(x0, y0 + 1), d = hashXY(x0 + 1, y0 + 1);
+  return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
+}
+const _rgbCache = new Map();
+function hexRgb(h) {
+  let v = _rgbCache.get(h);
+  if (!v) { v = [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; _rgbCache.set(h, v); }
+  return v;
+}
+function mixColor(h1, h2, t) {
+  const a = hexRgb(h1), b = hexRgb(h2);
+  return `rgb(${(a[0] + (b[0] - a[0]) * t) | 0},${(a[1] + (b[1] - a[1]) * t) | 0},${(a[2] + (b[2] - a[2]) * t) | 0})`;
+}
+
 // ---- chunk cache -------------------------------------------------------------
 const CH = 16;
 const chunkCache = new Map(); // "plane:cx,cy" -> canvas
@@ -49,20 +71,19 @@ function chunkCanvas(plane, cx, cy) {
     const [lx, ly] = [(i - j) * TW / 2 + ox, (i + j) * TH / 2 + oy + TH / 2];
     const col = TILE_COLOR[t] || ['#f0f', '#a0a'];
     const shade = hashXY(x, y);
-    g.fillStyle = shade > 0.5 ? col[0] : col[1];
+    // smooth-noise blend — no per-tile checkerboard, terrain reads as one surface
+    g.fillStyle = mixColor(col[0], col[1], smoothNoise(x, y));
     g.beginPath();
-    g.moveTo(lx, ly - TH / 2); g.lineTo(lx + TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx - TW / 2, ly);
+    g.moveTo(lx, ly - TH / 2 - 0.5); g.lineTo(lx + TW / 2 + 0.5, ly); g.lineTo(lx, ly + TH / 2 + 0.5); g.lineTo(lx - TW / 2 - 0.5, ly);
     g.closePath(); g.fill();
-    // texture speckles
+    // sparse organic detail (flowers, grass blades, snow glints) — no grid pattern
     if (!WALLS.has(t)) {
-      g.fillStyle = '#00000012';
-      if (shade > 0.7) g.fillRect(lx - 8, ly - 2, 4, 2);
-      if (shade < 0.25) g.fillRect(lx + 4, ly + 3, 4, 2);
-      if ((t === TILE.GRASS || t === TILE.MEADOW || t === TILE.FOREST) && shade > 0.82) {
-        g.fillStyle = t === TILE.MEADOW ? (shade > 0.93 ? '#e8d44c' : '#d97fb8') : '#3c6427';
-        g.fillRect(lx - 2 + (shade * 20 | 0) - 10, ly - 2, 2, 3);
+      if ((t === TILE.GRASS || t === TILE.MEADOW || t === TILE.FOREST) && shade > 0.86) {
+        g.fillStyle = t === TILE.MEADOW && shade > 0.94 ? '#e8d44c' : t === TILE.MEADOW && shade > 0.9 ? '#d97fb8' : '#00000014';
+        const ox2 = (hashXY(y, x) - 0.5) * 30, oy2 = (shade - 0.9) * 60;
+        g.fillRect(lx + ox2, ly + oy2 - 2, 2, 3);
       }
-      if (t === TILE.SNOW && shade > 0.8) { g.fillStyle = '#ffffff'; g.fillRect(lx - 4, ly, 3, 2); }
+      if (t === TILE.SNOW && shade > 0.88) { g.fillStyle = '#ffffffcc'; g.fillRect(lx + (hashXY(y, x) - 0.5) * 26, ly, 2, 2); }
       if (t === TILE.FARM) { g.fillStyle = '#00000018'; for (let r = -1; r <= 1; r++) g.fillRect(lx - 16, ly + r * 6 - 1, 32, 2); }
     }
     // dungeon rock: flat dark tile (no tall prism, so corridors stay readable)
@@ -267,6 +288,7 @@ export class Renderer {
     const animInfo = ANIMS[e.anim] || ANIMS.idle;
     let frame = 0;
     if (e.anim === 'walk') frame = Math.floor(now / animInfo.ms) % animInfo.frames;
+    else if (e.anim === 'idle') frame = Math.floor((now + e.id * 217) / animInfo.ms) % animInfo.frames; // desynced breathing
     else if (animInfo.once) {
       const el = now - (e.animStart || now);
       frame = Math.min(animInfo.frames - 1, Math.floor(el / animInfo.ms));
@@ -337,32 +359,112 @@ export class Renderer {
   }
 }
 
-// ---- minimap --------------------------------------------------------------------
-export function drawMinimap(canvas, me) {
+// ---- minimap: live local view (~50 tile range) -----------------------------------
+// Top-down render of the player's actual surroundings: real terrain colours,
+// tree canopies with trunks, ore rocks, water, stations, and living entities.
+const MM_RANGE = 50; // tiles of visibility in each direction
+export function drawMinimap(canvas, me, entities) {
   const g = canvas.getContext('2d');
   const S = canvas.width;
-  if (!canvas._base) {
-    const base = document.createElement('canvas');
-    base.width = S; base.height = S;
-    const bg = base.getContext('2d');
-    const { tiles } = computeWorld();
-    const step = WORLD.W / S;
-    for (let py = 0; py < S; py++) for (let px2 = 0; px2 < S; px2++) {
-      const t = tiles[(py * step | 0) * WORLD.W + (px2 * step | 0)];
-      bg.fillStyle = (TILE_COLOR[t] || ['#f0f'])[0];
-      bg.fillRect(px2, py, 1, 1);
+  const sc = S / (MM_RANGE * 2 + 1);
+  g.fillStyle = '#0a0d08';
+  g.fillRect(0, 0, S, S);
+  if (!me) return;
+  const plane = me.plane ?? 0;
+  const cx = Math.round(me.rx), cy = Math.round(me.ry);
+  const { nodes } = computeWorld();
+  // terrain
+  for (let dy = -MM_RANGE; dy <= MM_RANGE; dy++) {
+    for (let dx = -MM_RANGE; dx <= MM_RANGE; dx++) {
+      const t = tileAtPlane(plane, cx + dx, cy + dy);
+      const col = TILE_COLOR[t];
+      if (!col) continue;
+      g.fillStyle = mixColor(col[0], col[1], smoothNoise(cx + dx, cy + dy));
+      g.fillRect((dx + MM_RANGE) * sc, (dy + MM_RANGE) * sc, sc + 0.5, sc + 0.5);
     }
-    // wilderness line
-    bg.strokeStyle = '#ff5544aa';
-    bg.beginPath(); bg.moveTo(0, WILDERNESS_Y / step); bg.lineTo(S, WILDERNESS_Y / step); bg.stroke();
-    canvas._base = base;
   }
-  g.drawImage(canvas._base, 0, 0);
-  if (me && me.plane === 0) {
-    const step = WORLD.W / S;
-    g.fillStyle = '#ffffff';
-    g.beginPath(); g.arc(me.rx / step, me.ry / step, 3, 0, 7); g.fill();
-    g.strokeStyle = '#000'; g.stroke();
+  // scenery: trees as canopy dots with trunks, rocks as grey chips with ore tint
+  if (plane === 0) {
+    for (let dy = -MM_RANGE; dy <= MM_RANGE; dy++) {
+      for (let dx = -MM_RANGE; dx <= MM_RANGE; dx++) {
+        const type = nodes.get((cx + dx) + ',' + (cy + dy));
+        if (!type) continue;
+        const px2 = (dx + MM_RANGE) * sc, py2 = (dy + MM_RANGE) * sc;
+        if (type.includes('tree')) {
+          g.fillStyle = '#4a3423';
+          g.fillRect(px2 + sc * 0.35, py2 + sc * 0.4, 1, 1.6);
+          g.fillStyle = type === 'frostpine_tree' ? '#9fc4b8' : type === 'maple_tree' ? '#b07a34' : '#2f5c22';
+          g.beginPath(); g.arc(px2 + sc / 2, py2 + sc / 2 - 0.5, sc * 0.85, 0, 7); g.fill();
+          g.fillStyle = '#ffffff22';
+          g.beginPath(); g.arc(px2 + sc / 2 - 0.6, py2 + sc / 2 - 1, sc * 0.4, 0, 7); g.fill();
+        } else if (type.includes('rock') || type === 'coal_rock') {
+          g.fillStyle = '#6e6a62';
+          g.fillRect(px2 - 0.5, py2 - 0.5, sc + 1, sc + 1);
+          g.fillStyle = { copper_rock: '#b87333', tin_rock: '#a8a8b0', iron_rock: '#8a6a5a', coal_rock: '#33333a', silver_rock: '#cfd4dc', gold_rock: '#e0b93c', sylvanite_rock: '#7fe07f', essence_rock: '#b09fe0' }[type] || '#888';
+          g.fillRect(px2 + sc * 0.25, py2 + sc * 0.25, sc * 0.5, sc * 0.5);
+        } else if (/spot/.test(type)) {
+          g.fillStyle = '#bfe8f8';
+          g.beginPath(); g.arc(px2 + sc / 2, py2 + sc / 2, sc * 0.4, 0, 7); g.fill();
+        } else { // stations, altars, stalls — points of interest
+          g.fillStyle = '#ffd75e';
+          g.fillRect(px2, py2, sc, sc);
+        }
+      }
+    }
   }
+  // living entities
+  if (entities) {
+    for (const e of entities.values()) {
+      const dx = e.rx - me.rx, dy = e.ry - me.ry;
+      if (Math.abs(dx) > MM_RANGE || Math.abs(dy) > MM_RANGE) continue;
+      const px2 = (dx + MM_RANGE + 0.5) * sc, py2 = (dy + MM_RANGE + 0.5) * sc;
+      if (e.k === 'mob') g.fillStyle = e.boss ? '#ff4444' : '#e08080';
+      else if (e.k === 'npc') g.fillStyle = '#ffe98a';
+      else if (e.k === 'player' && e.id !== me.id) g.fillStyle = '#8ac4ff';
+      else continue;
+      g.beginPath(); g.arc(px2, py2, e.boss ? 3 : 2, 0, 7); g.fill();
+    }
+  }
+  // the player: white arrow showing facing
+  const c2 = S / 2;
+  const ang = [ -Math.PI / 2, Math.PI, Math.PI / 2, 0 ][me.dir ?? 2];
+  g.save();
+  g.translate(c2, c2); g.rotate(ang);
+  g.fillStyle = '#ffffff'; g.strokeStyle = '#000'; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(5, 0); g.lineTo(-4, -3.5); g.lineTo(-2, 0); g.lineTo(-4, 3.5); g.closePath();
+  g.fill(); g.stroke();
+  g.restore();
+  // compass
+  g.fillStyle = '#ffffffcc'; g.font = 'bold 10px Georgia'; g.textAlign = 'center';
+  g.fillText('N', S / 2, 11);
 }
-export { TILE_COLOR };
+
+// ---- world map (globe button) ------------------------------------------------------
+let _worldMapBase = null;
+export function worldMapCanvas() {
+  if (_worldMapBase) return _worldMapBase;
+  const S = 576;
+  const base = document.createElement('canvas');
+  base.width = S; base.height = S;
+  const bg = base.getContext('2d');
+  const { tiles, nodes } = computeWorld();
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const col = TILE_COLOR[tiles[y * WORLD.W + x]] || ['#f0f', '#a0a'];
+    bg.fillStyle = mixColor(col[0], col[1], smoothNoise(x, y));
+    bg.fillRect(x, y, 1, 1);
+  }
+  // forests read as texture at this scale
+  bg.fillStyle = '#2f5c22aa';
+  for (const [k, type] of nodes) {
+    if (!type.includes('tree')) continue;
+    const [x, y] = k.split(',').map(Number);
+    bg.fillRect(x, y, 1.5, 1.5);
+  }
+  // wilderness border
+  bg.strokeStyle = '#ff5544cc'; bg.setLineDash([6, 4]);
+  bg.beginPath(); bg.moveTo(0, WILDERNESS_Y); bg.lineTo(S, WILDERNESS_Y); bg.stroke();
+  bg.setLineDash([]);
+  _worldMapBase = base;
+  return base;
+}
+export { TILE_COLOR, MM_RANGE };

@@ -6,6 +6,7 @@
 // 2) Procedural pixel art for beasts, gather nodes, stations and items.
 
 export const FRAME = 64;
+export const SHEET_ROWS = 26; // rows 0-20 classic + 21 climb (unused) + 22-25 idle
 export const ANIMS = {
   spellcast: { row: 0, frames: 7, ms: 90, once: true },
   thrust: { row: 4, frames: 8, ms: 90, once: true },
@@ -13,7 +14,7 @@ export const ANIMS = {
   slash: { row: 12, frames: 6, ms: 90, once: true },
   shoot: { row: 16, frames: 13, ms: 60, once: true },
   hurt: { row: 20, frames: 6, ms: 110, once: true, nodir: true },
-  idle: { row: 8, frames: 1, ms: 999 },
+  idle: { row: 22, frames: 2, ms: 650 }, // gentle breathing (LPC expanded rows 22-25)
 };
 
 let manifest = null;
@@ -49,7 +50,7 @@ export function composite(vis) {
   let c = composites.get(key);
   if (c) return c;
   c = { canvas: document.createElement('canvas'), ready: false, oversize: null };
-  c.canvas.width = 832; c.canvas.height = 1344;
+  c.canvas.width = 832; c.canvas.height = SHEET_ROWS * FRAME;
   composites.set(key, c);
 
   const sex = vis.sex || 'male';
@@ -74,11 +75,22 @@ export function composite(vis) {
   const files = layers.filter(Boolean);
   let pending = files.length;
   const ctx = c.canvas.getContext('2d');
+  const H = SHEET_ROWS * FRAME;
   const drawAll = () => {
-    ctx.clearRect(0, 0, 832, 1344);
+    ctx.clearRect(0, 0, 832, H);
     for (const f of files) {
       const im = img(f);
-      if (im.complete && im.naturalWidth) ctx.drawImage(im, 0, 0, 832, Math.min(1344, im.naturalHeight), 0, 0, 832, Math.min(1344, im.naturalHeight));
+      if (!im.complete || !im.naturalWidth) continue;
+      const h = Math.min(H, im.naturalHeight);
+      ctx.drawImage(im, 0, 0, 832, h, 0, 0, 832, h);
+      // Legacy 21-row sheets (bows, staves, quivers, tools) have no idle rows —
+      // synthesize idle art from their walk frame 0 so held items never vanish
+      // while standing, and layer order is preserved.
+      if (im.naturalHeight <= 21 * FRAME + 8) {
+        for (let d = 0; d < 4; d++)
+          for (let f2 = 0; f2 < 2; f2++)
+            ctx.drawImage(im, 0, (8 + d) * FRAME, FRAME, FRAME, f2 * FRAME, (22 + d) * FRAME, FRAME, FRAME);
+      }
     }
     c.ready = true;
   };
@@ -120,7 +132,7 @@ export function drawOversize(ctx, comp, vis, anim, dir, frame, sx, sy, scale = 1
   if (!comp.oversize) return;
   let set = comp.oversize[anim];
   let f = frame;
-  if (!set && anim === 'idle' && comp.oversize.walk) { set = comp.oversize.walk; f = 0; } // idle = walk frame 0
+  if (!set && anim === 'idle' && comp.oversize.walk) { set = comp.oversize.walk; f = 0; } // held at rest
   if (!set) return;
   const color = (vis.weapon && vis.weapon[1]) || 'steel';
   for (const part of ['bg', 'fg']) {
@@ -394,27 +406,66 @@ const ROCK_STYLE = {
 export function nodeSprite(type, off = false) {
   const key = `nd:${type}:${off ? 1 : 0}`;
   return proc(key, 64, 80, (g) => {
+    // soft ground shadow under every node
+    g.fillStyle = '#00000030';
+    g.beginPath(); g.ellipse(32, 68, 15, 5, 0, 0, 7); g.fill();
     if (TREE_STYLE[type]) {
       const [lite, dark, r] = TREE_STYLE[type];
-      if (off) { // stump
-        px(g, 28, 60, 9, 8, '#7a5f3c'); px(g, 27, 58, 11, 4, '#a8895c');
+      if (off) { // fresh stump with rings
+        g.fillStyle = '#5a442c'; g.beginPath(); g.ellipse(32, 64, 8, 5, 0, 0, 7); g.fill();
+        px(g, 24, 58, 16, 7, '#6e522f');
+        g.fillStyle = '#c9ac7c'; g.beginPath(); g.ellipse(32, 58, 8, 5, 0, 0, 7); g.fill();
+        g.strokeStyle = '#9a7c50'; g.lineWidth = 1;
+        g.beginPath(); g.ellipse(32, 58, 5, 3, 0, 0, 7); g.stroke();
+        g.beginPath(); g.ellipse(32, 58, 2.4, 1.4, 0, 0, 7); g.stroke();
         return;
       }
-      px(g, 29, 44, 7, 26, '#6e522f');
+      // tapered trunk with root flare + bark shading
+      g.fillStyle = '#4a3520';
+      g.beginPath(); g.moveTo(28, 42); g.lineTo(26, 66); g.lineTo(22, 68); g.lineTo(43, 68); g.lineTo(38, 66); g.lineTo(36, 42); g.closePath(); g.fill();
+      g.fillStyle = '#6e522f'; g.beginPath(); g.moveTo(29, 42); g.lineTo(28, 67); g.lineTo(33, 67); g.lineTo(32, 42); g.closePath(); g.fill();
       if (type === 'frostpine_tree') {
-        g.fillStyle = dark;
-        for (let i = 0; i < 3; i++) { g.beginPath(); g.moveTo(32, 4 + i * 12); g.lineTo(16 + i * 2, 30 + i * 11); g.lineTo(48 - i * 2, 30 + i * 11); g.fill(); }
-        g.fillStyle = lite; g.beginPath(); g.moveTo(32, 2); g.lineTo(22, 22); g.lineTo(42, 22); g.fill();
+        for (let i = 2; i >= 0; i--) {
+          const y0 = 8 + i * 13, w = 13 + i * 5;
+          g.fillStyle = '#24401f'; g.beginPath(); g.moveTo(32, y0 - 2); g.lineTo(32 - w - 1, y0 + 25); g.lineTo(32 + w + 1, y0 + 25); g.closePath(); g.fill();
+          g.fillStyle = dark; g.beginPath(); g.moveTo(32, y0); g.lineTo(32 - w, y0 + 23); g.lineTo(32 + w, y0 + 23); g.closePath(); g.fill();
+          g.fillStyle = lite; g.beginPath(); g.moveTo(32, y0); g.lineTo(32 - w * 0.55, y0 + 14); g.lineTo(32 + w * 0.2, y0 + 14); g.closePath(); g.fill();
+        }
       } else {
-        g.fillStyle = dark; g.beginPath(); g.arc(32, 30, r, 0, 7); g.fill();
-        g.fillStyle = lite; g.beginPath(); g.arc(28, 25, r * 0.72, 0, 7); g.fill();
-        if (type === 'oak_tree') { g.fillStyle = dark; g.beginPath(); g.arc(42, 26, r * 0.5, 0, 7); g.fill(); }
+        // layered canopy: dark outline ring, mid body, clustered highlights
+        const blobs = [[32, 28, r], [32 - r * 0.55, 33, r * 0.62], [32 + r * 0.58, 32, r * 0.6]];
+        g.fillStyle = '#1e3315';
+        for (const [bx, by, br] of blobs) { g.beginPath(); g.arc(bx, by, br + 1.5, 0, 7); g.fill(); }
+        g.fillStyle = dark;
+        for (const [bx, by, br] of blobs) { g.beginPath(); g.arc(bx, by, br, 0, 7); g.fill(); }
+        g.fillStyle = lite;
+        g.beginPath(); g.arc(28, 24, r * 0.62, 0, 7); g.fill();
+        g.beginPath(); g.arc(32 + r * 0.45, 29, r * 0.34, 0, 7); g.fill();
+        g.fillStyle = '#ffffff22';
+        g.beginPath(); g.arc(26, 21, r * 0.3, 0, 7); g.fill();
+        if (type === 'maple_tree') { g.fillStyle = '#e0a04c55'; g.beginPath(); g.arc(36, 26, r * 0.5, 0, 7); g.fill(); }
       }
     } else if (ROCK_STYLE[type]) {
       const col = ROCK_STYLE[type];
-      g.fillStyle = off ? '#55504a' : '#6e6a62';
-      g.beginPath(); g.moveTo(12, 68); g.lineTo(20, 48); g.lineTo(34, 42); g.lineTo(50, 50); g.lineTo(54, 68); g.fill();
-      if (!off) { g.fillStyle = col; px(g, 24, 52, 5, 4, col); px(g, 36, 50, 6, 5, col); px(g, 30, 60, 4, 4, col); g.shadowColor = col; g.shadowBlur = 4; px(g, 42, 58, 4, 3, col); g.shadowBlur = 0; }
+      // faceted boulder: outline, lit top facet, shaded base
+      g.fillStyle = '#3c3830';
+      g.beginPath(); g.moveTo(10, 68); g.lineTo(17, 47); g.lineTo(33, 40); g.lineTo(51, 49); g.lineTo(56, 68); g.closePath(); g.fill();
+      g.fillStyle = off ? '#55504a' : '#7a766c';
+      g.beginPath(); g.moveTo(12, 66); g.lineTo(19, 48); g.lineTo(33, 42); g.lineTo(49, 50); g.lineTo(54, 66); g.closePath(); g.fill();
+      g.fillStyle = off ? '#615c54' : '#8f8a7e';
+      g.beginPath(); g.moveTo(19, 48); g.lineTo(33, 42); g.lineTo(44, 47); g.lineTo(30, 54); g.closePath(); g.fill();
+      g.fillStyle = '#00000022';
+      g.beginPath(); g.moveTo(30, 54); g.lineTo(44, 47); g.lineTo(54, 66); g.lineTo(34, 66); g.closePath(); g.fill();
+      if (!off) {
+        // ore crystals with glint
+        g.shadowColor = col; g.shadowBlur = 5;
+        for (const [ox, oy, s2] of [[25, 53, 5], [37, 50, 6], [31, 60, 4], [44, 58, 4]]) {
+          g.fillStyle = col;
+          g.beginPath(); g.moveTo(ox, oy - s2 / 2); g.lineTo(ox + s2 / 2, oy); g.lineTo(ox, oy + s2 / 2); g.lineTo(ox - s2 / 2, oy); g.closePath(); g.fill();
+        }
+        g.shadowBlur = 0;
+        g.fillStyle = '#ffffff88'; px(g, 36, 48, 2, 2, '#ffffff88');
+      }
     } else switch (type) {
       case 'net_spot': case 'rod_spot': case 'harpoon_spot': {
         g.strokeStyle = '#bfe8f8'; g.lineWidth = 2;
@@ -423,12 +474,64 @@ export function nodeSprite(type, off = false) {
         px(g, 30, 60, 3, 3, '#e8f6fc');
         break;
       }
-      case 'bank_booth': { px(g, 14, 44, 36, 22, '#6b5322'); px(g, 16, 40, 32, 6, '#8a6d1d'); px(g, 20, 50, 24, 4, '#ffd75e'); break; }
-      case 'ge_booth': { px(g, 10, 40, 44, 28, '#55431c'); px(g, 12, 34, 40, 8, '#d8a827'); px(g, 18, 48, 12, 10, '#ffe98a'); px(g, 34, 48, 12, 10, '#ffe98a'); break; }
-      case 'anvil': { px(g, 22, 56, 22, 6, '#3a3a3e'); px(g, 26, 50, 12, 7, '#52525c'); px(g, 18, 48, 10, 4, '#52525c'); break; }
-      case 'furnace': { px(g, 18, 38, 28, 30, '#7a6a5c'); px(g, 26, 52, 12, 14, '#2a1c10'); px(g, 28, 56, 8, 9, off ? '#402a14' : '#ff7a2a'); break; }
-      case 'range': { px(g, 18, 46, 28, 20, '#5c5650'); px(g, 22, 50, 20, 6, '#ff8c3a'); px(g, 20, 42, 6, 6, '#3a3a3e'); break; }
-      case 'campfire': { px(g, 22, 62, 20, 5, '#6e522f'); g.fillStyle = '#ff9b2a'; g.beginPath(); g.moveTo(32, 42); g.lineTo(24, 62); g.lineTo(40, 62); g.fill(); g.fillStyle = '#ffe27a'; g.beginPath(); g.moveTo(32, 50); g.lineTo(28, 62); g.lineTo(37, 62); g.fill(); break; }
+      case 'bank_booth': {
+        px(g, 13, 43, 38, 24, '#3c2c12'); px(g, 15, 45, 34, 20, '#6b5322');
+        px(g, 12, 38, 40, 7, '#8a6d1d'); px(g, 12, 38, 40, 2, '#b8963c');
+        px(g, 19, 50, 26, 5, '#3c2c12');
+        g.fillStyle = '#ffd75e'; g.beginPath(); g.arc(27, 52, 3, 0, 7); g.fill(); g.beginPath(); g.arc(35, 52, 3, 0, 7); g.fill();
+        g.fillStyle = '#ffe98a'; g.beginPath(); g.arc(31, 50, 3, 0, 7); g.fill();
+        break;
+      }
+      case 'ge_booth': {
+        px(g, 9, 39, 46, 30, '#3c2c12'); px(g, 11, 41, 42, 26, '#55431c');
+        px(g, 9, 32, 46, 9, '#d8a827'); px(g, 9, 32, 46, 3, '#ffe27a');
+        for (let i = 0; i < 5; i++) px(g, 11 + i * 9, 35, 5, 6, i % 2 ? '#b8871c' : '#d8a827');
+        px(g, 17, 47, 13, 11, '#2c2210'); px(g, 34, 47, 13, 11, '#2c2210');
+        px(g, 18, 48, 11, 9, '#ffe98a'); px(g, 35, 48, 11, 9, '#ffe98a');
+        g.fillStyle = '#8a6d1d'; g.font = 'bold 8px Georgia'; g.textAlign = 'center'; g.fillText('£', 23.5, 55); g.fillText('⚖', 40.5, 55);
+        break;
+      }
+      case 'anvil': {
+        px(g, 20, 62, 26, 5, '#26262c');
+        px(g, 27, 55, 12, 8, '#33333a');
+        g.fillStyle = '#4c4c56'; g.beginPath(); g.moveTo(16, 48); g.lineTo(46, 48); g.lineTo(44, 54); g.lineTo(38, 56); g.lineTo(28, 56); g.lineTo(24, 52); g.lineTo(16, 52); g.closePath(); g.fill();
+        g.fillStyle = '#6e6e7a'; g.beginPath(); g.moveTo(16, 48); g.lineTo(46, 48); g.lineTo(45, 50); g.lineTo(16, 50); g.closePath(); g.fill();
+        px(g, 44, 46, 6, 3, '#4c4c56');
+        break;
+      }
+      case 'furnace': {
+        px(g, 16, 34, 32, 34, '#4a4038'); px(g, 18, 36, 28, 30, '#7a6a5c');
+        px(g, 18, 36, 28, 4, '#948274'); px(g, 20, 30, 8, 8, '#5c5048');
+        g.fillStyle = '#2a1c10'; g.beginPath(); g.arc(32, 60, 9, Math.PI, 0); g.fill(); px(g, 23, 60, 18, 7, '#2a1c10');
+        if (!off) {
+          g.shadowColor = '#ff7a2a'; g.shadowBlur = 8;
+          g.fillStyle = '#ff7a2a'; g.beginPath(); g.arc(32, 61, 6, Math.PI, 0); g.fill(); px(g, 26, 61, 12, 5, '#ff7a2a');
+          g.fillStyle = '#ffd75e'; g.beginPath(); g.arc(32, 62, 3, Math.PI, 0); g.fill();
+          g.shadowBlur = 0;
+        }
+        break;
+      }
+      case 'range': {
+        px(g, 16, 44, 32, 24, '#3a3632'); px(g, 18, 46, 28, 20, '#5c5650');
+        px(g, 18, 46, 28, 3, '#6e6862');
+        px(g, 21, 52, 22, 8, '#2a1c10');
+        if (!off) { g.shadowColor = '#ff8c3a'; g.shadowBlur = 6; px(g, 23, 54, 18, 4, '#ff8c3a'); px(g, 27, 53, 6, 6, '#ffd75e'); g.shadowBlur = 0; }
+        px(g, 20, 38, 6, 8, '#3a3632');
+        break;
+      }
+      case 'campfire': {
+        // log ring + layered flame with glow
+        g.fillStyle = '#5a442c';
+        for (const [lx2, ly2, rot] of [[24, 63, 0.4], [40, 63, -0.4], [32, 66, 0]]) {
+          g.save(); g.translate(lx2, ly2); g.rotate(rot); g.fillRect(-8, -2, 16, 4); g.restore();
+        }
+        g.shadowColor = '#ff9b2a'; g.shadowBlur = 10;
+        g.fillStyle = '#e05a1c'; g.beginPath(); g.moveTo(32, 40); g.quadraticCurveTo(24, 52, 26, 60); g.lineTo(38, 60); g.quadraticCurveTo(41, 50, 32, 40); g.fill();
+        g.fillStyle = '#ff9b2a'; g.beginPath(); g.moveTo(32, 46); g.quadraticCurveTo(27, 54, 29, 60); g.lineTo(36, 60); g.quadraticCurveTo(38, 52, 32, 46); g.fill();
+        g.fillStyle = '#ffe27a'; g.beginPath(); g.moveTo(32, 52); g.quadraticCurveTo(30, 56, 31, 60); g.lineTo(34, 60); g.quadraticCurveTo(35, 55, 32, 52); g.fill();
+        g.shadowBlur = 0;
+        break;
+      }
       case 'chapel_altar': { px(g, 20, 46, 24, 20, '#b9b3a4'); px(g, 16, 42, 32, 6, '#d5cfc0'); px(g, 30, 30, 4, 14, '#d5cfc0'); px(g, 26, 34, 12, 4, '#d5cfc0'); break; }
       case 'air_altar': case 'earth_altar': case 'water_altar': case 'fire_altar': case 'nature_altar': case 'cosmic_altar': case 'blood_altar': {
         const cols = { air: '#cfe8f8', earth: '#b08a4c', water: '#4c8ab0', fire: '#e06a2a', nature: '#5aa03c', cosmic: '#b07fe0', blood: '#c03a3a' };
@@ -469,57 +572,6 @@ export function nodeSprite(type, off = false) {
   });
 }
 
-// ---- item icons ---------------------------------------------------------------
-import { ITEMS } from '/shared/data/items.js';
-export function itemIcon(id) {
-  const key = `it:${id}`;
-  return proc(key, 32, 32, (g) => {
-    const def = ITEMS[id] || {};
-    const name = id;
-    const metal = { copper: '#b87333', bronze: '#a97142', iron: '#9a9aa4', steel: '#c8ccd4', damasked: '#c9a23c', silversteel: '#e0e4ec', sylvan: '#e0b93c' };
-    const m = Object.keys(metal).find(k => name.startsWith(k));
-    const col = m ? metal[m] : '#c8b48a';
-    if (name.includes('sword') || name.includes('dagger') || name.includes('blade')) {
-      px(g, 14, 4, 4, 16, col); px(g, 10, 20, 12, 3, '#6b5322'); px(g, 14, 23, 4, 6, '#6b5322');
-    } else if (name.includes('spear')) { px(g, 15, 2, 3, 24, '#8a6d4c'); g.fillStyle = col; g.beginPath(); g.moveTo(16, 0); g.lineTo(11, 8); g.lineTo(21, 8); g.fill(); }
-    else if (name.includes('pickaxe')) { px(g, 15, 8, 3, 20, '#8a6d4c'); px(g, 6, 6, 20, 4, col); }
-    else if (name.includes('hatchet')) { px(g, 15, 8, 3, 20, '#8a6d4c'); px(g, 16, 4, 9, 8, col); }
-    else if (name.includes('bow')) { g.strokeStyle = '#8a6d4c'; g.lineWidth = 3; g.beginPath(); g.arc(10, 16, 12, -1.2, 1.2); g.stroke(); g.strokeStyle = '#e8dcc0'; g.lineWidth = 1; g.beginPath(); g.moveTo(14, 5); g.lineTo(14, 27); g.stroke(); }
-    else if (name.includes('arrow') && !name.includes('shafts') && !name.includes('headless')) { px(g, 8, 15, 18, 2, '#8a6d4c'); g.fillStyle = col; g.beginPath(); g.moveTo(30, 16); g.lineTo(24, 12); g.lineTo(24, 20); g.fill(); px(g, 5, 13, 4, 6, '#c8d4e0'); }
-    else if (name.includes('staff')) { px(g, 14, 4, 4, 24, '#8a6d4c'); g.fillStyle = '#9fd8ef'; g.beginPath(); g.arc(16, 5, 4, 0, 7); g.fill(); }
-    else if (name.includes('rune')) { px(g, 8, 8, 16, 16, '#d5cfc0'); g.fillStyle = { air: '#9ad2e8', earth: '#b08a4c', water: '#4c8ab0', fire: '#e06a2a', nature: '#5aa03c', cosmic: '#b07fe0', blood: '#c03a3a' }[name.split('_')[0]] || '#888'; px(g, 12, 12, 8, 8, g.fillStyle); }
-    else if (name.includes('helm') || name.includes('coif') || name.includes('hood')) { g.fillStyle = col; g.beginPath(); g.arc(16, 16, 10, Math.PI, 0); g.fill(); px(g, 6, 16, 20, 4, col); }
-    else if (name.includes('platebody') || name.includes('body') || name.includes('tunic') || name.includes('shirt') || name.includes('robe_top') || name.includes('vestment')) { px(g, 8, 8, 16, 16, col); px(g, 4, 8, 5, 10, col); px(g, 23, 8, 5, 10, col); }
-    else if (name.includes('legs') || name.includes('chaps') || name.includes('skirt') || name.includes('trousers')) { px(g, 10, 6, 12, 8, col); px(g, 10, 14, 5, 12, col); px(g, 17, 14, 5, 12, col); }
-    else if (name.includes('boots')) { px(g, 8, 14, 7, 12, col); px(g, 18, 14, 7, 12, col); px(g, 8, 24, 10, 4, col); }
-    else if (name.includes('gauntlet') || name.includes('glove')) { px(g, 10, 8, 12, 14, col); px(g, 8, 12, 4, 8, col); }
-    else if (name.includes('shield')) { g.fillStyle = col; g.beginPath(); g.moveTo(16, 4); g.lineTo(26, 8); g.lineTo(24, 20); g.lineTo(16, 28); g.lineTo(8, 20); g.lineTo(6, 8); g.fill(); }
-    else if (name.includes('amulet')) { g.strokeStyle = '#e0b93c'; g.lineWidth = 2; g.beginPath(); g.arc(16, 12, 8, 0, 7); g.stroke(); px(g, 13, 18, 6, 8, name.includes('sapphire') ? '#3c6ee0' : name.includes('emerald') ? '#3ca03c' : name.includes('ruby') ? '#c03a3a' : name.includes('diamond') ? '#e8f4fc' : '#e0b93c'); }
-    else if (name.includes('ore')) { g.fillStyle = '#6e6a62'; g.beginPath(); g.arc(16, 18, 10, 0, 7); g.fill(); px(g, 12, 14, 4, 4, ROCK_STYLE[name.replace('_ore', '_rock')] || '#c8b48a'); px(g, 18, 20, 4, 4, ROCK_STYLE[name.replace('_ore', '_rock')] || '#c8b48a'); }
-    else if (name === 'coal') { g.fillStyle = '#2c2c30'; g.beginPath(); g.arc(16, 18, 9, 0, 7); g.fill(); }
-    else if (name.includes('bar')) { px(g, 6, 12, 20, 9, col); px(g, 6, 12, 20, 3, '#ffffff30'); }
-    else if (name.includes('logs')) { px(g, 6, 14, 20, 7, '#8a6d4c'); px(g, 24, 12, 6, 11, '#a8895c'); }
-    else if (name.startsWith('raw_')) { px(g, 8, 12, 16, 8, '#9ab8c8'); g.fillStyle = '#9ab8c8'; g.beginPath(); g.moveTo(24, 16); g.lineTo(30, 10); g.lineTo(30, 22); g.fill(); px(g, 11, 14, 2, 2, '#111'); }
-    else if (name.startsWith('cooked_') || name === 'venison') { px(g, 8, 12, 16, 8, '#d8935a'); g.fillStyle = '#d8935a'; g.beginPath(); g.moveTo(24, 16); g.lineTo(30, 10); g.lineTo(30, 22); g.fill(); }
-    else if (name.startsWith('burnt_')) { px(g, 8, 12, 16, 8, '#333'); }
-    else if (name === 'bread') { g.fillStyle = '#d8a85a'; g.beginPath(); g.ellipse(16, 16, 11, 7, 0, 0, 7); g.fill(); px(g, 10, 13, 12, 2, '#e8cc8a'); }
-    else if (name.includes('stew')) { px(g, 8, 14, 16, 10, '#8a6d4c'); px(g, 10, 12, 12, 4, '#b06a3c'); }
-    else if (name.includes('potion') || name.includes('elixir') || name.includes('restore') || name === 'vial_water') {
-      g.fillStyle = name === 'vial_water' ? '#9ad2e8' : name.includes('attack') ? '#e06a2a' : name.includes('strength') ? '#c03a3a' : name.includes('defence') ? '#4c8ab0' : name.includes('rang') ? '#5aa03c' : name.includes('magic') ? '#b07fe0' : name.includes('prayer') ? '#9ad2e8' : '#e0b93c';
-      px(g, 12, 12, 8, 14, g.fillStyle); px(g, 13, 8, 6, 5, '#c8d4dc'); px(g, 14, 6, 4, 3, '#8a6d4c');
-    } else if (name.startsWith('grimy_')) { px(g, 10, 10, 12, 12, '#4a5a3a'); px(g, 13, 13, 6, 6, '#3a4a2c'); }
-    else if (name.startsWith('clean_')) { g.fillStyle = '#5aa03c'; g.beginPath(); g.ellipse(16, 16, 5, 10, 0.6, 0, 7); g.fill(); }
-    else if (name.includes('seed')) { g.fillStyle = '#b08a4c'; for (let i = 0; i < 5; i++) px(g, 10 + (i % 3) * 5, 12 + ((i / 3) | 0) * 6, 3, 4, '#b08a4c'); }
-    else if (name.includes('bones')) { px(g, 8, 14, 16, 4, '#e8e0d0'); g.fillStyle = '#e8e0d0'; g.beginPath(); g.arc(8, 16, 4, 0, 7); g.arc(24, 16, 4, 0, 7); g.fill(); }
-    else if (name.includes('fur') || name.includes('pelt') || name.includes('hide') || name.includes('leather')) { g.fillStyle = name.includes('wolf') ? '#6a6d75' : name.includes('fox') ? '#c86a2a' : '#a8814f'; g.beginPath(); g.moveTo(8, 8); g.lineTo(24, 8); g.lineTo(26, 24); g.lineTo(16, 28); g.lineTo(6, 24); g.fill(); }
-    else if (name === 'coins') { g.fillStyle = '#d8a827'; g.beginPath(); g.arc(12, 18, 7, 0, 7); g.fill(); g.beginPath(); g.arc(20, 14, 7, 0, 7); g.fill(); g.fillStyle = '#ffe98a'; g.beginPath(); g.arc(20, 14, 4, 0, 7); g.fill(); }
-    else if (name.includes('charm')) { g.fillStyle = { verdant_charm: '#5aa03c', amber_charm: '#e0b93c', cobalt_charm: '#3c6ee0', crimson_charm: '#c03a3a' }[name] || '#888'; g.beginPath(); g.moveTo(16, 4); g.lineTo(26, 16); g.lineTo(16, 28); g.lineTo(6, 16); g.fill(); }
-    else if (name.includes('pouch')) { px(g, 8, 10, 16, 16, '#8a6d4c'); px(g, 12, 6, 8, 6, '#6b5322'); px(g, 14, 16, 4, 4, '#5aa03c'); }
-    else if (name === 'spirit_shard') { g.fillStyle = '#9fd8ef'; g.beginPath(); g.moveTo(16, 4); g.lineTo(22, 16); g.lineTo(16, 28); g.lineTo(10, 16); g.fill(); }
-    else if (['sapphire', 'emerald', 'ruby', 'diamond'].includes(name)) { g.fillStyle = { sapphire: '#3c6ee0', emerald: '#3ca03c', ruby: '#c03a3a', diamond: '#e8f4fc' }[name]; g.beginPath(); g.moveTo(16, 6); g.lineTo(25, 14); g.lineTo(16, 26); g.lineTo(7, 14); g.fill(); px(g, 12, 10, 4, 3, '#ffffff60'); }
-    else if (name.includes('key')) { g.strokeStyle = '#d8a827'; g.lineWidth = 3; g.beginPath(); g.arc(11, 12, 5, 0, 7); g.stroke(); px(g, 14, 14, 12, 3, '#d8a827'); px(g, 22, 17, 3, 4, '#d8a827'); }
-    else if (name.includes('letter')) { px(g, 6, 10, 20, 14, '#e8e0d0'); g.strokeStyle = '#8a6d4c'; g.beginPath(); g.moveTo(6, 10); g.lineTo(16, 18); g.lineTo(26, 10); g.stroke(); }
-    else if (def.tool) { px(g, 14, 6, 4, 18, '#8a6d4c'); px(g, 10, 22, 12, 5, '#9a9aa4'); }
-    else { px(g, 9, 9, 14, 14, '#8d7a4b'); px(g, 12, 12, 8, 8, '#c8b48a'); }
-  });
-}
+
+// Item icons live in their own module; re-exported here for existing importers.
+export { itemIcon } from "./icons.js";
