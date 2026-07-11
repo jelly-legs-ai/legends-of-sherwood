@@ -1,7 +1,7 @@
+# Runtime state only — anchored to repo root so shared/data/ (game content) is NOT ignored
+/data/
+!/data/.gitkeep
 node_modules/
-data/
-!data/.gitkeep
-data/shot.png
 *.log
 .DS_Store
 .env
