@@ -439,6 +439,56 @@
   "wep_staff_bg_gnarled": "wep_staff_bg_gnarled.png",
   "wep_staff_fg_gold": "wep_staff_fg_gold.png",
   "wep_staff_bg_gold": "wep_staff_bg_gold.png",
+  "wep_sword_attack_slash_fg_copper": "wep_sword_attack_slash_fg_copper.png",
+  "wep_sword_attack_slash_bg_copper": "wep_sword_attack_slash_bg_copper.png",
+  "wep_sword_attack_slash_fg_bronze": "wep_sword_attack_slash_fg_bronze.png",
+  "wep_sword_attack_slash_bg_bronze": "wep_sword_attack_slash_bg_bronze.png",
+  "wep_sword_attack_slash_fg_iron": "wep_sword_attack_slash_fg_iron.png",
+  "wep_sword_attack_slash_bg_iron": "wep_sword_attack_slash_bg_iron.png",
+  "wep_sword_attack_slash_fg_steel": "wep_sword_attack_slash_fg_steel.png",
+  "wep_sword_attack_slash_bg_steel": "wep_sword_attack_slash_bg_steel.png",
+  "wep_sword_attack_slash_fg_brass": "wep_sword_attack_slash_fg_brass.png",
+  "wep_sword_attack_slash_bg_brass": "wep_sword_attack_slash_bg_brass.png",
+  "wep_sword_attack_slash_fg_silver": "wep_sword_attack_slash_fg_silver.png",
+  "wep_sword_attack_slash_bg_silver": "wep_sword_attack_slash_bg_silver.png",
+  "wep_sword_attack_slash_fg_gold": "wep_sword_attack_slash_fg_gold.png",
+  "wep_sword_attack_slash_bg_gold": "wep_sword_attack_slash_bg_gold.png",
+  "wep_staff_thrust_fg_light": "wep_staff_thrust_fg_light.png",
+  "wep_staff_thrust_bg_light": "wep_staff_thrust_bg_light.png",
+  "wep_staff_thrust_fg_medium": "wep_staff_thrust_fg_medium.png",
+  "wep_staff_thrust_bg_medium": "wep_staff_thrust_bg_medium.png",
+  "wep_staff_thrust_fg_dark": "wep_staff_thrust_fg_dark.png",
+  "wep_staff_thrust_bg_dark": "wep_staff_thrust_bg_dark.png",
+  "wep_staff_thrust_fg_gnarled": "wep_staff_thrust_fg_gnarled.png",
+  "wep_staff_thrust_bg_gnarled": "wep_staff_thrust_bg_gnarled.png",
+  "wep_staff_thrust_fg_gold": "wep_staff_thrust_fg_gold.png",
+  "wep_staff_thrust_bg_gold": "wep_staff_thrust_bg_gold.png",
+  "wep_bow_walk_fg_normal": "wep_bow_walk_fg_normal.png",
+  "wep_bow_walk_bg_normal": "wep_bow_walk_bg_normal.png",
+  "wep_bow_walk_fg_light": "wep_bow_walk_fg_light.png",
+  "wep_bow_walk_bg_light": "wep_bow_walk_bg_light.png",
+  "wep_bow_walk_fg_medium": "wep_bow_walk_fg_medium.png",
+  "wep_bow_walk_bg_medium": "wep_bow_walk_bg_medium.png",
+  "wep_bow_walk_fg_dark": "wep_bow_walk_fg_dark.png",
+  "wep_bow_walk_bg_dark": "wep_bow_walk_bg_dark.png",
+  "wep_bow_walk_fg_gold": "wep_bow_walk_fg_gold.png",
+  "wep_bow_walk_bg_gold": "wep_bow_walk_bg_gold.png",
+  "wep_recurve_walk_fg_light": "wep_recurve_walk_fg_light.png",
+  "wep_recurve_walk_bg_light": "wep_recurve_walk_bg_light.png",
+  "wep_recurve_walk_fg_medium": "wep_recurve_walk_fg_medium.png",
+  "wep_recurve_walk_bg_medium": "wep_recurve_walk_bg_medium.png",
+  "wep_recurve_walk_fg_dark": "wep_recurve_walk_fg_dark.png",
+  "wep_recurve_walk_bg_dark": "wep_recurve_walk_bg_dark.png",
+  "wep_recurve_walk_fg_gold": "wep_recurve_walk_fg_gold.png",
+  "wep_recurve_walk_bg_gold": "wep_recurve_walk_bg_gold.png",
+  "wep_great_walk_fg_light": "wep_great_walk_fg_light.png",
+  "wep_great_walk_bg_light": "wep_great_walk_bg_light.png",
+  "wep_great_walk_fg_medium": "wep_great_walk_fg_medium.png",
+  "wep_great_walk_bg_medium": "wep_great_walk_bg_medium.png",
+  "wep_great_walk_fg_dark": "wep_great_walk_fg_dark.png",
+  "wep_great_walk_bg_dark": "wep_great_walk_bg_dark.png",
+  "wep_great_walk_fg_gold": "wep_great_walk_fg_gold.png",
+  "wep_great_walk_bg_gold": "wep_great_walk_bg_gold.png",
   "wep_spear_thrust_fg_copper": "wep_spear_thrust_fg_copper.png",
   "wep_spear_thrust_bg_copper": "wep_spear_thrust_bg_copper.png",
   "wep_spear_thrust_fg_bronze": "wep_spear_thrust_fg_bronze.png",
@@ -466,7 +516,15 @@
   "wep_spear_walk_fg_silver": "wep_spear_walk_fg_silver.png",
   "wep_spear_walk_bg_silver": "wep_spear_walk_bg_silver.png",
   "wep_spear_walk_fg_gold": "wep_spear_walk_fg_gold.png",
-  "wep_spear_walk_bg_gold": "wep_spear_walk_bg_gold.png"
+  "wep_spear_walk_bg_gold": "wep_spear_walk_bg_gold.png",
+  "wep_axe_uni_male": "wep_axe_uni_male.png",
+  "wep_axe_uni_female": "wep_axe_uni_female.png",
+  "wep_axe_slash_fg": "wep_axe_slash_fg.png",
+  "wep_axe_slash_bg": "wep_axe_slash_bg.png",
+  "wep_pickaxe_uni_male": "wep_pickaxe_uni_male.png",
+  "wep_pickaxe_uni_female": "wep_pickaxe_uni_female.png",
+  "wep_pickaxe_slash_fg": "wep_pickaxe_slash_fg.png",
+  "wep_pickaxe_slash_bg": "wep_pickaxe_slash_bg.png"
  },
  "gear": {
   "torso/plate": {
@@ -880,6 +938,28 @@
     "brass": "wep_sword_bg_brass.png",
     "silver": "wep_sword_bg_silver.png",
     "gold": "wep_sword_bg_gold.png"
+   },
+   "perAnim": {
+    "slash": {
+     "fg": {
+      "copper": "wep_sword_attack_slash_fg_copper.png",
+      "bronze": "wep_sword_attack_slash_fg_bronze.png",
+      "iron": "wep_sword_attack_slash_fg_iron.png",
+      "steel": "wep_sword_attack_slash_fg_steel.png",
+      "brass": "wep_sword_attack_slash_fg_brass.png",
+      "silver": "wep_sword_attack_slash_fg_silver.png",
+      "gold": "wep_sword_attack_slash_fg_gold.png"
+     },
+     "bg": {
+      "copper": "wep_sword_attack_slash_bg_copper.png",
+      "bronze": "wep_sword_attack_slash_bg_bronze.png",
+      "iron": "wep_sword_attack_slash_bg_iron.png",
+      "steel": "wep_sword_attack_slash_bg_steel.png",
+      "brass": "wep_sword_attack_slash_bg_brass.png",
+      "silver": "wep_sword_attack_slash_bg_silver.png",
+      "gold": "wep_sword_attack_slash_bg_gold.png"
+     }
+    }
    }
   },
   "bow": {
@@ -901,6 +981,28 @@
     "gnarled": null,
     "gold": "wep_bow_bg_gold.png",
     "walnut": null
+   },
+   "perAnim": {
+    "walk": {
+     "fg": {
+      "normal": "wep_bow_walk_fg_normal.png",
+      "light": "wep_bow_walk_fg_light.png",
+      "medium": "wep_bow_walk_fg_medium.png",
+      "dark": "wep_bow_walk_fg_dark.png",
+      "gnarled": null,
+      "gold": "wep_bow_walk_fg_gold.png",
+      "walnut": null
+     },
+     "bg": {
+      "normal": "wep_bow_walk_bg_normal.png",
+      "light": "wep_bow_walk_bg_light.png",
+      "medium": "wep_bow_walk_bg_medium.png",
+      "dark": "wep_bow_walk_bg_dark.png",
+      "gnarled": null,
+      "gold": "wep_bow_walk_bg_gold.png",
+      "walnut": null
+     }
+    }
    }
   },
   "recurve": {
@@ -922,6 +1024,28 @@
     "gnarled": null,
     "gold": "wep_recurve_bg_gold.png",
     "walnut": null
+   },
+   "perAnim": {
+    "walk": {
+     "fg": {
+      "normal": null,
+      "light": "wep_recurve_walk_fg_light.png",
+      "medium": "wep_recurve_walk_fg_medium.png",
+      "dark": "wep_recurve_walk_fg_dark.png",
+      "gnarled": null,
+      "gold": "wep_recurve_walk_fg_gold.png",
+      "walnut": null
+     },
+     "bg": {
+      "normal": null,
+      "light": "wep_recurve_walk_bg_light.png",
+      "medium": "wep_recurve_walk_bg_medium.png",
+      "dark": "wep_recurve_walk_bg_dark.png",
+      "gnarled": null,
+      "gold": "wep_recurve_walk_bg_gold.png",
+      "walnut": null
+     }
+    }
    }
   },
   "great": {
@@ -943,6 +1067,28 @@
     "gnarled": null,
     "gold": "wep_great_bg_gold.png",
     "walnut": null
+   },
+   "perAnim": {
+    "walk": {
+     "fg": {
+      "normal": null,
+      "light": "wep_great_walk_fg_light.png",
+      "medium": "wep_great_walk_fg_medium.png",
+      "dark": "wep_great_walk_fg_dark.png",
+      "gnarled": null,
+      "gold": "wep_great_walk_fg_gold.png",
+      "walnut": null
+     },
+     "bg": {
+      "normal": null,
+      "light": "wep_great_walk_bg_light.png",
+      "medium": "wep_great_walk_bg_medium.png",
+      "dark": "wep_great_walk_bg_dark.png",
+      "gnarled": null,
+      "gold": "wep_great_walk_bg_gold.png",
+      "walnut": null
+     }
+    }
    }
   },
   "staff": {
@@ -964,6 +1110,28 @@
     "gnarled": "wep_staff_bg_gnarled.png",
     "gold": "wep_staff_bg_gold.png",
     "walnut": null
+   },
+   "perAnim": {
+    "thrust": {
+     "fg": {
+      "normal": null,
+      "light": "wep_staff_thrust_fg_light.png",
+      "medium": "wep_staff_thrust_fg_medium.png",
+      "dark": "wep_staff_thrust_fg_dark.png",
+      "gnarled": "wep_staff_thrust_fg_gnarled.png",
+      "gold": "wep_staff_thrust_fg_gold.png",
+      "walnut": null
+     },
+     "bg": {
+      "normal": null,
+      "light": "wep_staff_thrust_bg_light.png",
+      "medium": "wep_staff_thrust_bg_medium.png",
+      "dark": "wep_staff_thrust_bg_dark.png",
+      "gnarled": "wep_staff_thrust_bg_gnarled.png",
+      "gold": "wep_staff_thrust_bg_gold.png",
+      "walnut": null
+     }
+    }
    }
   },
   "spear": {
@@ -1006,6 +1174,38 @@
       "brass": "wep_spear_walk_bg_brass.png",
       "silver": "wep_spear_walk_bg_silver.png",
       "gold": "wep_spear_walk_bg_gold.png"
+     }
+    }
+   }
+  },
+  "axe": {
+   "sexed": {
+    "male": "wep_axe_uni_male.png",
+    "female": "wep_axe_uni_female.png"
+   },
+   "perAnim": {
+    "slash": {
+     "fg": {
+      "tool": "wep_axe_slash_fg.png"
+     },
+     "bg": {
+      "tool": "wep_axe_slash_bg.png"
+     }
+    }
+   }
+  },
+  "pickaxe": {
+   "sexed": {
+    "male": "wep_pickaxe_uni_male.png",
+    "female": "wep_pickaxe_uni_female.png"
+   },
+   "perAnim": {
+    "slash": {
+     "fg": {
+      "tool": "wep_pickaxe_slash_fg.png"
+     },
+     "bg": {
+      "tool": "wep_pickaxe_slash_bg.png"
      }
     }
    }

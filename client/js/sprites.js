@@ -54,7 +54,7 @@ export function composite(vis) {
 
   const sex = vis.sex || 'male';
   const layers = []; // [file, isWeaponBg]
-  const wep = vis.weapon ? weaponFiles(vis.weapon[0], vis.weapon[1]) : null;
+  const wep = vis.weapon ? weaponFiles(vis.weapon[0], vis.weapon[1], sex) : null;
 
   if (wep?.bg) layers.push(wep.bg);
   if (vis.behind) layers.push(gearFile('behind/quiver', sex, 'brown'));
@@ -91,13 +91,16 @@ export function composite(vis) {
   if (pending === 0) drawAll();
   return c;
 }
-function weaponFiles(type, color) {
+function weaponFiles(type, color, sex = 'male') {
   const w = manifest.weapons[type];
   if (!w) return null;
-  if (w.perAnim) {
-    return { perAnim: w.perAnim, color };
+  const out = { perAnim: w.perAnim || null, color };
+  if (w.sexed) out.fg = w.sexed[sex] || Object.values(w.sexed).find(Boolean);       // tools (axe/pickaxe)
+  else if (w.fg || w.bg) {
+    out.fg = w.fg?.[color] || Object.values(w.fg || {}).find(Boolean);
+    out.bg = w.bg?.[color] || (w.bg && Object.values(w.bg).find(Boolean));
   }
-  return { fg: w.fg?.[color] || Object.values(w.fg || {}).find(Boolean), bg: w.bg?.[color] };
+  return (out.fg || out.bg || out.perAnim) ? out : null;
 }
 
 // Draw a composited character. dir: 0 up,1 left,2 down,3 right.
@@ -109,24 +112,29 @@ export function drawChar(ctx, comp, anim, dir, frame, sx, sy, scale = 1) {
   const S = FRAME * scale;
   ctx.drawImage(comp.canvas, f * FRAME, row * FRAME, FRAME, FRAME, sx - S / 2, sy - S + 12 * scale, S, S);
 }
-// Oversize weapon overlay (longspear): frame size derived from sheet height/4.
+// Per-animation weapon overlays (sword slash, tool smash, spear thrust/walk,
+// staff thrust, bow walk). Frame size derived from sheet height/4 so 64px and
+// oversize (128/192px) sheets both work; the oversize frame is centred on the
+// 64px body cell so weapon and body stay in perfect sync.
 export function drawOversize(ctx, comp, vis, anim, dir, frame, sx, sy, scale = 1) {
   if (!comp.oversize) return;
-  const perAnim = comp.oversize;
-  const set = perAnim[anim === 'thrust' ? 'thrust' : anim === 'walk' ? 'walk' : null];
+  let set = comp.oversize[anim];
+  let f = frame;
+  if (!set && anim === 'idle' && comp.oversize.walk) { set = comp.oversize.walk; f = 0; } // idle = walk frame 0
   if (!set) return;
   const color = (vis.weapon && vis.weapon[1]) || 'steel';
   for (const part of ['bg', 'fg']) {
-    const file = set[part]?.[color];
+    const dict = set[part] || {};
+    const file = dict[color] || Object.values(dict).find(Boolean);
     if (!file) continue;
     const im = img(file);
     if (!im.complete || !im.naturalWidth) continue;
     const fs = im.naturalHeight / 4;
     const cols = Math.floor(im.naturalWidth / fs);
-    const a = ANIMS[anim] || ANIMS.idle;
-    const f = Math.min(frame, Math.min(a.frames, cols) - 1);
+    const a = ANIMS[anim === 'idle' ? 'walk' : anim] || ANIMS.idle;
+    const ff = Math.min(f, Math.min(a.frames, cols) - 1);
     const S = fs * scale;
-    ctx.drawImage(im, f * fs, dir * fs, fs, fs, sx - S / 2, sy - S + (fs / 2 - 20) * scale + 12 * scale, S, S);
+    ctx.drawImage(im, ff * fs, dir * fs, fs, fs, sx - S / 2, sy - (fs / 2 + 20) * scale, S, S);
   }
 }
 

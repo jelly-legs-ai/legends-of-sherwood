@@ -102,7 +102,22 @@ manifest.weapons.bow = weaponUniversal('bow', 'weapon/ranged/bow/normal', WOODS,
 manifest.weapons.recurve = weaponUniversal('recurve', 'weapon/ranged/bow/recurve', WOODS, ['foreground', 'background']);
 manifest.weapons.great = weaponUniversal('great', 'weapon/ranged/bow/great', WOODS, ['foreground', 'background']);
 manifest.weapons.staff = weaponUniversal('staff', 'weapon/magic/gnarled', WOODS, ['foreground', 'background']);
-// Longspear: oversize per-anim overlays (frame = sheetHeight/4)
+
+// Per-animation overlay sets (oversize or 64px; frame size derived from height/4).
+// The "universal" weapon sheets only cover walk/hurt — attack art lives here.
+function perAnimSet(name, base, anim, colors, fgbg = ['fg', 'bg']) {
+  const a = { fg: {}, bg: {} };
+  for (const c of colors) {
+    a.fg[c] = emit(`wep_${name}_${anim}_fg_${c}`, [`${base}/${anim}/${fgbg[0]}/${c}.png`]);
+    a.bg[c] = emit(`wep_${name}_${anim}_bg_${c}`, [`${base}/${anim}/${fgbg[1]}/${c}.png`]);
+  }
+  return a;
+}
+manifest.weapons.sword.perAnim = { slash: perAnimSet('sword', 'weapon/sword/arming', 'attack_slash', METALS) };
+manifest.weapons.staff.perAnim = { thrust: perAnimSet('staff', 'weapon/magic/gnarled', 'thrust', WOODS, ['foreground', 'background']) };
+for (const [key, base] of [['bow', 'weapon/ranged/bow/normal'], ['recurve', 'weapon/ranged/bow/recurve'], ['great', 'weapon/ranged/bow/great']])
+  manifest.weapons[key].perAnim = { walk: perAnimSet(key, base, 'walk', WOODS, ['foreground', 'background']) };
+// Longspear: oversize per-anim overlays only
 manifest.weapons.spear = { perAnim: {} };
 for (const anim of ['thrust', 'walk']) {
   const a = { fg: {}, bg: {} };
@@ -111,6 +126,14 @@ for (const anim of ['thrust', 'walk']) {
     a.bg[c] = emit(`wep_spear_${anim}_bg_${c}`, [`weapon/polearm/longspear/${anim}/background/${c}.png`]);
   }
   manifest.weapons.spear.perAnim[anim] = a;
+}
+// Real tool sprites: axe and pickaxe (per-sex universal + oversize smash used for slash)
+for (const tool of ['axe', 'pickaxe']) {
+  const w = { sexed: {}, perAnim: { slash: { fg: {}, bg: {} } } };
+  for (const sex of SEXES) w.sexed[sex] = emit(`wep_${tool}_uni_${sex}`, [`tools/smash/universal/${sex}/${tool}.png`]);
+  w.perAnim.slash.fg.tool = emit(`wep_${tool}_slash_fg`, [`tools/smash/foreground/${tool}.png`]);
+  w.perAnim.slash.bg.tool = emit(`wep_${tool}_slash_bg`, [`tools/smash/background/${tool}.png`]);
+  manifest.weapons[tool] = w;
 }
 
 fs.writeFileSync(path.join(OUT, 'manifest.json'), JSON.stringify(manifest, null, 1));

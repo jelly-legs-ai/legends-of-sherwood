@@ -20,9 +20,9 @@ const T = (lvl) => 4 + lvl; // generic tier stat scale
 
 for (const m of METALS) {
   const s = T(m.lvl);
-  def(`${m.id}_dagger`, { name: `${m.name} dagger`, slot: 'weapon', kind: 'dagger', style: 'melee', anim: 'thrust',
+  def(`${m.id}_dagger`, { name: `${m.name} dagger`, slot: 'weapon', kind: 'dagger', style: 'melee', anim: 'slash',
     speed: 1800, req: { attack: m.lvl }, bonus: { acc: s * 0.7 | 0, str: s * 0.55 | 0 }, value: m.val,
-    vis: { layer: 'weapon', type: 'spear', color: m.color } });
+    vis: { layer: 'weapon', type: 'sword', color: m.color } });
   def(`${m.id}_sword`, { name: `${m.name} sword`, slot: 'weapon', kind: 'sword', style: 'melee', anim: 'slash',
     speed: 2400, req: { attack: m.lvl }, bonus: { acc: s, str: s * 0.9 | 0 }, value: m.val * 2,
     vis: { layer: 'weapon', type: 'sword', color: m.color } });
@@ -51,14 +51,14 @@ for (const m of METALS) {
   def(`${m.id}_arrow`, { name: `${m.name} arrow`, slot: 'ammo', stack: true, req: {},
     bonus: { rstr: s * 0.8 | 0 }, value: Math.max(1, m.val / 8 | 0), ammoTier: m.lvl });
   def(`${m.id}_bar`, { name: `${m.name} bar`, stack: false, value: m.val, material: true });
-  def(`${m.id}_pickaxe`, { name: `${m.name} pickaxe`, slot: 'weapon', kind: 'pickaxe', style: 'melee', anim: 'thrust',
+  def(`${m.id}_pickaxe`, { name: `${m.name} pickaxe`, slot: 'weapon', kind: 'pickaxe', style: 'melee', anim: 'slash',
     speed: 3000, req: { attack: Math.max(1, m.lvl - 4) }, tool: 'pickaxe', toolTier: m.lvl,
     bonus: { acc: s * 0.4 | 0, str: s * 0.3 | 0 }, value: m.val * 1.5 | 0,
-    vis: { layer: 'weapon', type: 'spear', color: m.color } });
+    vis: { layer: 'weapon', type: 'pickaxe', color: m.color } });
   def(`${m.id}_hatchet`, { name: `${m.name} hatchet`, slot: 'weapon', kind: 'hatchet', style: 'melee', anim: 'slash',
     speed: 2400, req: { attack: Math.max(1, m.lvl - 4) }, tool: 'hatchet', toolTier: m.lvl,
     bonus: { acc: s * 0.45 | 0, str: s * 0.35 | 0 }, value: m.val * 1.5 | 0,
-    vis: { layer: 'weapon', type: 'sword', color: m.color } });
+    vis: { layer: 'weapon', type: 'axe', color: m.color } });
 }
 
 // ---------------------------------------------------------------------------
