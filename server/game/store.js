@@ -209,6 +209,15 @@ class PgStore {
     // A safety-net second copy of every player write, append-only, for auditing / recovery.
     await this.pool.query(`CREATE TABLE IF NOT EXISTS player_history (
       id BIGSERIAL PRIMARY KEY, name TEXT NOT NULL, data JSONB NOT NULL, saved_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
+    // Self-check: prove we can actually write and read a player round-trip before
+    // trusting this backend. If anything is wrong, throw so the factory falls
+    // back to the hardened file store rather than risk silent data loss.
+    const probe = { xp: { _probe: 1 }, inv: [], __probe: true };
+    await this.savePlayer('__healthcheck__', probe);
+    const back = await this.pool.query('SELECT data FROM players WHERE name=$1', ['__healthcheck__']);
+    if (!back.rows[0] || !back.rows[0].data || back.rows[0].data.xp._probe !== 1) throw new Error('write/read self-check failed');
+    await this.pool.query('DELETE FROM players WHERE name=$1', ['__healthcheck__']);
+    await this.pool.query('DELETE FROM player_history WHERE name=$1', ['__healthcheck__']);
     // migrate legacy file data if the DB is empty
     const { rows } = await this.pool.query('SELECT count(*)::int AS n FROM players');
     if (rows[0].n === 0) await this._migrateFromFiles();
