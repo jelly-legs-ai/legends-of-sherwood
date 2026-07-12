@@ -7,7 +7,7 @@ import { PRAYERS, ABILITIES, RELICS } from '../../shared/data/skills.js';
 import { QUESTS } from '../../shared/data/quests.js';
 
 const INV_SIZE = 28;
-export const EQUIP_SLOTS = ['head', 'torso', 'legs', 'feet', 'hands', 'weapon', 'shield', 'neck', 'cape', 'ammo'];
+export const EQUIP_SLOTS = ['head', 'torso', 'legs', 'feet', 'hands', 'weapon', 'shield', 'neck', 'cape', 'ammo', 'aura', 'mount'];
 
 export class Player {
   constructor(world, name, saved, look = {}) {
@@ -152,6 +152,10 @@ export class Player {
     }
     this.visDirty = true;
     this.invDirty();
+    if (slot === 'mount' || slot === 'aura') {
+      if (slot === 'mount') this.mounted = false;      // a new mount starts stabled
+      this.world.syncRide?.(this);
+    }
     this.questProgress('equip', s.id);
   }
   addItemFromEquip(slot) {
@@ -161,6 +165,10 @@ export class Player {
     delete this.equip[slot];
     this.addItem(e.id, e.qty);
     this.visDirty = true;
+    if (slot === 'mount' || slot === 'aura') {
+      if (slot === 'mount') this.mounted = false;      // unsaddling dismounts
+      this.world.syncRide?.(this);
+    }
     return true;
   }
 

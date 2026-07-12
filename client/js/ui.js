@@ -12,22 +12,30 @@ import { REGIONS, WILDERNESS_Y, WORLD } from '/shared/constants.js';
 
 const $ = (s) => document.querySelector(s);
 let G = null; // game state ref
+let _devcmd = null; // lazily imported to keep the ui<->devcmd dependency acyclic
+const devcmd = async () => (_devcmd ??= await import('./devcmd.js'));
 
 export function initUI(game) {
   G = game;
   for (const b of document.querySelectorAll('#tabs button'))
     b.onclick = () => { document.querySelectorAll('#tabs button').forEach(x => x.classList.remove('on')); b.classList.add('on'); G.tab = b.dataset.tab; renderPanel(); };
   $('#bigwin-x').onclick = () => closeWin();
-  $('#chat-in').addEventListener('keydown', (e) => {
+  $('#chat-in').addEventListener('keydown', async (e) => {
     e.stopPropagation();
+    const dev = await devcmd();
+    if (dev.suggestKeydown(e)) return;                 // tab/arrows consumed by autocomplete
     if (e.key === 'Enter') {
       const v = e.target.value.trim();
-      if (v) G.net.send({ t: MSG.CHAT, m: v });
+      if (v.startsWith('//')) dev.runCommand(G, v);
+      else if (v) G.net.send({ t: MSG.CHAT, m: v });
       e.target.value = '';
+      dev.hideSuggestions();
       e.target.blur();
     }
-    if (e.key === 'Escape') e.target.blur();
+    if (e.key === 'Escape') { e.target.blur(); dev.hideSuggestions(); }
   });
+  $('#chat-in').addEventListener('input', async (e) => (await devcmd()).updateSuggestions(e.target));
+  $('#chat-in').addEventListener('blur', async () => setTimeout(async () => (await devcmd()).hideSuggestions(), 150));
   document.addEventListener('click', () => hideCtx());
   renderPanel();
 }

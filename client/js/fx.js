@@ -34,7 +34,14 @@ export class Fx {
       case FX.LEVELUP: this.burst(msg, entities, '#ffd75e', 26, 3); this.burst(msg, entities, '#fff3b0', 14, 2); break;
       case FX.SHILLING: this.burst(msg, entities, '#ffd75e', 18, 2.4); this.text(msg, entities, '✦ $SHL', '#ffd75e'); break;
       case FX.HEAL: this.burst(msg, entities, '#7fd05f', 10, 1.6); break;
-      case FX.TELEPORT: this.burst(msg, entities, '#c77ce7', 24, 3); break;
+      case FX.TELEPORT: {
+        // arcane swirl pinned to the SPOT (not the entity — it just teleported
+        // away), plus rising sparks
+        this.markers.push({ x: msg.x, y: msg.y, spec: 'twisted_6', t0: now, dur: 850, size: 128, dy: -18 });
+        this.markers.push({ x: msg.x, y: msg.y, spec: 'cosmic:0', t0: now, dur: 700, size: 64, dy: -14 });
+        this.burst(msg, entities, '#c77ce7', 18, 2.6);
+        break;
+      }
       case FX.SPLASH: this.burst(msg, entities, '#9ad2e8', 6, 1.4); break;
       case FX.CHOP: this.burst(msg, entities, '#a8d06a', 6, 1.5); break;
       case FX.MINE: this.burst(msg, entities, '#c8c4b8', 6, 1.5); break;
@@ -82,7 +89,7 @@ export class Fx {
     this.splats.push({ id: msg.id, dmg: msg.dmg, crit: msg.crit, t0: performance.now(), dur: 900, dx: (Math.random() - 0.5) * 14 });
     if (msg.dmg > 0) this.burst({ id: msg.id }, entities, '#c03a3a', Math.min(10, 3 + msg.dmg / 3), 1.6);
     // crits detonate an animated blood hitmarker on the victim
-    if (msg.crit && msg.dmg > 0) this.markers.push({ id: msg.id, v: [2, 4, 5][Math.random() * 3 | 0], t0: performance.now(), dur: 560 });
+    if (msg.crit && msg.dmg > 0) this.markers.push({ id: msg.id, spec: `hitmarker:${[2, 4, 5][Math.random() * 3 | 0]}`, t0: performance.now(), dur: 560, size: 54, dy: -26 });
   }
 
   draw(ctx, R, nowMs) {
@@ -157,14 +164,18 @@ export class Fx {
       ctx.fillText(p.str, sx, sy - 46 - t * 30);
       ctx.globalAlpha = 1;
     }
-    // animated crit hitmarkers (blood spray sheet) on the victim
+    // sheet-anim markers: crit hitmarkers on entities, teleport swirls at spots
     this.markers = this.markers.filter(p => now - p.t0 < p.dur);
     for (const p of this.markers) {
-      const e = R._ents?.get(p.id);
-      if (!e) continue;
+      let wx = p.x, wy = p.y;
+      if (p.id !== undefined) {
+        const e = R._ents?.get(p.id);
+        if (e) { wx = e.rx; wy = e.ry; }
+        else if (wx === undefined) continue;      // entity gone, no fallback spot
+      }
       const t = (now - p.t0) / p.dur;
-      const [sx, sy] = R.screenOf(0, e.rx, e.ry);
-      drawFxSprite(ctx, `hitmarker:${p.v}`, t, sx, sy - 26, 54);
+      const [sx, sy] = R.screenOf(0, wx, wy);
+      drawFxSprite(ctx, p.spec, t, sx, sy + (p.dy || 0), p.size || 54);
     }
     // hit splats (drawn near entity if still present)
     this.splats = this.splats.filter(p => now - p.t0 < p.dur);

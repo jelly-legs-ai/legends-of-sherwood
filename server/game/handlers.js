@@ -56,6 +56,8 @@ export function handleMessage(world, ws, msg) {
     case MSG.CHAT: return onChat(world, p, msg);
     case MSG.EMOTE: p.anim = 'spellcast'; p.animSeq++; return;
     case 'pet': return onPet(world, p, msg);
+    case 'mount': return onMount(world, p);
+    case 'devcmd': return onDevCmd(world, p, msg);
     case 'devgrant': if (process.argv.includes('--dev')) {
       if (msg.item && ITEMS[msg.item]) p.addItem(String(msg.item), Math.max(1, msg.qty | 0));
       if (msg.amt) { world.ledger.mint(p.name, msg.amt | 0, 'dev'); world.send(p, { t: MSG.TOKEN, bal: world.ledger.balance(p.name), delta: msg.amt | 0, reason: 'dev grant' }); }
@@ -480,6 +482,98 @@ function openEventBox(world, p, id) {
   world.earn(p, amt, 'event:convoy');
   world.fx(p.plane, e.x, e.y, FX.SHILLING, {});
   world.send(p, { t: MSG.MSGBOX, m: `You pry open the strongbox — ${amt} $SHL!` });
+}
+
+// Mount up / dismount ('M'). Combat within the last 5s keeps you grounded.
+function onMount(world, p) {
+  if (p.mounted) {
+    p.mounted = false;
+    world.syncRide(p);
+    return;
+  }
+  const def = ITEMS[p.equip.mount?.id]?.mount;
+  if (!def) return world.send(p, { t: MSG.MSGBOX, m: 'You have no mount equipped.' });
+  if (Date.now() - (p.lastCombat || 0) < 5000) return world.send(p, { t: MSG.MSGBOX, m: 'You cannot mount so soon after combat.' });
+  p.mounted = true;
+  p.mountDef = def;
+  world.syncRide(p);
+}
+
+// Dev chat commands (// in chat). Hard-gated on --dev: inert in production.
+function onDevCmd(world, p, msg) {
+  if (!process.argv.includes('--dev')) return;
+  const args = Array.isArray(msg.args) ? msg.args.map(String) : [];
+  const say = (m) => world.send(p, { t: MSG.MSGBOX, kind: 'loot', m: `dev: ${m}` });
+  const tpTo = (x, y, plane = p.plane) => {
+    p.plane = plane; p.x = x + 0.5; p.y = y + 0.5;
+    p.path = null; p.target = null; world.gridMove(p);
+    world.send(p, { t: MSG.RESPAWN, x: p.x, y: p.y });
+  };
+  switch (String(msg.cmd)) {
+    case 'give': {
+      const id = args[0], qty = Math.max(1, parseInt(args[1]) || 1);
+      if (!ITEMS[id]) return say(`unknown item '${id}'`);
+      p.addItem(id, qty);
+      return say(`+${qty}× ${ITEMS[id].name}`);
+    }
+    case 'find': {
+      const what = args[0];
+      let best = null, bd = 1e9;
+      for (const e of world.entities.values()) {
+        if (e.kind !== what && e.type !== what) continue;
+        const d = Math.hypot(e.x - p.x, e.y - p.y) + (e.plane !== p.plane ? 5000 : 0);
+        if (d < bd) { bd = d; best = e; }
+      }
+      if (!best) return say(`no '${what}' found in the world`);
+      tpTo(best.x + 1 | 0, best.y + 1 | 0, best.plane);
+      return say(`teleported to ${what}`);
+    }
+    case 'spawn': {
+      const type = args[0], n = Math.min(12, Math.max(1, parseInt(args[1]) || 1));
+      if (!MOBS[type]) return say(`unknown mob '${type}'`);
+      for (let i = 0; i < n; i++) {
+        const m = world.spawnMob(type, { x: p.x + 1, y: p.y + 1, r: 2, n: 1 }, p.plane);
+        m.noRespawn = true;
+      }
+      return say(`spawned ${n}× ${MOBS[type].name}`);
+    }
+    case 'tp': {
+      const x = parseInt(args[0]), y = parseInt(args[1]);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return say('usage: //tp <x> <y> [plane]');
+      tpTo(x, y, args[2] !== undefined ? parseInt(args[2]) : p.plane);
+      return say(`warped to ${x},${y}`);
+    }
+    case 'xp': {
+      const sk = args[0], amt = Math.max(0, parseInt(args[1]) || 0);
+      if (!p.xp || !(sk in p.xp)) return say(`unknown skill '${sk}'`);
+      p.addXp(sk, amt);
+      return say(`+${amt.toLocaleString()} ${sk} xp`);
+    }
+    case 'lvl': {
+      const sk = args[0], lvl = Math.min(99, Math.max(1, parseInt(args[1]) || 1));
+      if (!p.xp || !(sk in p.xp)) return say(`unknown skill '${sk}'`);
+      const need = XP_TABLE[lvl] - (p.xp[sk] || 0);
+      if (need > 0) p.addXp(sk, need);
+      return say(`${sk} set to ${lvl}`);
+    }
+    case 'shl': {
+      const amt = Math.max(1, parseInt(args[0]) || 1);
+      world.ledger.mint(p.name, amt, 'dev');
+      world.send(p, { t: MSG.TOKEN, bal: world.ledger.balance(p.name), delta: amt, reason: 'dev' });
+      return;
+    }
+    case 'heal':
+      p.hp = p.maxHp; p.prayerPts = p.level('prayer'); p.energy = 100;
+      world.fx(p.plane, p.x, p.y, FX.HEAL, { id: p.id });
+      return say('restored');
+    case 'killtarget': {
+      const t = p.target && world.entities.get(p.target);
+      if (!t || t.kind !== 'mob') return say('no mob targeted');
+      world.applyMobDamage(t, t.hp, p);
+      return say(`slew ${MOBS[t.type].name}`);
+    }
+    default: return say(`unknown command '${msg.cmd}'`);
+  }
 }
 
 // Wandering gem geodes: high-level mining nodes that yield gems per swing.
@@ -990,7 +1084,7 @@ function onPet(world, p, msg) {
     const s = p.inv[msg.claim | 0];
     const petId = s && ITEMS[s.id]?.pet;
     if (!petId || !PETS[petId]) return;
-    if (p.pets.length >= 12) return world.send(p, { t: MSG.MSGBOX, m: 'Your pet roster is full (12).' });
+    if (p.pets.length >= 24) return world.send(p, { t: MSG.MSGBOX, m: 'Your pet roster is full (24).' });
     p.removeItem(s.id, 1);
     p.pets.push({ id: petId, xp: 0 });
     world.send(p, { t: 'pets', pets: p.pets, activePet: p.activePet });

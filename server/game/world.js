@@ -292,6 +292,10 @@ export class World {
     P(0.12 + tier * 0.06, ['sapphire', 'citrine', 'emerald', 'amethyst', 'ruby', 'diamond'][Math.min(5, tier + (Math.random() * 2 | 0))]);
     P(0.02 + tier * 0.02, `tome_${['attack', 'strength', 'defence', 'ranged', 'magic', 'mining', 'fishing', 'woodcutting', 'cooking', 'crafting', 'herblore', 'prayer'][Math.random() * 12 | 0]}`);
     P(tier >= 2 ? 0.012 + tier * 0.004 : 0.002, ['blade_of_the_burrow', 'tidebreaker_cutlass', 'fanged_ripper', 'glacier_edge', 'abyssal_edge'][Math.min(4, tier + (Math.random() * 2 | 0))]);
+    if (tier >= 2) { // fancy chests can hold cosmetic auras and even mounts
+      P(0.008 + tier * 0.004, ['aura_ember', 'aura_frost', 'aura_verdant', 'aura_royal', 'aura_blood', 'aura_spectral'][Math.min(5, tier + (Math.random() * 3 | 0))]);
+      P(0.004 + tier * 0.002, ['war_boar', 'gloom_glider', 'swift_stag', 'royal_skywing'][Math.min(3, tier - 2 + (Math.random() * 2 | 0))]);
+    }
     P(0.25, 'bread', [1, 3]);
     if (floor > 0) { P(0.6, 'cosmic_rune', [3, 9]); P(0.25, 'abyssal_pearl'); P(0.35, 'dungeon_key'); }
     return loot;
@@ -308,6 +312,19 @@ export class World {
     for (const ws of this.sockets.values()) if (ws.readyState === 1) ws.send(s);
   }
   fx(plane, x, y, fxId, extra = {}) { this.broadcastNear(plane, x, y, { t: MSG.FX, fx: fxId, x, y, ...extra }); }
+  // Broadcast a player's mount/aura state (equip changes + mount toggles).
+  rideState(p) {
+    const m = p.mounted && ITEMS[p.equip.mount?.id]?.mount;
+    return {
+      mnt: m ? { s: m.sheet, f: m.fly ? 1 : 0, t: m.tint } : 0,
+      aura: ITEMS[p.equip.aura?.id]?.aura || 0,
+    };
+  }
+  syncRide(p) {
+    if (p.mounted) p.mountDef = ITEMS[p.equip.mount?.id]?.mount || null;
+    if (!p.mountDef) p.mounted = false;
+    this.broadcastNear(p.plane, p.x, p.y, { t: 'ride', id: p.id, ...this.rideState(p) });
+  }
 
   // ---------------- main loop ----------------
   start() {
@@ -334,15 +351,25 @@ export class World {
     this.streamSnapshots();
   }
 
+  // Flying mounts skim over water and low obstructions; only true walls (and
+  // the open ocean at the map edge) stop them. Everyone else uses isBlocked.
+  blockedFor(e, x, y) {
+    if (e.kind === 'player' && e.mounted && e.mountDef?.fly) {
+      const t = tileAtPlane(e.plane, x, y);
+      if (t === undefined || t === null) return true;
+      return t === TILE.WALL || t === TILE.WALL_WOOD || t === TILE.OCEAN;
+    }
+    return isBlocked(e.plane, x, y);
+  }
   moveEntity(e, tx, ty, speed, dt) {
     const dx = tx - e.x, dy = ty - e.y;
     const d = Math.hypot(dx, dy);
     if (d < 0.05) return true;
     const step = Math.min(d, speed * dt);
     let nx = e.x + (dx / d) * step, ny = e.y + (dy / d) * step;
-    if (isBlocked(e.plane, nx | 0, ny | 0)) {
-      if (!isBlocked(e.plane, nx | 0, e.y | 0)) ny = e.y;
-      else if (!isBlocked(e.plane, e.x | 0, ny | 0)) nx = e.x;
+    if (this.blockedFor(e, nx | 0, ny | 0)) {
+      if (!this.blockedFor(e, nx | 0, e.y | 0)) ny = e.y;
+      else if (!this.blockedFor(e, e.x | 0, ny | 0)) nx = e.x;
       else return true; // stuck
     }
     e.x = nx; e.y = ny;
@@ -366,9 +393,9 @@ export class World {
       if (d < 0.05) { e.path.shift(); continue; }
       const step = Math.min(d, budget);
       let nx = e.x + (dx / d) * step, ny = e.y + (dy / d) * step;
-      if (isBlocked(e.plane, nx | 0, ny | 0)) {
-        if (!isBlocked(e.plane, nx | 0, e.y | 0)) ny = e.y;
-        else if (!isBlocked(e.plane, e.x | 0, ny | 0)) nx = e.x;
+      if (this.blockedFor(e, nx | 0, ny | 0)) {
+        if (!this.blockedFor(e, nx | 0, e.y | 0)) ny = e.y;
+        else if (!this.blockedFor(e, e.x | 0, ny | 0)) nx = e.x;
         else { e.path.shift(); continue; }        // blocked toward this waypoint; try the next
       }
       const consumed = Math.hypot(nx - e.x, ny - e.y);
@@ -382,20 +409,26 @@ export class World {
     return movedAny;
   }
 
+  // Travel speed: exhausted legs drag below walking pace; mounts multiply it.
+  moveSpeed(p) {
+    let s = p.energy <= 0 ? WORLD.EXHAUSTED_SPEED
+      : p.run && p.energy > 0 ? WORLD.RUN_SPEED : WORLD.WALK_SPEED;
+    if (p.mounted && p.mountDef) s *= 1 + p.mountDef.speed;
+    return s;
+  }
   tickPlayer(p, now, dt) {
     tickCombat(this, p, now);
     // movement: follow path or velocity
     let moved = false;
     if (p.vel && now - p.velT < 400) {
-      const speed = p.run && p.energy > 0 ? WORLD.RUN_SPEED : WORLD.WALK_SPEED;
+      const speed = this.moveSpeed(p);
       const nx = p.x + p.vel.x * speed * dt, ny = p.y + p.vel.y * speed * dt;
       const before = p.x + ',' + p.y;
       this.moveEntity(p, nx, ny, speed, dt);
       moved = before !== p.x + ',' + p.y;
       if (moved) p.path = null;
     } else if (p.path && p.path.length) {
-      const speed = p.run && p.energy > 0 ? WORLD.RUN_SPEED : WORLD.WALK_SPEED;
-      moved = this.followPath(p, speed, dt);
+      moved = this.followPath(p, this.moveSpeed(p), dt);
     }
     if (moved) {
       p.anim = 'walk';
@@ -648,8 +681,8 @@ export class World {
   // ---------------- AOI snapshots ----------------
   describe(e) {
     const d = { id: e.id, k: e.kind, x: +e.x.toFixed(2), y: +e.y.toFixed(2), dir: e.dir || 2, anim: e.anim || 'idle', seq: e.animSeq || 0 };
-    if (e.kind === 'player') Object.assign(d, { name: e.name, hp: e.hp, mhp: e.maxHp, vis: e.visual(), cb: e.combatLevel(), skull: e.plane === 0 && e.y < WILDERNESS_Y });
-    else if (e.kind === 'mob') { const m = MOBS[e.type]; Object.assign(d, { type: e.type, name: m.name, lvl: e.lvl, hp: e.hp, mhp: e.maxHp, vis: m.vis, critter: m.critter, sheet: m.sheet, boss: m.boss, scale: m.scale }); }
+    if (e.kind === 'player') Object.assign(d, { name: e.name, hp: e.hp, mhp: e.maxHp, vis: e.visual(), cb: e.combatLevel(), skull: e.plane === 0 && e.y < WILDERNESS_Y, ...this.rideState(e) });
+    else if (e.kind === 'mob') { const m = MOBS[e.type]; Object.assign(d, { type: e.type, name: m.name, lvl: e.lvl, hp: e.hp, mhp: e.maxHp, vis: m.vis, critter: m.critter, sheet: m.sheet, tint: m.tint, boss: m.boss, scale: m.scale }); }
     else if (e.kind === 'geode') Object.assign(d, { name: `Gem geode (${e.gem})`, gem: e.gem, gemRow: e.gemRow, gemCol: e.gemCol, lvl: e.lvl });
     else if (e.kind === 'chest') Object.assign(d, { name: e.locked ? 'Ornate chest' : 'Treasure chest', variant: e.variant, snow: e.snow ? 1 : 0, locked: e.locked ? 1 : 0 });
     else if (e.kind === 'npc') { const n = NPCS[e.type]; Object.assign(d, { type: e.type, name: n.name, vis: n.vis, npc: 1, shop: !!n.shop, quest: n.quest }); }

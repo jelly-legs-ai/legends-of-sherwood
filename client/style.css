@@ -286,3 +286,15 @@ button { font-family: inherit; }
   box-shadow: 0 6px 18px #000c;
 }
 .tooltip b { color: var(--gold-l); }
+
+/* ---------- dev command autocomplete ---------- */
+#cmd-suggest {
+  position: fixed; left: 12px; bottom: 46px; z-index: 40;
+  background: var(--panel-grad); border: 1px solid var(--trim); border-radius: 6px;
+  min-width: 260px; max-width: 420px; padding: 4px; font-size: 12.5px; color: var(--parch);
+  box-shadow: 0 4px 18px #000c; font-family: Consolas, monospace;
+}
+#cmd-suggest .opt { padding: 3px 8px; border-radius: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#cmd-suggest .opt b { color: var(--gold-l); }
+#cmd-suggest .opt.sel, #cmd-suggest .opt:hover { background: #ffffff14; }
+#cmd-suggest .hint { color: var(--parch-dim); font-family: Georgia, serif; font-style: italic; }

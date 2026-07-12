@@ -169,6 +169,10 @@ G.net.on(MSG.DEATH, (m) => {
 });
 G.net.on(MSG.RESPAWN, () => UI.toast('You wake by the Loxley square.'));
 G.net.on(MSG.EVENT, (m) => { UI.eventBanner(m.m); UI.chatLine(`<span class="tok">${m.m}</span>`); });
+G.net.on('ride', (m) => {
+  const e = G.entities.get(m.id);
+  if (e) { e.mnt = m.mnt || null; e.aura = m.aura || null; }
+});
 G.net.on('chat', (m) => {
   const e = G.entities.get(m.id);
   if (e) { e.bubble = m.m; e.bubbleUntil = performance.now() + 4500; }
@@ -210,6 +214,7 @@ window.addEventListener('keydown', (e) => {
   keys[e.key.toLowerCase()] = true;
   if (e.key === 'Enter') { $('#chat-in').focus(); e.preventDefault(); }
   if (e.key === 'Escape') { UI.closeWin(); UI.hideDialogue(); G.selSpell = null; }
+  if (e.key === 'm' || e.key === 'M') G.net.send({ t: 'mount' });
   const n = parseInt(e.key);
   if (n >= 1 && n <= 9 && G.abilityKeys[n - 1]) G.net.send({ t: MSG.ABILITY, id: G.abilityKeys[n - 1] });
 });

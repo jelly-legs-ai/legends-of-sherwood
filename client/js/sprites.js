@@ -83,24 +83,26 @@ export function composite(vis) {
   const H = SHEET_ROWS * FRAME;
   const drawAll = () => {
     ctx.clearRect(0, 0, 832, H);
-    for (const f of files) {
+    for (const spec of files) {
+      const f = typeof spec === 'string' ? spec : spec.f;
       const im = img(f);
       if (!im.complete || !im.naturalWidth) continue;
       const h = Math.min(H, im.naturalHeight);
-      ctx.drawImage(im, 0, 0, 832, h, 0, 0, 832, h);
+      const src = spec.tint ? tinted(im, spec.tint) : im;
+      ctx.drawImage(src, 0, 0, 832, h, 0, 0, 832, h);
       // Legacy 21-row sheets (bows, staves, quivers, tools) have no idle rows —
       // synthesize idle art from their walk frame 0 so held items never vanish
       // while standing, and layer order is preserved.
       if (im.naturalHeight <= 21 * FRAME + 8) {
         for (let d = 0; d < 4; d++)
           for (let f2 = 0; f2 < 2; f2++)
-            ctx.drawImage(im, 0, (8 + d) * FRAME, FRAME, FRAME, f2 * FRAME, (22 + d) * FRAME, FRAME, FRAME);
+            ctx.drawImage(src, 0, (8 + d) * FRAME, FRAME, FRAME, f2 * FRAME, (22 + d) * FRAME, FRAME, FRAME);
       }
     }
     c.ready = true;
   };
-  for (const f of files) {
-    const im = img(f);
+  for (const spec of files) {
+    const im = img(typeof spec === 'string' ? spec : spec.f);
     if (im.complete) { if (--pending === 0) drawAll(); }
     else im.addEventListener('load', () => { if (--pending === 0) drawAll(); }, { once: true });
     im.addEventListener('error', () => { if (--pending === 0) drawAll(); }, { once: true });
@@ -108,13 +110,36 @@ export function composite(vis) {
   if (pending === 0) drawAll();
   return c;
 }
+// Hue-shift a sheet toward a metal tint, preserving shading + alpha. Lets one
+// LPC tool/weapon sheet represent every metal tier (gold sylvan pickaxes etc).
+const METAL_TINT = { copper: '#b87333', bronze: '#c98f57', steel: '#e2e7ee', brass: '#d8b45e', silver: '#eef2f8', gold: '#e8c84e' };
+const tintCache = new Map();
+function tinted(im, tint) {
+  const key = im.src + '|' + tint;
+  let c = tintCache.get(key);
+  if (c) return c;
+  c = document.createElement('canvas');
+  c.width = im.naturalWidth; c.height = im.naturalHeight;
+  const g = c.getContext('2d');
+  g.drawImage(im, 0, 0);
+  g.globalCompositeOperation = 'color';
+  g.fillStyle = tint; g.fillRect(0, 0, c.width, c.height);
+  g.globalCompositeOperation = 'destination-in';
+  g.drawImage(im, 0, 0);
+  tintCache.set(key, c);
+  return c;
+}
 function weaponFiles(type, color, sex = 'male') {
   const w = manifest.weapons[type];
   if (!w) return null;
   const out = { perAnim: w.perAnim || null, color };
-  if (w.sexed) out.fg = w.sexed[sex] || Object.values(w.sexed).find(Boolean);       // tools (axe/pickaxe)
-  else if (w.fg || w.bg) {
-    out.fg = w.fg?.[color] || Object.values(w.fg || {}).find(Boolean);
+  if (w.sexed) {                                                                    // tools (axe/pickaxe): single sheet, tint per metal
+    const f = w.sexed[sex] || Object.values(w.sexed).find(Boolean);
+    out.fg = f && METAL_TINT[color] ? { f, tint: METAL_TINT[color] } : f;
+  } else if (w.fg || w.bg) {
+    const exact = w.fg?.[color];
+    const fb = Object.values(w.fg || {}).find(Boolean);
+    out.fg = exact || (fb && METAL_TINT[color] ? { f: fb, tint: METAL_TINT[color] } : fb);
     out.bg = w.bg?.[color] || (w.bg && Object.values(w.bg).find(Boolean));
   }
   return (out.fg || out.bg || out.perAnim) ? out : null;

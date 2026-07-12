@@ -7,7 +7,7 @@ import { REGIONS } from '/shared/constants.js';
 import { HOUSE } from '/shared/data/world.js';
 import { composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS, itemIcon, proc } from './sprites.js';
 import { MOBS } from '/shared/data/mobs.js';
-import { drawCreature, drawChest, drawGeode, drawSheetCell, MEDIA, mimg } from './media.js';
+import { drawCreature, drawChest, drawGeode, drawSheetCell, drawFxSprite, MEDIA, mimg } from './media.js';
 
 export const TW = 64, TH = 32;         // iso tile size
 export const toScreen = (x, y) => [(x - y) * (TW / 2), (x + y) * (TH / 2)];
@@ -437,6 +437,23 @@ export class Renderer {
     }
     if (anim === 'idle') frame = Math.floor((now + e.id * 217) / animInfo.ms) % animInfo.frames; // desynced breathing
 
+    // cosmetic aura: looping elemental swirl beneath the wearer
+    if (e.aura) {
+      ctx.save();
+      ctx.globalAlpha = 0.75;
+      ctx.globalCompositeOperation = 'lighter';   // additive: glows on any ground
+      drawFxSprite(ctx, e.aura, 0.22 + 0.5 * (((now + (e.id % 89) * 131) % 2400) / 2400), sx, sy - 14, 112);
+      ctx.restore();
+    }
+    // mount: creature drawn under the rider, who sits lifted (flyers hover+bob)
+    let lift = 0;
+    if (e.mnt) {
+      const bob = e.mnt.f ? Math.sin(now / 320 + e.id) * 3 + 10 : 0;
+      const mh = drawCreature(ctx, e.mnt.s, { id: e.id, dir: e.dir, hp: 1, tint: e.mnt.t, animStart: e.animStart }, e.anim === 'walk' ? 'walk' : 'idle', now, sx, sy - bob, 1);
+      lift = (mh ? mh * 0.45 : 15) + bob;
+    }
+    const ry = sy - lift;
+
     let sheetH = 0;
     if (e.sheet) {
       // sheet-animated creature (media.json packs); uses raw server anim +
@@ -458,8 +475,8 @@ export class Renderer {
       }
     } else if (!sheetH && e.vis) {
       const comp = composite(e.vis);
-      drawChar(ctx, comp, anim, e.dir, frame, sx, sy, scale);
-      drawOversize(ctx, comp, e.vis, anim, e.dir, frame, sx, sy, scale);
+      drawChar(ctx, comp, anim, e.dir, frame, sx, ry, scale);
+      drawOversize(ctx, comp, e.vis, anim, e.dir, frame, sx, ry, scale);
     } else if (!sheetH && !e.sheet) {
       ctx.fillStyle = '#888'; ctx.fillRect(sx - 8, sy - 30, 16, 30);
     }

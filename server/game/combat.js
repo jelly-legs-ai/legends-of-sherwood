@@ -48,7 +48,16 @@ function grantCombatXp(p, style, dmg, world) {
   }
 }
 
-const RANGE = { melee: 1.7, ranged: 8, magic: 9 };
+// Attack reach. Ranged reach depends on the bow: longbows out-range spells,
+// spells out-range shortbows — kited correctly, each style has its niche.
+function attackRange(p, style) {
+  if (style === 'melee') return 1.7;
+  if (style === 'magic') return 9;
+  const w = ITEMS[p.equip?.weapon?.id];
+  if (w?.vis?.type === 'great') return 10;        // longbows / warbows
+  if (w?.vis?.type === 'recurve' || w?.kind === 'crossbow') return 8.5;
+  return 7.5;                                     // shortbows
+}
 
 export function tickCombat(world, p, now) {
   if (!p.target || p.hp <= 0) return;
@@ -59,8 +68,8 @@ export function tickCombat(world, p, now) {
   if (t.kind === 'npc') { p.target = null; return; }
   const style = p.combatStyle();
   const d = Math.hypot(t.x - p.x, t.y - p.y);
-  if (d > RANGE[style]) {
-    // walk toward target
+  if (d > attackRange(p, style)) {
+    // walk toward target only while genuinely out of range
     if (!p.vel || now - p.velT > 400) { p.path = [{ x: t.x | 0, y: t.y | 0 }]; }
     return;
   }
@@ -108,6 +117,15 @@ function bestSpell(p) {
 export function castSpellAt(world, p, spellId, target) {
   const s = SPELLS[spellId];
   const now = Date.now();
+  // teleports channel bare-handed but need 5s of calm; combat magic needs a staff
+  if (s.teleport && now - (p.lastCombat || 0) < 5000) {
+    world.send(p, { t: MSG.MSGBOX, m: 'You cannot focus a teleport so soon after combat.' });
+    return false;
+  }
+  if (!s.teleport && ITEMS[p.equip.weapon?.id]?.kind !== 'staff') {
+    world.send(p, { t: MSG.MSGBOX, m: 'You need to wield a staff to channel that spell.' });
+    return false;
+  }
   for (const [r, q] of Object.entries(s.runes)) if (p.countItem(r) < q) { world.send(p, { t: MSG.MSGBOX, m: 'Not enough runes.' }); return false; }
   for (const [r, q] of Object.entries(s.runes)) p.removeItem(r, q);
   // Staff wielders jab-cast (the LPC staff sheets carry thrust art, not spellcast)
@@ -161,6 +179,8 @@ export function resolveHit(world, p, t, style, spell) {
   }
   world.broadcastNear(p.plane, t.x, t.y, { t: MSG.HIT, id: t.id, dmg, src: p.id, crit: dmg > rolls.max * 0.85 });
   if (dmg > 0) {
+    p.lastCombat = Date.now();                     // dealing damage locks teleports/mounts
+    if (t.kind === 'player') t.lastCombat = Date.now();
     grantCombatXp(p, style, dmg, world);
     if (t.kind === 'player') applyPlayerDamage(world, t, dmg, p);
     else world.applyMobDamage(t, dmg, p);
@@ -209,6 +229,14 @@ export function applyPlayerDamage(world, p, dmg, source) {
     } else {
       const red = PET_POWER.damageReduction(pet.ent.cls, pet.lvl);
       if (red > 0) { dmg = Math.max(0, Math.round(dmg * (1 - red))); world.petGainXp(p, pet.rec, 1); }
+    }
+  }
+  if (dmg > 0) {
+    p.lastCombat = Date.now();                     // taking damage locks teleports/mounts
+    if (p.mounted) {
+      p.mounted = false;
+      world.syncRide(p);
+      world.send(p, { t: MSG.MSGBOX, m: 'You are knocked from your mount!' });
     }
   }
   p.hp -= dmg;

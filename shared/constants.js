@@ -10,7 +10,8 @@ WORLD.CHUNK = 16;             // chunk edge in tiles
 WORLD.TICK_MS = 100;          // 10 Hz server simulation
 WORLD.AOI_TILES = 26;         // area-of-interest radius (tiles) streamed to each client
 WORLD.WALK_SPEED = 3.6;       // tiles / second
-WORLD.RUN_SPEED = 5.6;
+WORLD.RUN_SPEED = 4.2;        // was 5.6; tuned down 25%
+WORLD.EXHAUSTED_SPEED = WORLD.RUN_SPEED * 0.5;  // out of stamina: half the run speed
 
 // Planes (parallel coordinate spaces sharing the entity system)
 export const PLANE = { OVERWORLD: 0, COLOSSEUM: 1, HOUSE_BASE: 1000, DUNGEON_BASE: 2000 };

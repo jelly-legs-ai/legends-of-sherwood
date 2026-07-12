@@ -197,17 +197,34 @@ export function itemIcon(id) {
       g.shadowBlur = 0; g.strokeStyle = INK; g.stroke();
       g.fillStyle = '#ffffff88'; g.beginPath(); g.moveTo(16, 8); g.lineTo(12, 14); g.lineTo(15, 22); g.closePath(); g.fill();
     } else {
-      const glyphs = { air: 'ᚨ', earth: 'ᚦ', water: 'ᚹ', fire: 'ᚠ', nature: 'ᚱ', cosmic: 'ᚲ', blood: 'ᛒ' };
-      const cols = { air: '#7ab8d4', earth: '#b08a4c', water: '#4c8ab0', fire: '#e06a2a', nature: '#5aa03c', cosmic: '#b07fe0', blood: '#c03a3a' };
+      // carved stone slab: chiselled edge, elemental glyph cut deep and glowing
+      const cols = { air: '#9fd8ef', earth: '#c89a52', water: '#5fa8dc', fire: '#ff8a2a', nature: '#6fc04a', cosmic: '#c08aff', blood: '#e0304a' };
       const el = name.split('_')[0];
-      g.fillStyle = '#ded5c2';
-      g.beginPath(); g.moveTo(9, 6); g.lineTo(23, 6); g.quadraticCurveTo(25, 6, 25, 9); g.lineTo(25, 24); g.quadraticCurveTo(25, 27, 22, 27); g.lineTo(10, 27); g.quadraticCurveTo(7, 27, 7, 24); g.lineTo(7, 9); g.quadraticCurveTo(7, 6, 9, 6); g.closePath(); g.fill();
+      const c = cols[el] || '#888';
+      // slab body with bevel
+      g.fillStyle = '#cfc6b0';
+      g.beginPath(); g.moveTo(10, 4.5); g.lineTo(22, 4.5); g.quadraticCurveTo(25.5, 5, 25.5, 9); g.lineTo(25, 24); g.quadraticCurveTo(24.8, 27.5, 21, 27.5); g.lineTo(11, 27.5); g.quadraticCurveTo(7.2, 27.5, 7, 24); g.lineTo(6.5, 9); g.quadraticCurveTo(6.5, 5, 10, 4.5); g.closePath(); g.fill();
       g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
-      g.fillStyle = '#b8ad96'; g.fillRect(9, 22, 14, 3);
-      g.fillStyle = cols[el] || '#888'; g.font = 'bold 14px serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.shadowColor = cols[el]; g.shadowBlur = 4;
-      g.fillText(glyphs[el] || '?', 16, 16);
-      g.shadowBlur = 0; g.textBaseline = 'alphabetic';
+      g.fillStyle = '#e9e2d0'; g.beginPath(); g.moveTo(10, 5.5); g.lineTo(22, 5.5); g.lineTo(21, 8); g.lineTo(11, 8); g.closePath(); g.fill(); // top light bevel
+      g.fillStyle = '#a89e86'; g.beginPath(); g.moveTo(8, 23); g.lineTo(24, 23); g.lineTo(23.6, 26.4); g.lineTo(8.6, 26.4); g.closePath(); g.fill(); // bottom shadow bevel
+      // chips
+      g.fillStyle = '#b8ad96'; g.beginPath(); g.moveTo(25, 11); g.lineTo(23.4, 12.6); g.lineTo(25, 13.6); g.closePath(); g.fill();
+      // carved glyph (path per element), glowing
+      g.save(); g.translate(16, 16);
+      g.shadowColor = c; g.shadowBlur = 6;
+      g.strokeStyle = c; g.lineWidth = 2.2; g.lineCap = 'round'; g.lineJoin = 'round';
+      g.beginPath();
+      if (el === 'air') { g.arc(0, 0, 5.2, -2.4, 2.2); g.moveTo(3.4, -3.4); g.arc(1.2, -1.4, 3, -0.8, 1.8); }
+      else if (el === 'earth') { g.moveTo(0, -6); g.lineTo(5.4, 4.6); g.lineTo(-5.4, 4.6); g.closePath(); g.moveTo(0, -1.4); g.lineTo(2.4, 3.2); g.lineTo(-2.4, 3.2); g.closePath(); }
+      else if (el === 'water') { g.moveTo(-5.6, -2.6); g.quadraticCurveTo(-2.8, -6.2, 0, -2.6); g.quadraticCurveTo(2.8, 1, 5.6, -2.6); g.moveTo(-5.6, 2.8); g.quadraticCurveTo(-2.8, -0.8, 0, 2.8); g.quadraticCurveTo(2.8, 6.4, 5.6, 2.8); }
+      else if (el === 'fire') { g.moveTo(0, -6.4); g.quadraticCurveTo(4.6, -2, 3.2, 2.4); g.quadraticCurveTo(2.2, 5.6, 0, 6); g.quadraticCurveTo(-2.2, 5.6, -3.2, 2.4); g.quadraticCurveTo(-4.6, -2, 0, -6.4); g.moveTo(0, -1.6); g.quadraticCurveTo(1.8, 1.2, 0, 3.6); g.quadraticCurveTo(-1.8, 1.2, 0, -1.6); }
+      else if (el === 'nature') { g.moveTo(0, 6); g.quadraticCurveTo(-6, 0, -2.6, -4.6); g.quadraticCurveTo(0, -6.6, 2.6, -4.6); g.quadraticCurveTo(6, 0, 0, 6); g.moveTo(0, 5); g.lineTo(0, -3.4); }
+      else if (el === 'cosmic') { for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; g.moveTo(0, 0); g.lineTo(Math.cos(a) * 6, Math.sin(a) * 6); } for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; g.moveTo(0, 0); g.lineTo(Math.cos(a) * 3.4, Math.sin(a) * 3.4); } }
+      else if (el === 'blood') { g.moveTo(0, -6); g.quadraticCurveTo(4.8, 0, 3.4, 3); g.quadraticCurveTo(2, 6, 0, 6); g.quadraticCurveTo(-2, 6, -3.4, 3); g.quadraticCurveTo(-4.8, 0, 0, -6); }
+      g.stroke();
+      g.shadowBlur = 0;
+      g.strokeStyle = '#ffffff80'; g.lineWidth = 0.8; g.stroke();  // inner shine
+      g.restore();
     }
   } else if (name.includes('helm') || name.includes('coif')) {
     g.fillStyle = pal[0];
@@ -362,13 +379,81 @@ export function itemIcon(id) {
     }
     g.shadowBlur = 0;
   } else if (/fur|pelt|hide|^soft_leather|scale$/.test(name)) {
-    const c = name.includes('wolf') ? '#6a6d75' : name.includes('fox') ? '#c86a2a' : name.includes('sable') ? '#3a3238' : name.includes('rabbit') ? '#b59a77' : name.includes('fenwyrm') ? '#4a7040' : '#a8814f';
-    g.fillStyle = c;
-    g.beginPath(); g.moveTo(10, 6); g.quadraticCurveTo(16, 4, 22, 6); g.lineTo(25, 12); g.lineTo(23, 20); g.quadraticCurveTo(22, 26, 16, 27); g.quadraticCurveTo(10, 26, 9, 20); g.lineTo(7, 12); g.closePath(); g.fill();
-    g.strokeStyle = INK; g.stroke();
-    g.strokeStyle = '#00000030'; g.lineWidth = 1;
-    for (const o of [-4, 0, 4]) { g.beginPath(); g.moveTo(16 + o, 8); g.lineTo(16 + o * 1.3, 24); g.stroke(); }
-    g.fillStyle = '#ffffff2a'; g.beginPath(); g.ellipse(13, 10, 3.4, 2, 0.3, 0, 7); g.fill();
+    // species-distinct pelts: silhouettes you can tell apart at a glance
+    const splayed = (base, dark, headFn) => {
+      // flat splayed pelt: body + four leg flaps + species head
+      g.fillStyle = base;
+      g.beginPath();
+      g.moveTo(16, 6); g.quadraticCurveTo(22, 7, 23, 11); g.lineTo(27, 13); g.lineTo(24, 16);
+      g.quadraticCurveTo(24, 20, 23, 22); g.lineTo(26, 26); g.lineTo(21, 25);
+      g.quadraticCurveTo(16, 28, 11, 25); g.lineTo(6, 26); g.lineTo(9, 22);
+      g.quadraticCurveTo(8, 20, 8, 16); g.lineTo(5, 13); g.lineTo(9, 11);
+      g.quadraticCurveTo(10, 7, 16, 6); g.closePath(); g.fill();
+      g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
+      g.strokeStyle = dark; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(16, 9); g.lineTo(16, 24); g.stroke();
+      headFn && headFn();
+    };
+    if (name.includes('wolf')) {
+      splayed('#7a7e88', '#565a64', () => { // grey pelt, wolf muzzle + ears at top
+        g.fillStyle = '#5a5e68';
+        g.beginPath(); g.moveTo(16, 2.6); g.lineTo(19.4, 7); g.lineTo(16, 9.6); g.lineTo(12.6, 7); g.closePath(); g.fill(); g.strokeStyle = INK; g.stroke();
+        g.beginPath(); g.moveTo(12.4, 4.6); g.lineTo(13.8, 7); g.lineTo(11.6, 7.4); g.closePath();
+        g.moveTo(19.6, 4.6); g.lineTo(18.2, 7); g.lineTo(20.4, 7.4); g.closePath(); g.fill(); g.stroke();
+        px(g, 14.4, 6, 1.2, 1.2, '#20242c'); px(g, 16.6, 6, 1.2, 1.2, '#20242c');
+      });
+      g.fillStyle = '#b8bcC6'; g.beginPath(); g.ellipse(16, 14, 3, 4.4, 0, 0, 7); g.fill(); // pale chest streak
+    } else if (name.includes('fox')) {
+      // rusty fur with the giveaway white-tipped bushy tail
+      g.fillStyle = '#c8641e';
+      g.beginPath(); g.moveTo(10, 7); g.quadraticCurveTo(20, 4, 23, 10); g.quadraticCurveTo(25, 16, 20, 20); g.quadraticCurveTo(14, 24, 10, 19); g.quadraticCurveTo(6, 12, 10, 7); g.closePath(); g.fill();
+      g.strokeStyle = INK; g.stroke();
+      g.fillStyle = '#e08a44'; g.beginPath(); g.ellipse(14, 12, 4, 3, -0.4, 0, 7); g.fill();
+      g.fillStyle = '#c8641e'; // tail sweeping under
+      g.beginPath(); g.moveTo(19, 18); g.quadraticCurveTo(27, 20, 25, 26); g.quadraticCurveTo(23, 29, 18, 27); g.quadraticCurveTo(14, 25, 16, 21); g.closePath(); g.fill(); g.strokeStyle = INK; g.stroke();
+      g.fillStyle = '#f4ede0'; g.beginPath(); g.moveTo(24.6, 23.4); g.quadraticCurveTo(26, 26.4, 22.4, 27.6); g.quadraticCurveTo(20.6, 27.8, 20, 26.4); g.quadraticCurveTo(22.6, 26.2, 24.6, 23.4); g.closePath(); g.fill();
+    } else if (name.includes('rabbit')) {
+      // small soft pelt with long upright ears
+      g.fillStyle = '#c9b295';
+      g.beginPath(); g.ellipse(16, 19, 7.4, 6.8, 0, 0, 7); g.fill(); g.strokeStyle = INK; g.stroke();
+      g.fillStyle = '#bfa688';
+      for (const o of [-3.2, 3.2]) {
+        g.beginPath(); g.ellipse(16 + o, 9, 2.1, 5.4, o > 0 ? 0.22 : -0.22, 0, 7); g.fill(); g.strokeStyle = INK; g.stroke();
+        g.fillStyle = '#e8cfae'; g.beginPath(); g.ellipse(16 + o, 9.6, 0.9, 3.4, o > 0 ? 0.22 : -0.22, 0, 7); g.fill();
+        g.fillStyle = '#bfa688';
+      }
+      g.fillStyle = '#efe2cc'; g.beginPath(); g.ellipse(15, 18, 3.4, 2.6, 0.3, 0, 7); g.fill(); // belly fluff
+      g.fillStyle = '#f7f2e8'; g.beginPath(); g.arc(20.5, 23.5, 2, 0, 7); g.fill(); g.strokeStyle = INK; g.stroke(); // bob tail
+    } else if (name.includes('sable')) {
+      // long sleek near-black stole, curled
+      g.fillStyle = '#2e2830';
+      g.beginPath(); g.moveTo(8, 10); g.quadraticCurveTo(16, 4, 24, 9); g.quadraticCurveTo(28, 13, 24, 16); g.quadraticCurveTo(18, 19, 20, 23); g.quadraticCurveTo(21, 27, 15, 27); g.quadraticCurveTo(8, 26, 9, 20); g.quadraticCurveTo(10, 16, 8, 13) ; g.closePath(); g.fill();
+      g.strokeStyle = INK; g.stroke();
+      g.fillStyle = '#4a4250'; g.beginPath(); g.ellipse(15, 11, 6, 2.2, -0.15, 0, 7); g.fill(); // sheen
+      g.fillStyle = '#191521'; g.beginPath(); g.ellipse(17, 22, 3.4, 2.6, 0.5, 0, 7); g.fill();
+    } else if (name.includes('cow')) {
+      // rectangular hide with black patches
+      g.fillStyle = '#e8ddc8';
+      g.beginPath(); g.moveTo(8, 7); g.lineTo(24, 7); g.lineTo(26, 12); g.lineTo(24, 25); g.lineTo(8, 25); g.lineTo(6, 12); g.closePath(); g.fill();
+      g.strokeStyle = INK; g.stroke();
+      g.fillStyle = '#2c2c30';
+      g.beginPath(); g.ellipse(12, 12, 3.4, 2.8, 0.4, 0, 7); g.fill();
+      g.beginPath(); g.ellipse(21, 17, 3, 3.4, -0.3, 0, 7); g.fill();
+      g.beginPath(); g.ellipse(13, 21.5, 2.6, 2, 0.2, 0, 7); g.fill();
+    } else if (name.includes('fenwyrm')) {
+      g.shadowColor = '#4a7040'; g.shadowBlur = 4;
+      g.fillStyle = '#4a7040';
+      g.beginPath(); g.moveTo(16, 5); g.lineTo(24, 12); g.lineTo(21, 26); g.lineTo(11, 26); g.lineTo(8, 12); g.closePath(); g.fill();
+      g.shadowBlur = 0; g.strokeStyle = INK; g.stroke();
+      g.strokeStyle = '#35532c'; for (let yy = 10; yy < 25; yy += 4) { g.beginPath(); g.moveTo(10, yy); g.quadraticCurveTo(16, yy + 2, 22, yy); g.stroke(); }
+      g.fillStyle = '#7fae62'; g.beginPath(); g.ellipse(14, 10, 3, 2, 0.4, 0, 7); g.fill();
+    } else { // soft leather: neatly folded tan square
+      g.fillStyle = '#b3854e'; g.fillRect(8, 10, 17, 13);
+      g.strokeStyle = INK; g.strokeRect(8, 10, 17, 13);
+      g.fillStyle = '#9c7140'; g.fillRect(8, 15.4, 17, 2.2);
+      g.fillStyle = '#c99a63'; g.fillRect(8, 10, 17, 2.6);
+      g.strokeStyle = '#7a5830'; g.beginPath(); g.moveTo(8, 18.6); g.lineTo(25, 18.6); g.stroke();
+    }
   } else if (name === 'coins') {
     for (const [ox, oy] of [[11, 21], [17, 22], [14, 17], [20, 17]]) {
       g.fillStyle = '#e8b93c'; g.beginPath(); g.ellipse(ox, oy, 5, 3.6, 0, 0, 7); g.fill();
@@ -395,12 +480,46 @@ export function itemIcon(id) {
   } else if (['sapphire', 'emerald', 'ruby', 'diamond'].includes(name)) {
     gemIcon(g, { sapphire: '#3c6ee0', emerald: '#3ca03c', ruby: '#c03a3a', diamond: '#dff2fc' }[name]);
   } else if (name.includes('key')) {
+    // the Abyssal key glows crimson; mundane keys stay brass
+    const abyssal = name === 'dungeon_key';
+    const kc = abyssal ? '#c22030' : '#c8a038';
     g.save(); g.translate(16, 16); g.rotate(Math.PI / 4);
-    g.strokeStyle = '#c8a038'; g.lineWidth = 2.4;
+    if (abyssal) { g.shadowColor = '#e0304a'; g.shadowBlur = 6; }
+    g.strokeStyle = kc; g.lineWidth = 2.4;
     g.beginPath(); g.arc(0, -7, 3.6, 0, 7); g.stroke();
     g.beginPath(); g.moveTo(0, -3.4); g.lineTo(0, 9); g.stroke();
     g.beginPath(); g.moveTo(0, 5); g.lineTo(3.4, 5); g.moveTo(0, 8.4); g.lineTo(4.4, 8.4); g.stroke();
+    g.shadowBlur = 0;
+    if (abyssal) { // darker core + skull-socket bow
+      g.strokeStyle = '#7a1020'; g.lineWidth = 1;
+      g.beginPath(); g.arc(0, -7, 3.6, 0, 7); g.stroke();
+      g.fillStyle = '#3a0810'; g.beginPath(); g.arc(0, -7, 1.6, 0, 7); g.fill();
+    }
     g.restore();
+  } else if (name.startsWith('aura_')) {
+    // glowing elemental ring
+    const ac = { ember: '#ff8a2a', frost: '#7ac8f0', verdant: '#6fc04a', royal: '#e070d8', blood: '#e0304a', spectral: '#d8e2ea' }[name.slice(5)] || '#ffd75e';
+    g.shadowColor = ac; g.shadowBlur = 7;
+    g.strokeStyle = ac; g.lineWidth = 2.6;
+    g.beginPath(); g.ellipse(16, 18, 9.5, 5, 0, 0, 7); g.stroke();
+    g.shadowBlur = 0;
+    g.strokeStyle = '#ffffff90'; g.lineWidth = 1;
+    g.beginPath(); g.ellipse(16, 18, 9.5, 5, 0, Math.PI * 1.1, Math.PI * 1.9); g.stroke();
+    for (const [ox, oy] of [[9, 11], [23, 12], [16, 7]]) { g.fillStyle = ac; g.beginPath(); g.arc(ox, oy, 1.4, 0, 7); g.fill(); }
+  } else if (def.mount) {
+    // saddle over a horse-blanket; flyers get a wing
+    g.fillStyle = '#8a5f36';
+    g.beginPath(); g.moveTo(8, 16); g.quadraticCurveTo(10, 10, 16, 10); g.quadraticCurveTo(23, 10, 25, 17); g.quadraticCurveTo(25.5, 21, 21, 21); g.lineTo(12, 21); g.quadraticCurveTo(7.5, 21, 8, 16); g.closePath(); g.fill();
+    g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
+    g.fillStyle = '#6b4726'; g.beginPath(); g.moveTo(15, 10); g.quadraticCurveTo(13, 6, 16.5, 5.5); g.quadraticCurveTo(19, 6, 17.6, 10); g.closePath(); g.fill(); g.stroke(); // pommel
+    g.fillStyle = def.mount.tint === 'gold' ? '#e8c84e' : '#a03a3a';
+    g.fillRect(9, 21, 14.5, 4.4); g.strokeStyle = INK; g.strokeRect(9, 21, 14.5, 4.4); // blanket
+    g.fillStyle = '#c8a038'; g.beginPath(); g.arc(11.5, 18, 1.4, 0, 7); g.fill(); // buckle
+    if (def.mount.fly) { // wing
+      g.fillStyle = '#e8e2d4';
+      g.beginPath(); g.moveTo(22, 12); g.quadraticCurveTo(29, 4, 30, 10); g.quadraticCurveTo(27.5, 11, 27, 14); g.quadraticCurveTo(24.5, 13, 22, 15); g.closePath(); g.fill();
+      g.strokeStyle = INK; g.stroke();
+    }
   } else if (name.includes('letter')) {
     g.fillStyle = '#efe6d0'; g.fillRect(7, 10, 18, 13);
     g.strokeStyle = INK; g.strokeRect(7, 10, 18, 13);

@@ -11,7 +11,7 @@ mob('rat', { name: 'Field rat', lvl: 2, life: 8, atk: 1, def: 1, style: 'melee',
   drops: [['bones', 1, 1], ['coins', [1, 4], 0.8]] });
 mob('rabbit', { name: 'Rabbit', lvl: 1, life: 5, atk: 0, def: 1, critter: 'rabbit', style: 'melee',
   drops: [['bones', 1, 1], ['rabbit_fur', 1, 0.9]] });
-mob('boar', { name: 'Wild boar', lvl: 8, life: 22, atk: 4, def: 4, critter: 'boar', style: 'melee', aggro: true,
+mob('boar', { name: 'Wild boar', lvl: 8, life: 22, atk: 4, def: 4, sheet: 'tusked_boar', style: 'melee', aggro: true,
   drops: [['bones', 1, 1], ['raw_venison', 1, 0.4], ['coins', [2, 9], 0.7]] });
 mob('bandit', { name: 'Bandit', lvl: 12, life: 30, atk: 7, def: 6, style: 'melee',
   vis: { skin: 'light', hair: ['bedhead', 'black'], torso: ['longsleeve', 'charcoal'], legs: ['pants', 'brown'], weapon: ['sword', 'copper'] },
@@ -119,8 +119,8 @@ mob('brown_bear', { name: 'Brown bear', lvl: 30, life: 90, atk: 18, def: 16, cri
   drops: [['big_bones', 1, 1], ['raw_venison', 1, 0.5], ['wolf_pelt', 1, 0.2], ['verdant_charm', 1, 0.15]] });
 
 // Event creature: the Golden Stag (flees, never fights; all damagers share the blessing)
-mob('golden_stag', { name: 'The Golden Stag', lvl: 30, life: 400, atk: 0, def: 25, critter: 'stag', style: 'melee', speed: 3.0, shil: 0,
-  drops: [['big_bones', 1, 1], ['raw_venison', [2, 4], 1]] });
+mob('golden_stag', { name: 'The Golden Stag', lvl: 30, life: 400, atk: 0, def: 25, sheet: 'wild_reindeer', tint: 'gold', scale: 1.3, style: 'melee', speed: 3.0, shil: 0,
+  drops: [['big_bones', 1, 1], ['raw_venison', [2, 4], 1], ['swift_stag', 1, 0.04], ['gilded_stag', 1, 0.006]] });
 
 // ---- Sheet-animated mobs (media.json packs; drawn by client/js/media.js) ------
 // Meadows / Bay starters
@@ -135,7 +135,7 @@ mob('shore_crab', { name: 'Shore crab', lvl: 6, life: 18, atk: 3, def: 5, sheet:
 mob('spiked_slime', { name: 'Spiked slime', lvl: 10, life: 26, atk: 5, def: 4, sheet: 'spiked_slime', style: 'melee', aggro: true,
   drops: [['coins', [3, 10], 0.8], ['grimy_nettle', 1, 0.3], ['spirit_shard', [1, 4], 0.25]] });
 // Sherwood & roads
-mob('tusked_boar', { name: 'Tusked boar', lvl: 24, life: 58, atk: 14, def: 12, sheet: 'tusked_boar', style: 'melee', aggro: true,
+mob('tusked_boar', { name: 'Tusked boar', lvl: 24, life: 58, atk: 14, def: 12, sheet: 'tusked_boar', scale: 1.3, style: 'melee', aggro: true,
   drops: [['big_bones', 1, 1], ['raw_venison', 1, 0.5], ['coins', [6, 20], 0.6]] });
 mob('marauder', { name: 'Marauder', lvl: 30, life: 74, atk: 17, def: 15, sheet: 'brigand', style: 'melee', aggro: true,
   drops: [['bones', 1, 1], ['coins', [10, 34], 0.9], ['steel_sword', 1, 0.02], ['attack_potion', 1, 0.1], ['blade_of_the_burrow', 1, 0.003]] });
@@ -201,7 +201,7 @@ boss('abyssal_horror', { name: 'The Abyssal Horror', lvl: 60, life: 1000, atk: 4
 
 // ---- Sheet-animated bosses ------------------------------------------------------
 boss('badger_king', { name: 'The Badger King', lvl: 38, life: 560, atk: 28, def: 26, sheet: 'badger_king', style: 'melee', tier: 1, scale: 1.4,
-  region: 'MEADOWS', drops: [['big_bones', 1, 1], ['blade_of_the_burrow', 1, 0.06], ['coins', [80, 240], 1], ['strength_potion', [1, 2], 0.5], ['tome_strength', 1, 0.03], ['rabbit_fur', [4, 10], 1]] });
+  region: 'MEADOWS', drops: [['big_bones', 1, 1], ['blade_of_the_burrow', 1, 0.06], ['coins', [80, 240], 1], ['strength_potion', [1, 2], 0.5], ['tome_strength', 1, 0.03], ['war_boar', 1, 0.015], ['rabbit_fur', [4, 10], 1]] });
 boss('frogger', { name: 'Frogger, Terror of the Fen', lvl: 48, life: 800, atk: 36, def: 30, sheet: 'frogger', style: 'magic', tier: 2, scale: 1.4,
   region: 'FENWOLD', drops: [['big_bones', 1, 1], ['tidebreaker_cutlass', 1, 0.05], ['water_rune', [12, 30], 1], ['coins', [120, 340], 1], ['tome_fishing', 1, 0.03], ['sapphire', 1, 0.3]] });
 boss('pengu', { name: 'Pengu the Frozen Tyrant', lvl: 58, life: 980, atk: 44, def: 38, sheet: 'pengu', style: 'magic', tier: 2, scale: 1.5,
@@ -215,11 +215,11 @@ boss('dino_rex', { name: 'The Rex of the Wastes', lvl: 78, life: 1900, atk: 60, 
 boss('queen_aracnyx', { name: 'Queen Aracnyx', lvl: 85, life: 2300, atk: 66, def: 58, sheet: 'queen_aracnyx', style: 'melee', tier: 4, scale: 1.1, dungeon: true,
   drops: [['ancient_bones', 1, 1], ['aracnyx_talon', 1, 0.035], ['coins', [400, 950], 1], ['blood_rune', [8, 20], 0.8], ['amethyst', 1, 0.3], ['abyssal_pearl', 1, 0.08], ['tome_crafting', 1, 0.04]] });
 boss('ice_beast', { name: 'The Ice Beast', lvl: 88, life: 2700, atk: 70, def: 62, sheet: 'ice_beast', style: 'magic', tier: 5, scale: 1.15,
-  region: 'WILDLANDS', drops: [['ancient_bones', 1, 1], ['glacial_reaver', 1, 0.03], ['coins', [500, 1200], 1], ['diamond', 1, 0.4], ['sage_elixir', 1, 0.25], ['tome_ranged', 1, 0.04]] });
+  region: 'WILDLANDS', drops: [['ancient_bones', 1, 1], ['glacial_reaver', 1, 0.03], ['coins', [500, 1200], 1], ['diamond', 1, 0.4], ['sage_elixir', 1, 0.25], ['tome_ranged', 1, 0.04], ['royal_skywing', 1, 0.012]] });
 boss('hellbeast', { name: 'The Hellbeast', lvl: 95, life: 3400, atk: 78, def: 68, sheet: 'hellbeast', style: 'melee', tier: 5, scale: 1.2, dungeon: true,
   drops: [['ancient_bones', 1, 1], ['hellrender', 1, 0.03], ['coins', [700, 1600], 1], ['blood_rune', [12, 30], 1], ['abyssal_pearl', 1, 0.2], ['kings_elixir', [1, 2], 0.6], ['tome_woodcutting', 1, 0.05]] });
 boss('dragon_tyrant', { name: 'Vermithrax, the Three-Headed Tyrant', lvl: 99, life: 4500, atk: 86, def: 74, sheet: 'dragon_tyrant', style: 'magic', tier: 6, scale: 1.2, shil: 8, respawnMs: 300000,
-  region: 'WILDLANDS', drops: [['ancient_bones', [2, 3], 1], ['dragonbane_greatsword', 1, 0.03], ['coins', [1000, 2400], 1], ['diamond', [1, 2], 0.5], ['abyssal_pearl', 1, 0.3], ['tome_farming', 1, 0.05], ['sylvanite_ore', [2, 5], 0.7]] });
+  region: 'WILDLANDS', drops: [['ancient_bones', [2, 3], 1], ['dragonbane_greatsword', 1, 0.03], ['coins', [1000, 2400], 1], ['diamond', [1, 2], 0.5], ['abyssal_pearl', 1, 0.3], ['tome_farming', 1, 0.05], ['sylvanite_ore', [2, 5], 0.7], ['sky_screecher', 1, 0.012], ['aura_spectral', 1, 0.02]] });
 
 // Vis for hair may be absent (helmets); critters are drawn by client code.
 export const CRITTERS = ['rat', 'rabbit', 'boar', 'wolf', 'icewolf', 'hawk', 'leech', 'serpent', 'panther', 'treant', 'goat', 'troll', 'sprite', 'spider', 'giant'];

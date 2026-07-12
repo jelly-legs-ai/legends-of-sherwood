@@ -303,6 +303,29 @@ geoScale('geo_objects', 'Geo node gem pack/1024x512 Objects01.png', 4, 1024, 512
   }
 }
 
+// ---------------------------------------------------------------------------
+// Content metrics: many packs centre a small sprite in a large cell (the bovine
+// boar is ~20px of art in a 128px cell). Measure the opaque bbox of the first
+// frame so the client can auto-boost tiny sprites and anchor to the real feet.
+for (const [key, def] of Object.entries(media.creatures)) {
+  const anim = def.anims.idle || Object.values(def.anims)[0];
+  if (!anim) continue;
+  try {
+    const img = decode(fs.readFileSync(path.join(OUT, anim.file)));
+    const fw = def.frame;
+    const fh = def.kind === 'strips' && !(anim.rows > 1) ? anim.h : fw;
+    let x0 = fw, y0 = fh, x1 = -1, y1 = -1;
+    for (let y = 0; y < Math.min(fh, img.h); y++) for (let x = 0; x < Math.min(fw, img.w); x++) {
+      if (img.data[(y * img.w + x) * 4 + 3] > 40) {
+        if (x < x0) x0 = x; if (x > x1) x1 = x;
+        if (y < y0) y0 = y; if (y > y1) y1 = y;
+      }
+    }
+    if (y1 >= 0) def.art = { h: +((y1 - y0 + 1) / fh).toFixed(3), b: +((fh - 1 - y1) / fh).toFixed(3), w: +((x1 - x0 + 1) / fw).toFixed(3) };
+  } catch { /* metrics are best-effort */ }
+}
+console.log('content metrics:', Object.entries(media.creatures).filter(([, d]) => d.art && d.art.h < 0.45).map(([k, d]) => `${k}:${d.art.h}`).join(' '));
+
 fs.mkdirSync(path.join(OUT), { recursive: true });
 fs.writeFileSync(path.join(OUT, 'media.json'), JSON.stringify(media, null, 1));
 console.log(`copied ${copied} assets; creatures: ${Object.keys(media.creatures).length}; fx: ${Object.keys(media.fx).length}`);

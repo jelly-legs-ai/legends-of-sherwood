@@ -362,6 +362,31 @@ TOME_SKILLS.forEach((sk, i) => def(`tome_${sk}`, {
   name: `Tome of ${sk[0].toUpperCase() + sk.slice(1)}`, value: 2600, tome: sk, micon: ['skillBooks', i],
 }));
 
+// ---------------------------------------------------------------------------
+// Auras: purely cosmetic equipment — a looping elemental FX around the wearer.
+export const AURAS = [
+  ['aura_ember', 'Ember Aura', 'twisted_1', 4000],
+  ['aura_frost', 'Frost Aura', 'twisted_2', 4000],
+  ['aura_verdant', 'Verdant Aura', 'twisted_3', 6500],
+  ['aura_royal', 'Royal Aura', 'twisted_4', 14000],
+  ['aura_blood', 'Blood Aura', 'twisted_5', 14000],
+  ['aura_spectral', 'Spectral Aura', 'twisted_6', 24000],
+];
+for (const [id, name, fx, val] of AURAS) def(id, { name, slot: 'aura', aura: fx, value: val, req: {} });
+
+// Mounts: +travel speed scaling with rarity. Flyers cross water and low
+// obstructions but give up a little pace versus ground mounts of their tier.
+export const MOUNTS = [
+  ['war_boar', 'War boar', 0.5, 0, 'tusked_boar', 3200],
+  ['swift_stag', 'Swift stag', 0.65, 0, 'wild_reindeer', 12000],
+  ['gilded_stag', 'Gilded stag', 0.8, 0, 'wild_reindeer', 42000, 'gold'],
+  ['gloom_glider', 'Gloom glider', 0.4, 1, 'gloom_moth', 8000],
+  ['royal_skywing', 'Royal skywing', 0.55, 1, 'royal_moth', 26000],
+  ['sky_screecher', 'Sky screecher', 0.7, 1, 'archeopteryx', 48000],
+];
+for (const [id, name, speed, fly, sheet, val, tint] of MOUNTS)
+  def(id, { name, slot: 'mount', mount: { speed, fly: !!fly, sheet, tint }, value: val, req: {} });
+
 // Unique boss drops
 def('sheriffs_blade', { name: "The Sheriff's blade", slot: 'weapon', kind: 'sword', style: 'melee', anim: 'slash',
   speed: 2200, req: { attack: 70 }, bonus: { acc: 92, str: 88 }, value: 45000, unique: true,

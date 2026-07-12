@@ -94,23 +94,33 @@ function drawFrame(ctx, def, m, e, a, now, sx, sy, scale, fi) {
     sxx = (fi % cols) * fw; syy = Math.floor(fi / cols) * fw;
     if (m.rows <= 1 || !m.rows) { fh = m.h; syy = 0; }          // single-row strips keep native height
   }
-  const S = fw * scale;
-  const drawH = fh * scale;
-  // Anchor: big pre-rendered beasts are centred in their cells; small strips
-  // sit on their baseline.
-  const big = fw >= 160;
+  // Content-aware sizing: many packs centre a small sprite in a big cell
+  // (bovine boar = 20px of art in a 128px cell). Boost tiny sprites so their
+  // VISIBLE art is at least ~44px * mob scale, and anchor to the real feet.
+  const art = def.art;
+  const boost = art ? Math.min(4.5, Math.max(1, 44 / (fh * art.h))) : 1;
+  const S = fw * scale * boost;
+  const drawH = fh * scale * boost;
   const dx = sx - S / 2;
-  const dy = big ? sy + S * 0.10 - S : sy + 6 * scale - drawH;
+  let dy;
+  if (art) dy = sy + 6 * scale - drawH * (1 - art.b);          // content bottom on the anchor
+  else if (fw >= 160) dy = sy + S * 0.10 - S;                  // big beasts: centred cells
+  else dy = sy + 6 * scale - drawH;
   // side-view strips face left in most packs; mirror when moving east
   const flip = def.kind === 'strips' && e.dir === 3;
   ctx.save();
   if (flip) { ctx.translate(sx * 2, 0); ctx.scale(-1, 1); }
   if (e.hp <= 0 && !def.anims.death) ctx.globalAlpha = 0.55;
-  ctx.imageSmoothingEnabled = fw >= 128;                        // pixel art stays crisp
+  if (e.tint === 'gold') { // legendary creatures (Golden Stag): gilded + haloed
+    ctx.filter = 'sepia(1) saturate(3.4) hue-rotate(8deg) brightness(1.3)';
+    ctx.shadowColor = '#ffd75e'; ctx.shadowBlur = 18;
+  }
+  ctx.imageSmoothingEnabled = fw >= 128 && boost < 1.5;         // pixel art stays crisp
   ctx.drawImage(im, sxx, syy, fw, fh, flip ? sx - S / 2 : dx, dy, S, drawH);
+  ctx.filter = 'none';
   ctx.restore();
   ctx.imageSmoothingEnabled = true;
-  return big ? S * 0.9 : drawH;
+  return art ? Math.max(30, drawH * art.h * 1.15) : fw >= 160 ? S * 0.9 : drawH;
 }
 
 // ---------------------------------------------------------------------------
