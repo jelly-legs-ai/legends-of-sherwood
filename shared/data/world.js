@@ -42,6 +42,34 @@ export const TOWNS = {
       { x: 292, y: 136, w: 7, h: 5, door: 'N', name: 'The Frozen Flagon' },
     ],
   },
+  // --- settlements of the wider realm ---
+  edwinstowe: {
+    name: 'Edwinstowe Hamlet', cx: 196, cy: 358, r: 10,
+    buildings: [
+      { x: 190, y: 350, w: 5, h: 4, door: 'S', name: 'Hodge Farmhouse' },
+      { x: 200, y: 352, w: 5, h: 4, door: 'S', name: 'The Granary' },
+    ],
+  },
+  wyckham: {
+    name: 'Wyckham-on-Fen', cx: 400, cy: 410, r: 9,
+    buildings: [
+      { x: 394, y: 404, w: 5, h: 4, door: 'S', name: 'The Eelhouse' },
+      { x: 403, y: 405, w: 5, h: 4, door: 'S', name: 'Fenside Rest' },
+    ],
+  },
+  peveril: {
+    name: 'Peveril Stronghold', cx: 352, cy: 168, r: 12, walled: true,
+    buildings: [
+      { x: 346, y: 160, w: 8, h: 6, door: 'S', name: 'Peveril Keep', castle: true },
+      { x: 357, y: 170, w: 5, h: 4, door: 'W', name: 'The Barracks' },
+    ],
+  },
+  greywatch: {
+    name: 'Greywatch Outpost', cx: 434, cy: 296, r: 7,
+    buildings: [
+      { x: 431, y: 291, w: 5, h: 4, door: 'S', name: 'Greywatch Tower', castle: true },
+    ],
+  },
 };
 
 // Stations / interactables placed at exact tiles: [nodeType, x, y]
@@ -88,6 +116,18 @@ export const POIS = [
   // --- Wild Lands (PvP) ---
   ['blood_altar', 300, 60], ['grail_shrine', 250, 70], ['ice_traverse', 200, 84],
   ['sylvanite_rock', 340, 70], ['sylvanite_rock', 344, 74], ['gold_rock', 352, 66],
+  // --- Edwinstowe (farm hamlet) ---
+  ['allotment', 192, 361], ['allotment', 195, 361], ['allotment', 198, 361], ['allotment', 201, 361],
+  ['herb_patch', 192, 364], ['herb_patch', 196, 364], ['range', 202, 355], ['loom', 190, 355],
+  // --- Wyckham-on-Fen (fishing village) ---
+  ['rod_spot', 396, 416], ['rod_spot', 400, 417], ['net_spot', 404, 416],
+  ['range', 398, 407], ['tanning_rack', 405, 410],
+  // --- Peveril Stronghold ---
+  ['bank_booth', 348, 167], ['anvil', 356, 175], ['furnace', 353, 175], ['chapel_altar', 347, 172],
+  // --- Greywatch Outpost ---
+  ['campfire', 434, 298],
+  // --- bandit camps (fires mark the camps; the company around them is hostile) ---
+  ['campfire', 120, 320], ['campfire', 300, 236], ['campfire', 240, 120],
 ].filter(p => p[1] > 0);
 
 // Agility shortcuts: [type, x1, y1, x2, y2] — usable both directions.
@@ -148,6 +188,12 @@ export const SPAWNS = [
   { mob: 'wight_archer', x: 240, y: 60, r: 20, n: 5 }, { mob: 'wight_archer', x: 350, y: 75, r: 16, n: 5 },
   { mob: 'frost_revenant', x: 360, y: 40, r: 20, n: 4 }, { mob: 'frost_revenant', x: 150, y: 55, r: 16, n: 4 },
   { mob: 'orc_warlord', x: 420, y: 60, r: 16, n: 4 },
+  // ---- bandit camps & outposts (tight clusters around their campfires) ----
+  { mob: 'bandit', x: 120, y: 320, r: 4, n: 5 }, { mob: 'marauder', x: 122, y: 322, r: 4, n: 3 },
+  { mob: 'outlaw', x: 300, y: 236, r: 4, n: 5 }, { mob: 'marauder', x: 302, y: 238, r: 4, n: 3 },
+  { mob: 'moor_brigand', x: 240, y: 120, r: 5, n: 5 },
+  { mob: 'sheriffs_guard', x: 434, y: 300, r: 4, n: 4 },     // Greywatch garrison
+  { mob: 'sheriffs_guard', x: 352, y: 176, r: 5, n: 4 },     // Peveril gate watch
   // ---- Sheet-animated mobs (new packs) ----
   // Meadows / Loxley / Bay starters
   { mob: 'meadow_hare', x: 195, y: 345, r: 14, n: 7 }, { mob: 'meadow_hare', x: 168, y: 310, r: 12, n: 5 },

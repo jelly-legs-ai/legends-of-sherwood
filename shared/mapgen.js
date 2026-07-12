@@ -37,6 +37,10 @@ const ROADS = [
   [[252, 340], [252, 440], [270, 470]],
   [[344, 336], [420, 420]],
   [[346, 330], [440, 300]],
+  [[330, 240], [352, 168]],              // spur to Peveril Keep
+  [[210, 352], [196, 358]],              // lane into Edwinstowe
+  [[420, 420], [400, 410]],              // causeway to Wyckham-on-Fen
+  [[440, 300], [434, 296]],              // track up to Greywatch
 ].map(line => line.map(p => [S(p[0]), S(p[1])]));
 function distToPolyline(px, py, line) {
   let best = 1e9;

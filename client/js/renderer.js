@@ -194,18 +194,55 @@ function chunkCanvas(plane, cx, cy) {
       }
       continue;
     }
-    // building walls: prism on top of the (flattened) terrain
+    // building walls: textured prisms — coursed masonry for castle stone,
+    // timber framing over lime-washed wattle for village walls
     if (WALLS.has(t)) {
-      const wh = 34;
-      const topCol = t === TILE.WALL ? '#8d8878' : '#8a6a3c';
-      const sideL = t === TILE.WALL ? '#565248' : '#4c381e';
-      const sideR = t === TILE.WALL ? '#6e6a5e' : '#5e462a';
-      g.fillStyle = sideL;
-      g.beginPath(); g.moveTo(lx - TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx - TW / 2, ly - wh); g.closePath(); g.fill();
-      g.fillStyle = sideR;
-      g.beginPath(); g.moveTo(lx + TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx + TW / 2, ly - wh); g.closePath(); g.fill();
-      g.fillStyle = topCol;
-      g.beginPath(); g.moveTo(lx, ly - TH / 2 - wh); g.lineTo(lx + TW / 2, ly - wh); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx - TW / 2, ly - wh); g.closePath(); g.fill();
+      const stone = t === TILE.WALL;
+      const wh = stone ? 40 : 34;
+      const wear = 0.9 + shade * 0.2;                     // per-tile weathering
+      const tint = (hex, f) => {
+        const [r, gg, b] = hexRgb(hex);
+        return `rgb(${Math.min(255, r * f) | 0},${Math.min(255, gg * f) | 0},${Math.min(255, b * f) | 0})`;
+      };
+      const faceL = () => { g.beginPath(); g.moveTo(lx - TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx - TW / 2, ly - wh); g.closePath(); };
+      const faceR = () => { g.beginPath(); g.moveTo(lx + TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx + TW / 2, ly - wh); g.closePath(); };
+      g.fillStyle = tint(stone ? '#565248' : '#4c381e', wear); faceL(); g.fill();
+      g.fillStyle = tint(stone ? '#6e6a5e' : '#5e462a', wear); faceR(); g.fill();
+      if (stone) {
+        // masonry courses + staggered joints on both faces
+        for (const spec of [[faceL, lx - TW / 2, 1], [faceR, lx, 1]]) {
+          g.save(); spec[0](); g.clip();
+          g.strokeStyle = '#00000040'; g.lineWidth = 1;
+          for (let row = 1; row < 5; row++) {
+            const yy = ly - wh + row * (wh / 5);
+            g.beginPath(); g.moveTo(spec[1], yy); g.lineTo(spec[1] + TW / 2, yy + TH / 4); g.stroke();
+            const jx = spec[1] + (TW / 2) * (row % 2 ? 0.33 : 0.66);
+            g.beginPath(); g.moveTo(jx, yy - wh / 5 + 3); g.lineTo(jx, yy + 3); g.stroke();
+          }
+          g.restore();
+        }
+        g.fillStyle = tint('#a09a88', wear);
+        g.beginPath(); g.moveTo(lx, ly - TH / 2 - wh); g.lineTo(lx + TW / 2, ly - wh); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx - TW / 2, ly - wh); g.closePath(); g.fill();
+        g.strokeStyle = '#00000030'; g.lineWidth = 1; g.stroke();
+      } else {
+        // dark timber posts + diagonal brace over the wattle panels
+        for (const spec of [[faceL, lx - TW / 2, 1], [faceR, lx + TW / 2, -1]]) {
+          g.save(); spec[0](); g.clip();
+          g.strokeStyle = '#3c2c14'; g.lineWidth = 2.2;
+          g.beginPath(); g.moveTo(spec[1], ly - wh + 2); g.lineTo(spec[1], ly + TH / 2); g.stroke();
+          g.beginPath(); g.moveTo(spec[1], ly - wh + 6); g.lineTo(spec[1] + spec[2] * TW / 2, ly - wh / 2.6); g.stroke();
+          g.beginPath(); g.moveTo(spec[1], ly - 10); g.lineTo(spec[1] + spec[2] * TW / 2, ly - 10 + TH / 4 * spec[2] * spec[2]); g.stroke();
+          g.restore();
+        }
+        // thatched roof cap with straw striations
+        g.fillStyle = tint('#a8843c', wear);
+        g.beginPath(); g.moveTo(lx, ly - TH / 2 - wh); g.lineTo(lx + TW / 2, ly - wh); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx - TW / 2, ly - wh); g.closePath(); g.fill();
+        g.save();
+        g.beginPath(); g.moveTo(lx, ly - TH / 2 - wh); g.lineTo(lx + TW / 2, ly - wh); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx - TW / 2, ly - wh); g.closePath(); g.clip();
+        g.strokeStyle = '#7d613566'; g.lineWidth = 1;
+        for (let i = -3; i <= 3; i++) { g.beginPath(); g.moveTo(lx + i * 7, ly - TH / 2 - wh); g.lineTo(lx + i * 7 - TW / 4, ly + TH / 2 - wh); g.stroke(); }
+        g.restore();
+      }
     }
   }
   c = { canvas, top };

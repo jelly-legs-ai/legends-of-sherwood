@@ -180,6 +180,73 @@ npc('trader_ulf', {
   lines: ['Furs, steel, stew — everything a frozen soul needs.'],
 });
 
+// ---------------- Edwinstowe Hamlet (poor farm folk: patched wool) -----------
+npc('gaffer_hodge', {
+  name: 'Gaffer Hodge', x: 193, y: 356, wander: 2,
+  vis: { skin: 'taupe', hair: ['plain', 'gray'], beard: 'gray', torso: ['longsleeve', 'brown'], legs: ['pants', 'brown'] },
+  shop: [['potato_seed', 3], ['cabbage_seed', 5], ['barley_seed', 7], ['bread', 7], ['spade', 5], ['secateurs', 5]],
+  lines: ['Seeds an\' spuds, that\'s all we\'ve got — the Sheriff taxed the rest.', 'Good soil here, if your back can take it.'],
+});
+npc('peg_the_gooseherd', {
+  name: 'Peg the Gooseherd', x: 199, y: 358, wander: 3,
+  vis: { skin: 'light', hair: ['braid', 'ginger'], torso: ['longsleeve', 'charcoal'], legs: ['pants', 'brown'] },
+  lines: ['Mind the geese. They bite harder than the rats.', 'Rich folk in Nottingham never seen a goose \'til it\'s roasted.'],
+});
+npc('tom_tiller', {
+  name: 'Tom Tiller', x: 196, y: 361, tutor: 'farming', wander: 2,
+  vis: { skin: 'brown', hair: ['buzzcut', 'black'], torso: ['longsleeve', 'white'], legs: ['pants', 'walnut'] },
+  lines: ['Turn the earth, drop the seed, wait on the rain. Farming\'s honest — that\'s why nobody rich does it.'],
+});
+
+// ---------------- Wyckham-on-Fen (weathered fisher folk) ----------------------
+npc('eel_meg', {
+  name: 'Eel Meg', x: 397, y: 408, wander: 2,
+  vis: { skin: 'taupe', hair: ['bangs', 'gray'], torso: ['leather', 'brown'], legs: ['pants', 'charcoal'] },
+  shop: [['fishing_rod', 5], ['small_fishing_net', 5], ['fishing_bait', 1], ['raw_pike', 55], ['raw_eel', 110], ['vial_water', 3]],
+  lines: ['Eels tonight, eels tomorrow. Fen provides, fen takes.', 'Them witch doctors out in the mire? Keep your distance, dear.'],
+});
+npc('siltfoot_sam', {
+  name: 'Siltfoot Sam', x: 402, y: 411, wander: 3, pickpocket: { lvl: 30, xp: 90, loot: [['coins', [8, 30]], ['raw_eel', 1, 0.3]] },
+  vis: { skin: 'olive', hair: ['bedhead', 'black'], torso: ['longsleeve', 'forest'], legs: ['pants', 'brown'] },
+  lines: ['The fen horrors sing at night. Don\'t follow the song.', 'Lost me boot to the mud. Lost me brother to the spiders.'],
+});
+
+// ---------------- Peveril Stronghold (wealth and steel) -----------------------
+npc('castellan_devereux', {
+  name: 'Castellan Devereux', x: 351, y: 167,
+  vis: { skin: 'light', hair: ['plain', 'black'], torso: ['plate', 'silver'], legs: ['plate', 'silver'], weapon: ['sword', 'silver'] },
+  shop: [['steel_sword', 380], ['steel_platebody', 520], ['steel_helm', 260], ['steel_shield', 330], ['steel_platelegs', 400], ['arbalest', 3400], ['silversteel_bolts', 40]],
+  lines: ['Peveril holds the north road. Coin buys steel here — good steel.', 'The Wild Lands lie beyond the moor. Go armed or go home.'],
+});
+npc('lady_isolde', {
+  name: 'Lady Isolde', x: 349, y: 170, wander: 2, pickpocket: { lvl: 70, xp: 260, loot: [['coins', [60, 180]], ['sapphire', 1, 0.1]] },
+  vis: { skin: 'light', hair: ['curly_long', 'blonde'], torso: ['robe', 'white'], legs: ['pants', 'white'] },
+  lines: ['Silk from Flanders, sapphires from the Peaks. One learns to want for nothing here.', 'The moor wind ruins one\'s hair, truly.'],
+});
+npc('serjeant_brock', {
+  name: 'Serjeant Brock', x: 355, y: 169, tutor: 'attack',
+  vis: { skin: 'brown', hair: ['buzzcut', 'black'], torso: ['chainmail', 'steel'], legs: ['plate', 'iron'], head: ['kettle', 'iron'], weapon: ['spear', 'steel'] },
+  lines: ['Brigands on the moor, wights past the snowline, and worse past that. Keep your blade oiled.'],
+});
+
+// ---------------- Nottingham: wealth rises toward the castle ------------------
+npc('ragged_beggar', {
+  name: 'Ragged Odo', x: 330, y: 351, wander: 2,
+  vis: { skin: 'taupe', hair: ['bedhead', 'gray'], beard: 'gray', torso: ['longsleeve', 'charcoal'], legs: ['pants', 'charcoal'] },
+  lines: ['Spare a coin at the gate, friend? The Sheriff took the rest.', 'They eat swan up at the castle. Swan!'],
+});
+npc('aldous_clothier', {
+  name: 'Aldous the Clothier', x: 333, y: 327, wander: 2, pickpocket: { lvl: 45, xp: 130, loot: [['coins', [20, 70]], ['soft_leather', 1, 0.25]] },
+  vis: { skin: 'light', hair: ['bangs', 'dark_brown'], torso: ['tunic', 'blue'], legs: ['pants', 'black'] },
+  shop: [['peasant_shirt', 4], ['outlaw_tunic', 12], ['leather_boots', 10], ['quiver', 45], ['needle', 5], ['soft_leather', 30]],
+  lines: ['Cloth for the street, leather for the road, and silk — silk is for THEM up the hill.'],
+});
+npc('alderman_fitzwalter', {
+  name: 'Alderman Fitzwalter', x: 329, y: 309, pickpocket: { lvl: 60, xp: 200, loot: [['coins', [40, 120]], ['gold_amulet', 1, 0.04]] },
+  vis: { skin: 'light', hair: ['plain', 'gray'], beard: 'gray', torso: ['robe', 'white'], legs: ['pants', 'black'] },
+  lines: ['Mind your boots on the castle approach. Mud is for the lower town.', 'The Sheriff dines with the Prince\'s men tonight. Heavy purses, heavier locks.'],
+});
+
 // Positions were authored on the 576 grid — remap to the scaled world,
 // keeping NPCs inside buildings glued to their building.
 import { remapPoint } from './world.js';
