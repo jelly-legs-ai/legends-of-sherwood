@@ -184,8 +184,8 @@ npc('trader_ulf', {
 npc('gaffer_hodge', {
   name: 'Gaffer Hodge', x: 193, y: 356, wander: 2,
   vis: { skin: 'taupe', hair: ['plain', 'gray'], beard: 'gray', torso: ['longsleeve', 'brown'], legs: ['pants', 'brown'] },
-  shop: [['potato_seed', 3], ['cabbage_seed', 5], ['barley_seed', 7], ['bread', 7], ['spade', 5], ['secateurs', 5]],
-  lines: ['Seeds an\' spuds, that\'s all we\'ve got — the Sheriff taxed the rest.', 'Good soil here, if your back can take it.'],
+  shop: [['potato_seed', 3], ['cabbage_seed', 5], ['barley_seed', 7], ['bread', 7], ['spade', 5], ['secateurs', 5], ['bucket', 5], ['shears', 8]],
+  lines: ['Seeds, spuds, a bucket for the cows an\' shears for the sheep — the Sheriff taxed the rest.', 'Good soil here, if your back can take it.'],
 });
 npc('peg_the_gooseherd', {
   name: 'Peg the Gooseherd', x: 199, y: 358, wander: 3,

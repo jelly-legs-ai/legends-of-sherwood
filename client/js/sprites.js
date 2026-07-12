@@ -215,6 +215,13 @@ const CRITTER_STYLE = {
   troll: { kind: 'brute', body: '#5e7150', hi: '#7e9070', sh: '#3e4c34', size: 1.1 },
   giant: { kind: 'brute', body: '#8fa8bc', hi: '#b8cbd9', sh: '#5e7284', size: 1.35, frost: true },
   abyssal: { kind: 'brute', body: '#4a1f2e', hi: '#7a3550', sh: '#26101a', size: 1.28, horns: true, glow: '#e0304a', cracks: true },
+  // ---- farm animals (procedural quads; 3D packs unusable in the 2D engine) ----
+  cow: { kind: 'quad', body: '#efe6d6', hi: '#ffffff', sh: '#c8bca6', size: 1.1, ears: 'round', snout: 'long', horns: 'curl', cowspots: true, udder: true, headLow: true },
+  sheep: { kind: 'quad', body: '#eae4d6', hi: '#fbf7ec', sh: '#c2b8a4', size: 0.82, ears: 'round', snout: 'short', wool: true, headLow: true },
+  pig: { kind: 'quad', body: '#e79aa2', hi: '#f4bcc0', sh: '#b96e78', size: 0.8, ears: 'round', snout: 'boar', tail: 'curl', hump: true, headLow: true },
+  horse: { kind: 'quad', body: '#7a5230', hi: '#9c6c40', sh: '#4e341c', size: 1.15, ears: 'point', snout: 'long', tail: 'long', horsemane: true },
+  alpaca: { kind: 'quad', body: '#d8c29a', hi: '#efe0c0', sh: '#a88f66', size: 0.95, ears: 'point', snout: 'short', wool: true, longneck: true },
+  farmdog: { kind: 'quad', body: '#a8763e', hi: '#c8945a', sh: '#75512a', size: 0.5, ears: 'flop', tail: 'bush', snout: 'point' },
   sprite: { kind: 'wisp', body: '#9fd8ef', hi: '#e6f8ff', size: 0.6, glow: '#bfefff' },
   spider: { kind: 'spider', body: '#332838', hi: '#54425c', sh: '#1c141f', size: 0.82 },
   // ---- pets (small, characterful, animated like all critters) ----
@@ -305,16 +312,31 @@ function drawQuad(g, st, s, swing, bob, type) {
   if (st.stripes) { g.fillStyle = st.hi; oval(g, cx, cy - bh * 0.5, bw * 0.7, bh * 0.22, st.hi); }
   oval(g, cx - 1, cy - bh * 0.4, bw * 0.82, bh * 0.5, st.hi);       // top highlight
   oval(g, cx, cy + bh * 0.55, bw * 0.7, bh * 0.28, st.sh);          // underside shade
+  // fleece: overlapping fluff lumps give a woolly silhouette (sheep/alpaca)
+  if (st.wool) {
+    g.fillStyle = st.hi;
+    for (let i = -3; i <= 3; i++) oval(g, cx + i * bw * 0.28, cy - bh * 0.5 + (i % 2) * 2, bw * 0.28, bh * 0.34, st.hi, OUTLINE);
+    for (let i = -2; i <= 2; i++) oval(g, cx + i * bw * 0.34, cy + bh * 0.1, bw * 0.26, bh * 0.3, st.body);
+  }
+  // dark cow patches
+  if (st.cowspots) { g.fillStyle = '#3a332c'; oval(g, cx - bw * 0.4, cy - bh * 0.2, bw * 0.3, bh * 0.34, '#3a332c'); oval(g, cx + bw * 0.3, cy + bh * 0.15, bw * 0.26, bh * 0.28, '#3a332c'); oval(g, cx + bw * 0.05, cy - bh * 0.45, bw * 0.18, bh * 0.2, '#3a332c'); }
+  // pink udder under the belly
+  if (st.udder) { g.fillStyle = '#e79aa2'; oval(g, cx - bw * 0.1, cy + bh * 0.7, bw * 0.22, bh * 0.2, '#e79aa2', OUTLINE); }
+  // horse mane running along the neck/back
+  if (st.horsemane) { g.fillStyle = st.sh; for (let i = 0; i < 6; i++) { const mx2 = cx + bw * 0.4 + i * 2.2, my2 = cy - bh * 0.7 + i * 1.4; g.beginPath(); g.moveTo(mx2, my2); g.lineTo(mx2 + 3, my2 - 3); g.lineTo(mx2 + 3, my2 + 1); g.fill(); } }
   if (st.mane) { g.fillStyle = st.sh; for (let i = -3; i <= 2; i++) { g.beginPath(); g.moveTo(cx + i * 3, cy - bh - (st.hump ? bh * 0.5 : 0)); g.lineTo(cx + i * 3 - 1, cy - bh - 5 - (st.hump ? bh * 0.5 : 0)); g.lineTo(cx + i * 3 + 2, cy - bh - (st.hump ? bh * 0.5 : 0)); g.fill(); } }
-  // head (boars/bears carry it low, merged into the shoulders)
-  const hx = cx + bw + 2 * s, hy = cy - bh * (st.headLow ? 0.05 : 0.4);
+  // head (boars/bears carry it low; alpacas/horses hold a long neck high)
+  const hx = cx + bw + 2 * s, hy = cy - bh * (st.longneck ? 1.05 : st.headLow ? 0.05 : 0.4);
   const hr = 5.5 * s;
+  // neck for long-necked / maned animals
+  if (st.longneck || st.horsemane) { g.strokeStyle = st.body; g.lineWidth = 4.5 * s; g.lineCap = 'round'; g.beginPath(); g.moveTo(cx + bw * 0.5, cy - bh * 0.3); g.lineTo(hx, hy + hr * 0.4); g.stroke(); g.strokeStyle = OUTLINE; g.lineWidth = 5.5 * s; g.globalCompositeOperation = 'destination-over'; g.stroke(); g.globalCompositeOperation = 'source-over'; }
   oval(g, hx, hy, hr, hr * 0.95, st.body, OUTLINE);
   oval(g, hx - hr * 0.3, hy - hr * 0.3, hr * 0.55, hr * 0.5, st.hi);
   // ears
   if (st.ears === 'tall') { for (const ex of [hx - 1, hx + 2]) { oval(g, ex, hy - hr - 3, 1.8 * s, 4.5 * s, st.body, OUTLINE); oval(g, ex, hy - hr - 3, 0.9 * s, 3 * s, '#e8b0b0'); } }
   else if (st.ears === 'point') { for (const [ex, ey] of [[hx - 2, hy - hr], [hx + 3, hy - hr - 1]]) { g.fillStyle = OUTLINE; g.beginPath(); g.moveTo(ex - 3, ey + 2); g.lineTo(ex + 1, ey - 5); g.lineTo(ex + 3, ey + 2); g.fill(); g.fillStyle = st.sh; g.beginPath(); g.moveTo(ex - 1.5, ey + 1); g.lineTo(ex + 0.5, ey - 3); g.lineTo(ex + 2, ey + 1); g.fill(); } }
   else if (st.ears === 'round') { for (const ex of [hx - 2, hx + 3]) oval(g, ex, hy - hr - 1, 2 * s, 2 * s, st.body, OUTLINE); }
+  else if (st.ears === 'flop') { for (const [ex, dxx] of [[hx - 3, -1], [hx + 3, 1]]) { g.fillStyle = st.sh; g.beginPath(); g.ellipse(ex, hy - hr * 0.2, 1.8 * s, 3.4 * s, dxx * 0.5, 0, 7); g.fill(); g.strokeStyle = OUTLINE; g.lineWidth = 0.8; g.stroke(); } }
   // snout
   if (st.snout === 'long' || st.snout === 'boar') { const sw = st.snout === 'boar' ? 5 * s : 4 * s; oval(g, hx + hr - 1, hy + 1, sw, 2.6 * s, st.body, OUTLINE); px(g, hx + hr + sw - 3, hy - 1, 2, 3, '#1c1418'); if (st.snout === 'boar') { px(g, hx + hr + sw - 2, hy - 1, 1, 1, '#222'); px(g, hx + hr + sw - 2, hy + 2, 1, 1, '#222'); } }
   else if (st.snout === 'point') { g.fillStyle = st.body; g.beginPath(); g.moveTo(hx + hr - 1, hy - 1); g.lineTo(hx + hr + 5 * s, hy + 1); g.lineTo(hx + hr - 1, hy + 3); g.fill(); px(g, hx + hr + 5 * s - 1, hy, 1.5, 1.5, '#d99'); }

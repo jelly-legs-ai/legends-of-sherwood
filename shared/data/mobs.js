@@ -118,6 +118,21 @@ mob('minotaur', { name: 'Minotaur', lvl: 66, life: 320, atk: 46, def: 40, style:
 mob('brown_bear', { name: 'Brown bear', lvl: 30, life: 90, atk: 18, def: 16, critter: 'bear', style: 'melee', aggro: true,
   drops: [['big_bones', 1, 1], ['raw_venison', 1, 0.5], ['wolf_pelt', 1, 0.2], ['verdant_charm', 1, 0.15]] });
 
+// ---- Farm animals: passive; gathered with tools (bucket/shears), not killed.
+// `farm` lists what each yields: milk (bucket), wool/alpaca_wool (shears).
+mob('cow', { name: 'Cow', lvl: 2, life: 20, atk: 0, def: 2, critter: 'cow', style: 'melee', scale: 1.15, farm: { milk: 'milk', shearXp: 0, milkXp: 20 },
+  drops: [['bones', 1, 1], ['cow_hide', 1, 0.6], ['raw_venison', 1, 0.3]] });
+mob('sheep', { name: 'Sheep', lvl: 1, life: 12, atk: 0, def: 1, critter: 'sheep', style: 'melee', scale: 0.95, farm: { milk: 'milk', wool: 'wool', milkXp: 14, shearXp: 18 },
+  drops: [['bones', 1, 1], ['wool', [1, 2], 0.5]] });
+mob('pig_farm', { name: 'Pig', lvl: 3, life: 16, atk: 1, def: 2, critter: 'pig', style: 'melee', scale: 0.9,
+  drops: [['bones', 1, 1], ['raw_venison', 1, 0.5]] });
+mob('horse', { name: 'Horse', lvl: 6, life: 40, atk: 0, def: 6, critter: 'horse', style: 'melee', scale: 1.25,
+  drops: [['bones', 1, 1]] });
+mob('alpaca', { name: 'Alpaca', lvl: 4, life: 22, atk: 0, def: 3, critter: 'alpaca', style: 'melee', scale: 1.0, farm: { wool: 'alpaca_wool', shearXp: 30 },
+  drops: [['bones', 1, 1], ['alpaca_wool', 1, 0.4]] });
+mob('farm_dog', { name: 'Farm dog', lvl: 3, life: 18, atk: 3, def: 3, critter: 'farmdog', style: 'melee', speed: 3.2,
+  drops: [['bones', 1, 1]] });
+
 // Event creature: the Golden Stag (flees, never fights; all damagers share the blessing)
 mob('golden_stag', { name: 'The Golden Stag', lvl: 30, life: 400, atk: 0, def: 25, sheet: 'wild_reindeer', tint: 'gold', scale: 1.3, style: 'melee', speed: 3.0, shil: 0,
   drops: [['big_bones', 1, 1], ['raw_venison', [2, 4], 1], ['swift_stag', 1, 0.04], ['gilded_stag', 1, 0.006]] });

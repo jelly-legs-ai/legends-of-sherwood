@@ -188,6 +188,12 @@ export const SPAWNS = [
   { mob: 'wight_archer', x: 240, y: 60, r: 20, n: 5 }, { mob: 'wight_archer', x: 350, y: 75, r: 16, n: 5 },
   { mob: 'frost_revenant', x: 360, y: 40, r: 20, n: 4 }, { mob: 'frost_revenant', x: 150, y: 55, r: 16, n: 4 },
   { mob: 'orc_warlord', x: 420, y: 60, r: 16, n: 4 },
+  // ---- farm animals: pastures by the hamlets (passive; milk/shear, not fight) ----
+  { mob: 'cow', x: 200, y: 366, r: 6, n: 4 }, { mob: 'sheep', x: 194, y: 370, r: 6, n: 5 },
+  { mob: 'pig_farm', x: 189, y: 364, r: 4, n: 3 }, { mob: 'horse', x: 204, y: 362, r: 5, n: 2 },
+  { mob: 'farm_dog', x: 196, y: 360, r: 4, n: 1 }, { mob: 'alpaca', x: 190, y: 372, r: 4, n: 3 },
+  { mob: 'cow', x: 250, y: 350, r: 6, n: 3 }, { mob: 'sheep', x: 256, y: 352, r: 6, n: 4 },   // Loxley allotments
+  { mob: 'sheep', x: 62, y: 426, r: 5, n: 3 }, { mob: 'pig_farm', x: 58, y: 424, r: 4, n: 2 }, // Bay
   // ---- bandit camps & outposts (tight clusters around their campfires) ----
   { mob: 'bandit', x: 120, y: 320, r: 4, n: 5 }, { mob: 'marauder', x: 122, y: 322, r: 4, n: 3 },
   { mob: 'outlaw', x: 300, y: 236, r: 4, n: 5 }, { mob: 'marauder', x: 302, y: 238, r: 4, n: 3 },

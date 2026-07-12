@@ -281,6 +281,8 @@ function onAction(world, p, msg) {
   if (msg.evbox) return openEventBox(world, p, msg.evbox | 0);
   if (msg.geode) return mineGeode(world, p, msg.geode | 0);
   if (msg.chest) return openChestEnt(world, p, msg.chest | 0);
+  if (msg.milk) return farmGather(world, p, msg.milk | 0, 'milk');
+  if (msg.shear) return farmGather(world, p, msg.shear | 0, 'shear');
   const x = msg.x | 0, y = msg.y | 0;
   // dungeon exit ladder
   if (p.plane >= PLANE.DUNGEON_BASE) return dungeonAction(world, p, x, y, msg);
@@ -579,6 +581,45 @@ function onDevCmd(world, p, msg) {
       return say(`slew ${MOBS[t.type].name}`);
     }
     default: return say(`unknown command '${msg.cmd}'`);
+  }
+}
+
+// Farm animals: milk with a bucket, shear wool with shears. Reusable tools;
+// each animal has a short regrow/refill cooldown. Grants farming XP.
+function farmGather(world, p, id, kind) {
+  const e = world.entities.get(id);
+  if (!e || e.kind !== 'mob') return;
+  const def = MOBS[e.type];
+  const farm = def?.farm;
+  if (!farm) return world.send(p, { t: MSG.MSGBOX, m: "You can't gather from that." });
+  if (Math.hypot(e.x - p.x, e.y - p.y) > 2.0) return walkThen(world, p, e.x | 0, e.y | 0, () => farmGather(world, p, id, kind));
+  const now = Date.now();
+  const nm = def.name.toLowerCase();
+  p.dir = Math.abs(e.x - p.x) > Math.abs(e.y - p.y) ? (e.x > p.x ? 3 : 1) : (e.y > p.y ? 2 : 0);
+  if (kind === 'milk') {
+    if (!farm.milk) return world.send(p, { t: MSG.MSGBOX, m: `A ${nm} gives no milk.` });
+    if (!p.hasTool('bucket')) return world.send(p, { t: MSG.MSGBOX, m: 'You need a bucket to milk it.' });
+    if ((e.milkedUntil || 0) > now) return world.send(p, { t: MSG.MSGBOX, m: `The ${nm} needs a moment before it can be milked again.` });
+    if (p.freeSlots() === 0) return world.send(p, { t: MSG.MSGBOX, m: 'Your pack is full.' });
+    e.milkedUntil = now + 30000;
+    p.anim = 'thrust'; p.animSeq++;
+    p.addItem('milk', 1);
+    p.addXp('farming', farm.milkXp || 15);
+    world.fx(p.plane, e.x, e.y, FX.CRAFT, {});
+    world.send(p, { t: MSG.MSGBOX, kind: 'loot', m: `You milk the ${nm} — a bucket of milk.` });
+    p.questProgress('farm', e.type);
+  } else {
+    if (!farm.wool) return world.send(p, { t: MSG.MSGBOX, m: `A ${nm} has no fleece to shear.` });
+    if (!p.hasTool('shears')) return world.send(p, { t: MSG.MSGBOX, m: 'You need shears.' });
+    if ((e.shornUntil || 0) > now) return world.send(p, { t: MSG.MSGBOX, m: `The ${nm}'s fleece needs to grow back.` });
+    if (p.freeSlots() === 0) return world.send(p, { t: MSG.MSGBOX, m: 'Your pack is full.' });
+    e.shornUntil = now + 45000;
+    p.anim = 'thrust'; p.animSeq++;
+    p.addItem(farm.wool, 1);
+    p.addXp('farming', farm.shearXp || 20);
+    world.fx(p.plane, e.x, e.y, FX.CRAFT, {});
+    world.send(p, { t: MSG.MSGBOX, kind: 'loot', m: `You shear the ${nm} — ${ITEMS[farm.wool].name}.` });
+    p.questProgress('farm', e.type);
   }
 }
 

@@ -3,6 +3,7 @@ import { MSG, PLANE, WILDERNESS_Y, REGIONS } from '/shared/constants.js';
 import { computeWorld, regionAt, dungeonFloor } from '/shared/mapgen.js';
 import { QUESTS } from '/shared/data/quests.js';
 import { ITEMS } from '/shared/data/items.js';
+import { MOBS } from '/shared/data/mobs.js';
 import { SPELLS } from '/shared/data/skills.js';
 import { Net } from './net.js';
 import { loadManifest, composite, drawChar } from './sprites.js';
@@ -276,7 +277,14 @@ function clickEntity(ent, e, menu) {
     return;
   }
   const opts = [];
-  if (ent.k === 'mob') opts.push(['⚔ Attack ' + ent.name, () => send({ t: MSG.ATTACK, id: ent.id })]);
+  if (ent.k === 'mob') {
+    // farm animals: offer Milk/Shear (when you carry the tool) before Attack
+    const farm = MOBS[ent.type]?.farm;
+    const hasTool = (t) => (G.inv || []).some(s => s && s.id === t) || Object.values(G.equip || {}).some(e2 => e2 && e2.id === t);
+    if (farm?.milk && hasTool('bucket')) opts.push(['🪣 Milk ' + ent.name, () => send({ t: MSG.ACTION, milk: ent.id })]);
+    if (farm?.wool && hasTool('shears')) opts.push(['✂ Shear ' + ent.name, () => send({ t: MSG.ACTION, shear: ent.id })]);
+    opts.push(['⚔ Attack ' + ent.name, () => send({ t: MSG.ATTACK, id: ent.id })]);
+  }
   if (ent.k === 'npc') {
     opts.push(['💬 Talk to ' + ent.name, () => send({ t: MSG.TALK, id: ent.id })]);
     opts.push(['🖐 Pickpocket', () => send({ t: MSG.ACTION, pickpocket: ent.id })]);

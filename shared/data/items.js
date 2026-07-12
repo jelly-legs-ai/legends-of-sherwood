@@ -316,8 +316,15 @@ for (const a of ARTEFACTS) {
 }
 
 // Tools (non-weapon)
-for (const t of ['small_fishing_net', 'fishing_rod', 'harpoon', 'tinderbox', 'knife', 'hammer', 'chisel', 'needle', 'spade', 'trowel', 'secateurs'])
+for (const t of ['small_fishing_net', 'fishing_rod', 'harpoon', 'tinderbox', 'knife', 'hammer', 'chisel', 'needle', 'spade', 'trowel', 'secateurs', 'bucket', 'shears'])
   def(t, { name: t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), value: 5, tool: t });
+
+// Farm produce (from milking cows/sheep and shearing sheep/alpacas)
+def('milk', { name: 'Bucket of milk', value: 12, material: true });
+def('wool', { name: 'Wool', stack: true, value: 8, material: true });
+def('alpaca_wool', { name: 'Alpaca wool', stack: true, value: 22, material: true });
+def('cheese', { name: 'Cheese', value: 30, food: true, heal: 6 });
+def('ball_of_wool', { name: 'Ball of wool', stack: true, value: 14, material: true });
 def('fishing_bait', { name: 'Fishing bait', stack: true, value: 1 });
 
 // Currency & tokens

@@ -157,6 +157,9 @@ RECIPES.push(
   { id: 'craft_ranger_body', skill: 'crafting', lvl: 52, xp: 190, station: 'tanning_rack', tool: 'needle', inputs: { soft_leather: 4, wolf_pelt: 2 }, output: { ranger_body: 1 }, name: 'Ranger body' },
   { id: 'craft_lincoln_body', skill: 'crafting', lvl: 76, xp: 320, station: 'tanning_rack', tool: 'needle', inputs: { soft_leather: 5, sable_pelt: 2 }, output: { lincoln_body: 1 }, name: 'Lincoln green body' },
   { id: 'craft_bowstring', skill: 'crafting', lvl: 10, xp: 15, station: 'loom', inputs: { flax: 1 }, output: { bowstring: 1 }, name: 'Spin bowstring' },
+  { id: 'spin_wool', skill: 'crafting', lvl: 5, xp: 20, station: 'loom', inputs: { wool: 1 }, output: { ball_of_wool: 1 }, name: 'Spin wool' },
+  { id: 'spin_alpaca', skill: 'crafting', lvl: 25, xp: 55, station: 'loom', inputs: { alpaca_wool: 1 }, output: { ball_of_wool: 2 }, name: 'Spin alpaca wool' },
+  { id: 'make_cheese', skill: 'cooking', lvl: 8, xp: 40, station: 'range', inputs: { milk: 1 }, output: { cheese: 1 }, name: 'Cheese' },
   { id: 'craft_vial', skill: 'crafting', lvl: 5, xp: 12, station: 'furnace', inputs: { coins: 2 }, output: { vial_water: 3 }, name: 'Blow vials' },
 );
 for (const g of GEMS) RECIPES.push({
