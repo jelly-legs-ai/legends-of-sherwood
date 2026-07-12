@@ -175,7 +175,12 @@ export function mobAttack(world, m, t, now) {
   m.dir = Math.abs(t.x - m.x) > Math.abs(t.y - m.y) ? (t.x > m.x ? 3 : 1) : (t.y > m.y ? 2 : 0);
   m.anim = def.style === 'ranged' ? 'shoot' : def.style === 'magic' ? 'spellcast' : 'slash';
   m.animSeq++;
-  if (def.style !== 'melee') world.fx(m.plane, m.x, m.y, def.style === 'magic' ? FX.FIREBOLT : FX.ARROW, { tx: t.x, ty: t.y, from: m.id, to: t.id });
+  if (def.style !== 'melee') {
+    // magic mobs fire animated sheet projectiles tiered by their level
+    const proj = def.style !== 'magic' ? undefined
+      : m.lvl >= 80 ? 'sheet:orb:2' : m.lvl >= 60 ? 'sheet:orb:0' : m.lvl >= 40 ? 'sheet:stave:1' : 'sheet:bolt:4';
+    world.fx(m.plane, m.x, m.y, def.style === 'magic' ? FX.FIREBOLT : FX.ARROW, { tx: t.x, ty: t.y, from: m.id, to: t.id, proj });
+  }
   const scale = m.lvlScale || 1;
   const acc = COMBAT.ROLL(def.atk * scale, 20);
   const defRoll = playerDefRoll(t);

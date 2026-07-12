@@ -6,6 +6,7 @@ import { ITEMS } from '/shared/data/items.js';
 import { SPELLS } from '/shared/data/skills.js';
 import { Net } from './net.js';
 import { loadManifest, composite, drawChar } from './sprites.js';
+import { loadMedia } from './media.js';
 import { Renderer, drawMinimap, MM_RANGE } from './renderer.js';
 import { Fx } from './fx.js';
 import * as UI from './ui.js';
@@ -28,7 +29,7 @@ window.R = R; // debug
 
 // ---------------- login ----------------
 async function boot() {
-  await loadManifest();
+  await Promise.all([loadManifest(), loadMedia()]);
   computeWorld(); // warm map cache before first frame
   // restore last look
   try {
@@ -253,9 +254,10 @@ function hitTest(sx, sy) {
     const scale = e.scale || 1;
     const [ex, ey] = R.screenOf(0, e.rx, e.ry);
     const small = e.k === 'item' || e.k === 'shil' || e.k === 'fire';
-    const cx = ex, cy = ey - (small ? 8 : 28 * scale);   // sprite body centre
-    const rx = small ? 14 : 18 * Math.max(1, scale);
-    const ry = small ? 12 : 32 * scale;
+    const ground = e.k === 'chest' || e.k === 'geode';   // squat ground objects
+    const cx = ex, cy = ey - (small ? 8 : ground ? 20 : 28 * scale);   // sprite body centre
+    const rx = small ? 14 : ground ? 24 : 18 * Math.max(1, scale);
+    const ry = small ? 12 : ground ? 26 : 32 * scale;
     const score = Math.hypot((sx - cx) / rx, (sy - cy) / ry);
     if (score < bestScore) { bestScore = score; best = e; }
   }
@@ -277,6 +279,8 @@ function clickEntity(ent, e, menu) {
   if (ent.k === 'item') opts.push(['Take ' + (ITEMS[ent.item]?.name || ent.item), () => send({ t: MSG.PICKUP, id: ent.id })]);
   if (ent.k === 'shil') opts.push(['✦ Take $Shillings', () => send({ t: MSG.PICKUP, id: ent.id })]);
   if (ent.k === 'evbox') opts.push(['Open strongbox', () => send({ t: MSG.ACTION, evbox: ent.id })]);
+  if (ent.k === 'chest') opts.push([(ent.locked ? '🔒 Unlock ' : '🧰 Open ') + ent.name, () => send({ t: MSG.ACTION, chest: ent.id })]);
+  if (ent.k === 'geode') opts.push([`⛏ Mine ${ent.name}`, () => send({ t: MSG.ACTION, geode: ent.id })]);
   if (ent.k === 'player') {
     const inWild = G.me && G.self && G.self.plane === 0 && G.self.y < WILDERNESS_Y;
     if (inWild) opts.push(['⚔ Attack ' + ent.name, () => send({ t: MSG.ATTACK, id: ent.id })]);

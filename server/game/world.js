@@ -4,7 +4,7 @@
 // by total world population — one shared channel, many players.
 
 import { WORLD, PLANE, MSG, GROUND, SHILLING, TILE, COMBAT, WILDERNESS_Y } from '../../shared/constants.js';
-import { computeWorld, isBlocked, dungeonFloor, tileAtPlane } from '../../shared/mapgen.js';
+import { computeWorld, isBlocked, dungeonFloor, tileAtPlane, regionAt } from '../../shared/mapgen.js';
 import { MOBS } from '../../shared/data/mobs.js';
 import { NPCS } from '../../shared/data/npcs.js';
 import { NODES } from '../../shared/data/skills.js';
@@ -51,6 +51,8 @@ export class World {
     this.ledger.load(await this.store.loadLedger());
     this.spawnMobs();
     this.spawnNpcs();
+    this.spawnGeodes();
+    this.spawnChests();
     return this;
   }
 
@@ -205,6 +207,94 @@ export class World {
     this.depleted.set(this.nodeKey(x, y), Date.now() + ms);
     this.broadcastNear(PLANE.OVERWORLD, x, y, { t: 'node', x: x | 0, y: y | 0, off: 1 });
     setTimeout(() => this.broadcastNear(PLANE.OVERWORLD, x, y, { t: 'node', x: x | 0, y: y | 0, off: 0 }), ms);
+  }
+
+  // ---------------- wandering gem geodes ----------------
+  // Ultra-rare mineable crystal nodes that surface at random spots in the
+  // wilds, yield a handful of gems, then sink away and re-emerge elsewhere.
+  spawnGeodes() { for (let i = 0; i < 3; i++) this.spawnGeode(); }
+  spawnGeode() {
+    const GEODE_GEMS = [
+      { gem: 'citrine', row: 2, lvl: 50 }, { gem: 'sapphire', row: 3, lvl: 55 },
+      { gem: 'emerald', row: 0, lvl: 62 }, { gem: 'amethyst', row: 1, lvl: 70 },
+      { gem: 'ruby', row: 5, lvl: 78 }, { gem: 'diamond', row: 4, lvl: 88 },
+    ];
+    let x = 300, y = 300;
+    for (let tries = 0; tries < 300; tries++) {
+      const ax = 40 + Math.random() * (WORLD.W - 80) | 0, ay = 40 + Math.random() * (WORLD.H - 80) | 0;
+      if (!isBlocked(PLANE.OVERWORLD, ax, ay)) { x = ax; y = ay; break; }
+    }
+    const g = GEODE_GEMS[Math.random() * GEODE_GEMS.length | 0];
+    const ent = this.addEntity({
+      kind: 'geode', plane: PLANE.OVERWORLD, x: x + 0.5, y: y + 0.5, dir: 2, anim: 'idle', animSeq: 0,
+      gem: g.gem, gemRow: g.row, gemCol: 9 + (Math.random() * 6 | 0), lvl: g.lvl,
+      charges: 4 + (Math.random() * 4 | 0), hp: 1, maxHp: 1,
+    });
+    const region = regionAt(x, y);
+    this.announce(`💎 Prospectors whisper of a ${g.gem} geode surfacing somewhere in ${String(region || 'the wilds').toLowerCase().replace(/_/g, ' ')}…`);
+    // it sinks away on its own if nobody finds it
+    ent._sinkTimer = setTimeout(() => { if (this.entities.has(ent.id)) { this.removeEntity(ent); this.spawnGeode(); } }, 10 * 60000 + Math.random() * 8 * 60000);
+    return ent;
+  }
+  depleteGeode(ent) {
+    clearTimeout(ent._sinkTimer);
+    this.fx(ent.plane, ent.x, ent.y, 11 /* MINE */, {});
+    this.removeEntity(ent);
+    setTimeout(() => this.spawnGeode(), 5 * 60000 + Math.random() * 6 * 60000);
+  }
+
+  // ---------------- animated treasure chests ----------------
+  // Chests surface across the overworld (fancier ones in dangerous places) and
+  // on every dungeon floor. Ornate chests need an Abyssal key.
+  spawnChests() { for (let i = 0; i < 8; i++) this.spawnChest(); }
+  spawnChest() {
+    let x = 300, y = 300;
+    for (let tries = 0; tries < 300; tries++) {
+      const ax = 30 + Math.random() * (WORLD.W - 60) | 0, ay = 30 + Math.random() * (WORLD.H - 60) | 0;
+      if (!isBlocked(PLANE.OVERWORLD, ax, ay)) { x = ax; y = ay; break; }
+    }
+    // danger scales tier: far north = better chests
+    const danger = 1 - y / WORLD.H;                      // 0 south .. 1 north
+    const roll = Math.random() + danger * 0.7;
+    const variant = roll > 1.25 ? 3 : roll > 0.95 ? 2 : roll > 0.6 ? 1 : 0;
+    return this.addEntity({
+      kind: 'chest', plane: PLANE.OVERWORLD, x: x + 0.5, y: y + 0.5, dir: 2, anim: 'idle', animSeq: 0,
+      variant, snow: y < WORLD.H * 0.3, locked: variant === 3, tier: variant, hp: 1, maxHp: 1,
+    });
+  }
+  openChest(ent, p) {
+    if (ent.opened) return;
+    ent.opened = true;
+    ent.anim = 'open'; ent.animSeq++;
+    const tier = ent.tier || 0;
+    const loot = this.rollChestLoot(tier, ent.floor || 0);
+    setTimeout(() => {
+      for (const [item, qty] of loot) {
+        if (item === 'coins') p.addItem('coins', qty);
+        else this.dropItem(ent.plane, ent.x, ent.y, item, qty, p.id);
+      }
+      this.send(p, { t: MSG.MSGBOX, kind: 'loot', m: `The chest creaks open — ${loot.map(l => (l[1] > 1 ? l[1] + '× ' : '') + (ITEMS[l[0]]?.name || l[0])).join(', ')}.` });
+      if (loot.some(l => ITEMS[l[0]]?.micon?.[0] === 'rareSwords')) this.announce(`⚔ ${p.name} pulls a legendary blade from a treasure chest!`);
+      p.questProgress && p.questProgress('chest', tier);
+    }, 450);
+    setTimeout(() => {
+      if (!this.entities.has(ent.id)) return;
+      this.removeEntity(ent);
+      if (ent.plane === PLANE.OVERWORLD) setTimeout(() => this.spawnChest(), 4 * 60000 + Math.random() * 5 * 60000);
+    }, 1600);
+  }
+  rollChestLoot(tier, floor = 0) {
+    const mult = 1 + tier * 0.9 + floor * 0.25;
+    const loot = [['coins', Math.ceil((40 + Math.random() * 160) * mult)]];
+    const P = (chance, item, qty = 1) => { if (Math.random() < chance) loot.push([item, Array.isArray(qty) ? qty[0] + (Math.random() * (qty[1] - qty[0] + 1) | 0) : qty]); };
+    P(0.5, ['attack_potion', 'strength_potion', 'defence_potion', 'ranging_potion', 'magic_potion', 'titan_brew'][Math.min(5, tier + (Math.random() * 3 | 0))]);
+    P(0.4, ['air_rune', 'water_rune', 'earth_rune', 'fire_rune', 'nature_rune', 'cosmic_rune', 'blood_rune'][Math.min(6, tier * 2 + (Math.random() * 2 | 0))], [4, 14]);
+    P(0.12 + tier * 0.06, ['sapphire', 'citrine', 'emerald', 'amethyst', 'ruby', 'diamond'][Math.min(5, tier + (Math.random() * 2 | 0))]);
+    P(0.02 + tier * 0.02, `tome_${['attack', 'strength', 'defence', 'ranged', 'magic', 'mining', 'fishing', 'woodcutting', 'cooking', 'crafting', 'herblore', 'prayer'][Math.random() * 12 | 0]}`);
+    P(tier >= 2 ? 0.012 + tier * 0.004 : 0.002, ['blade_of_the_burrow', 'tidebreaker_cutlass', 'fanged_ripper', 'glacier_edge', 'abyssal_edge'][Math.min(4, tier + (Math.random() * 2 | 0))]);
+    P(0.25, 'bread', [1, 3]);
+    if (floor > 0) { P(0.6, 'cosmic_rune', [3, 9]); P(0.25, 'abyssal_pearl'); P(0.35, 'dungeon_key'); }
+    return loot;
   }
 
   // ---------------- messaging ----------------
@@ -478,8 +568,10 @@ export class World {
     this.broadcastNear(mob.plane, mob.x, mob.y, { t: MSG.DEATH, id: mob.id });
     this.rollMobDrops(mob, killer);
     for (const p of this.players.values()) p.onKill && p.onKill(mob.type);
-    this.removeEntity(mob);
     const def = MOBS[mob.type];
+    // sheet-animated creatures linger briefly so their death animation plays
+    if (def.sheet) { mob.target = null; setTimeout(() => { if (this.entities.has(mob.id)) this.removeEntity(mob); }, 1400); }
+    else this.removeEntity(mob);
     if (!mob.noRespawn) setTimeout(() => {
       if (mob.plane >= PLANE.DUNGEON_BASE) return;      // dungeon mobs respawn with the instance
       this.spawnMob(mob.type, mob.zone, mob.plane, mob.lvlScale);
@@ -493,7 +585,10 @@ export class World {
     const plane = PLANE.DUNGEON_BASE + floor;
     const f = dungeonFloor(floor);
     const scale = 1 + floor * 0.35;
-    const types = floor % 5 === 0 ? ['abyssal_crawler', 'depth_keeper'] : ['abyssal_crawler', 'abyssal_crawler', 'depth_keeper'];
+    // deeper floors phase in the new sheet-animated horrors
+    const types = floor >= 8 ? ['cursed_skull', 'abyssal_sentinel', 'abyssal_crawler', 'cursed_skull']
+      : floor >= 4 ? ['abyssal_crawler', 'cursed_skull', 'depth_keeper', 'cave_bat']
+        : ['abyssal_crawler', 'abyssal_crawler', 'depth_keeper', 'cave_bat'];
     let placed = 0, guard = 0;
     while (placed < 10 + floor && guard++ < 400) {
       const x = 2 + Math.random() * (f.size - 4) | 0, y = 2 + Math.random() * (f.size - 4) | 0;
@@ -502,7 +597,23 @@ export class World {
       this.spawnMob(types[placed % types.length], { x, y, r: 2, n: 1 }, plane, scale);
       placed++;
     }
-    if (floor % 5 === 0) this.spawnMob('abyssal_horror', { x: f.exit.x, y: f.exit.y, r: 2, n: 1 }, plane, 1 + floor * 0.2);
+    // boss floors: rotate through the abyssal bosses as you descend
+    if (floor % 5 === 0) {
+      const abyssBoss = floor >= 15 ? 'hellbeast' : floor >= 10 ? 'queen_aracnyx' : 'abyssal_horror';
+      const bs = floor >= 10 ? 1 + (floor - 10) * 0.08 : 1 + floor * 0.2;
+      this.spawnMob(abyssBoss, { x: f.exit.x, y: f.exit.y, r: 2, n: 1 }, plane, bs);
+    }
+    // treasure chests hidden on every floor (ornate ones need an Abyssal key)
+    let chests = 0; guard = 0;
+    while (chests < 2 && guard++ < 200) {
+      const x = 2 + Math.random() * (f.size - 4) | 0, y = 2 + Math.random() * (f.size - 4) | 0;
+      if (f.tiles[y * f.size + x] !== TILE.CAVE) continue;
+      this.addEntity({
+        kind: 'chest', plane, x: x + 0.5, y: y + 0.5, dir: 2, anim: 'idle', animSeq: 0,
+        variant: chests === 0 ? 3 : 2, snow: 0, locked: chests === 0, tier: 2 + (chests === 0 ? 1 : 0), floor, hp: 1, maxHp: 1,
+      });
+      chests++;
+    }
   }
 
   // ---------------- world events ----------------
@@ -538,7 +649,9 @@ export class World {
   describe(e) {
     const d = { id: e.id, k: e.kind, x: +e.x.toFixed(2), y: +e.y.toFixed(2), dir: e.dir || 2, anim: e.anim || 'idle', seq: e.animSeq || 0 };
     if (e.kind === 'player') Object.assign(d, { name: e.name, hp: e.hp, mhp: e.maxHp, vis: e.visual(), cb: e.combatLevel(), skull: e.plane === 0 && e.y < WILDERNESS_Y });
-    else if (e.kind === 'mob') { const m = MOBS[e.type]; Object.assign(d, { type: e.type, name: m.name, lvl: e.lvl, hp: e.hp, mhp: e.maxHp, vis: m.vis, critter: m.critter, boss: m.boss, scale: m.scale }); }
+    else if (e.kind === 'mob') { const m = MOBS[e.type]; Object.assign(d, { type: e.type, name: m.name, lvl: e.lvl, hp: e.hp, mhp: e.maxHp, vis: m.vis, critter: m.critter, sheet: m.sheet, boss: m.boss, scale: m.scale }); }
+    else if (e.kind === 'geode') Object.assign(d, { name: `Gem geode (${e.gem})`, gem: e.gem, gemRow: e.gemRow, gemCol: e.gemCol, lvl: e.lvl });
+    else if (e.kind === 'chest') Object.assign(d, { name: e.locked ? 'Ornate chest' : 'Treasure chest', variant: e.variant, snow: e.snow ? 1 : 0, locked: e.locked ? 1 : 0 });
     else if (e.kind === 'npc') { const n = NPCS[e.type]; Object.assign(d, { type: e.type, name: n.name, vis: n.vis, npc: 1, shop: !!n.shop, quest: n.quest }); }
     else if (e.kind === 'item') Object.assign(d, { item: e.item, qty: e.qty });
     else if (e.kind === 'shil') Object.assign(d, { amt: e.amt });

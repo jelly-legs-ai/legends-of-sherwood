@@ -148,6 +148,33 @@ export const SPAWNS = [
   { mob: 'wight_archer', x: 240, y: 60, r: 20, n: 5 }, { mob: 'wight_archer', x: 350, y: 75, r: 16, n: 5 },
   { mob: 'frost_revenant', x: 360, y: 40, r: 20, n: 4 }, { mob: 'frost_revenant', x: 150, y: 55, r: 16, n: 4 },
   { mob: 'orc_warlord', x: 420, y: 60, r: 16, n: 4 },
+  // ---- Sheet-animated mobs (new packs) ----
+  // Meadows / Loxley / Bay starters
+  { mob: 'meadow_hare', x: 195, y: 345, r: 14, n: 7 }, { mob: 'meadow_hare', x: 168, y: 310, r: 12, n: 5 },
+  { mob: 'horned_hare', x: 150, y: 330, r: 12, n: 4 }, { mob: 'wild_hog', x: 235, y: 350, r: 10, n: 5 },
+  { mob: 'shore_crab', x: 56, y: 442, r: 12, n: 6 }, { mob: 'shore_crab', x: 38, y: 470, r: 12, n: 5 },
+  { mob: 'spiked_slime', x: 210, y: 372, r: 12, n: 5 }, { mob: 'spiked_slime', x: 246, y: 306, r: 10, n: 4 },
+  // Sherwood & roads
+  { mob: 'tusked_boar', x: 268, y: 258, r: 14, n: 5 }, { mob: 'tusked_boar', x: 318, y: 246, r: 12, n: 4 },
+  { mob: 'marauder', x: 296, y: 320, r: 14, n: 5 }, { mob: 'marauder', x: 232, y: 262, r: 12, n: 4 },
+  { mob: 'dire_wolf', x: 252, y: 240, r: 14, n: 5 }, { mob: 'dire_wolf', x: 286, y: 508, r: 14, n: 4 },
+  { mob: 'barrow_skeleton', x: 340, y: 372, r: 8, n: 5 }, { mob: 'cave_bat', x: 360, y: 292, r: 8, n: 5 },
+  // Fenwold
+  { mob: 'witch_doctor', x: 470, y: 440, r: 14, n: 5 }, { mob: 'witch_doctor', x: 508, y: 484, r: 12, n: 4 },
+  { mob: 'fen_horror', x: 452, y: 492, r: 14, n: 4 }, { mob: 'fen_horror', x: 500, y: 452, r: 12, n: 3 },
+  // Peaks foothills & high crags
+  { mob: 'pebble_imp', x: 436, y: 336, r: 12, n: 6 }, { mob: 'pebble_imp', x: 452, y: 302, r: 10, n: 4 },
+  { mob: 'stone_golem', x: 490, y: 262, r: 14, n: 4 }, { mob: 'stone_golem', x: 520, y: 300, r: 12, n: 3 },
+  { mob: 'crag_raptor', x: 502, y: 236, r: 14, n: 4 }, { mob: 'crag_raptor', x: 468, y: 214, r: 12, n: 3 },
+  // Northmoor & winter reaches
+  { mob: 'winter_wolf', x: 236, y: 152, r: 16, n: 5 }, { mob: 'winter_wolf', x: 316, y: 142, r: 14, n: 4 },
+  { mob: 'wild_reindeer', x: 276, y: 168, r: 16, n: 5 }, { mob: 'wild_reindeer', x: 330, y: 190, r: 12, n: 4 },
+  { mob: 'frost_wight', x: 258, y: 120, r: 14, n: 4 }, { mob: 'lost_spirit', x: 352, y: 172, r: 10, n: 3 },
+  { mob: 'lost_spirit', x: 342, y: 368, r: 6, n: 2 },
+  // Elderglade deep & Wild Lands
+  { mob: 'gloom_moth', x: 292, y: 486, r: 14, n: 4 }, { mob: 'gloom_moth', x: 226, y: 508, r: 12, n: 3 },
+  { mob: 'web_stalker', x: 316, y: 532, r: 10, n: 2 }, { mob: 'web_stalker', x: 214, y: 78, r: 10, n: 2 },
+  { mob: 'royal_moth', x: 262, y: 62, r: 14, n: 3 }, { mob: 'frost_wight', x: 322, y: 66, r: 14, n: 3 },
 ];
 
 // Boss lairs: fixed single spawns
@@ -158,6 +185,15 @@ export const BOSS_SPAWNS = [
   { mob: 'sheriff_of_nottingham', x: 330, y: 305 },
   { mob: 'troll_king', x: 505, y: 220 },
   { mob: 'frost_giant', x: 300, y: 38 },
+  // Sheet-animated boss lairs
+  { mob: 'badger_king', x: 176, y: 386 },      // Barnsdale burrow
+  { mob: 'frogger', x: 428, y: 508 },          // Fenwold lily pool
+  { mob: 'pengu', x: 328, y: 118 },            // icefloe north of Frosthollow
+  { mob: 'gollux', x: 486, y: 244 },           // Grey Peaks cave mouth
+  { mob: 'dino_tri', x: 540, y: 264 },         // high crag plateau
+  { mob: 'dino_rex', x: 388, y: 52 },          // Wild Lands wastes
+  { mob: 'ice_beast', x: 178, y: 40 },         // deep Wild Lands glacier
+  { mob: 'dragon_tyrant', x: 300, y: 16 },     // the far northern scar
 ];
 
 // Teleport anchors (magic spells + respawn)

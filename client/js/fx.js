@@ -1,5 +1,6 @@
 // FX: projectiles, particles, hit splats, floating text, level-up bursts.
 import { FX } from '/shared/constants.js';
+import { drawFxSprite, drawGoldNumber } from './media.js';
 
 const PROJ_STYLE = {
   arrow: { color: '#e8ddc0', trail: '#7a5a34', len: 20 },
@@ -14,7 +15,7 @@ const PROJ_STYLE = {
 };
 
 export class Fx {
-  constructor() { this.projectiles = []; this.particles = []; this.texts = []; this.splats = []; }
+  constructor() { this.projectiles = []; this.particles = []; this.texts = []; this.splats = []; this.markers = []; }
 
   spawn(msg, entities) {
     const now = performance.now();
@@ -22,9 +23,11 @@ export class Fx {
       case FX.ARROW: case FX.FIREBOLT: case FX.ICEBOLT: case FX.HOLYBOLT: case FX.NATURE: {
         const from = entities.get(msg.from);
         const style = msg.fx === FX.ARROW ? 'arrow' : (msg.proj || (msg.fx === FX.ICEBOLT ? 'water' : msg.fx === FX.HOLYBOLT ? 'holy' : msg.fx === FX.NATURE ? 'nature' : 'fire'));
+        // 'sheet:key:variant' projectiles play an animated sprite along the arc
+        const sheet = style.startsWith?.('sheet:') ? style.slice(6) : null;
         this.projectiles.push({
           x0: from ? from.rx : msg.x, y0: from ? from.ry - 0.6 : msg.y, x1: msg.tx, y1: msg.ty,
-          toId: msg.to, t0: now, dur: 320, style,
+          toId: msg.to, t0: now, dur: sheet ? 420 : 320, style, sheet,
         });
         break;
       }
@@ -78,6 +81,8 @@ export class Fx {
     if (!e) return;
     this.splats.push({ id: msg.id, dmg: msg.dmg, crit: msg.crit, t0: performance.now(), dur: 900, dx: (Math.random() - 0.5) * 14 });
     if (msg.dmg > 0) this.burst({ id: msg.id }, entities, '#c03a3a', Math.min(10, 3 + msg.dmg / 3), 1.6);
+    // crits detonate an animated blood hitmarker on the victim
+    if (msg.crit && msg.dmg > 0) this.markers.push({ id: msg.id, v: [2, 4, 5][Math.random() * 3 | 0], t0: performance.now(), dur: 560 });
   }
 
   draw(ctx, R, nowMs) {
@@ -94,6 +99,10 @@ export class Fx {
       // on-screen flight direction, from the projected endpoints (correct in iso)
       const [ax, ay] = R.screenOf(0, p.x0, p.y0), [bx, by] = R.screenOf(0, p.x1, p.y1);
       const ang = Math.atan2(by - ay, bx - ax);
+      if (p.sheet) { // animated sheet projectile (spell packs)
+        const big = p.sheet.startsWith('twisted');
+        if (drawFxSprite(ctx, p.sheet, t, sx, sy, big ? 130 : 64, big ? 0 : ang)) continue;
+      }
       if (st.len) { // a real arrow: shaft + head + fletching
         ctx.save();
         ctx.translate(sx, sy);
@@ -148,6 +157,15 @@ export class Fx {
       ctx.fillText(p.str, sx, sy - 46 - t * 30);
       ctx.globalAlpha = 1;
     }
+    // animated crit hitmarkers (blood spray sheet) on the victim
+    this.markers = this.markers.filter(p => now - p.t0 < p.dur);
+    for (const p of this.markers) {
+      const e = R._ents?.get(p.id);
+      if (!e) continue;
+      const t = (now - p.t0) / p.dur;
+      const [sx, sy] = R.screenOf(0, e.rx, e.ry);
+      drawFxSprite(ctx, `hitmarker:${p.v}`, t, sx, sy - 26, 54);
+    }
     // hit splats (drawn near entity if still present)
     this.splats = this.splats.filter(p => now - p.t0 < p.dur);
     for (const p of this.splats) {
@@ -157,9 +175,18 @@ export class Fx {
       const [sx, sy] = R.screenOf(0, e.rx, e.ry);
       const y = sy - 34 - t * 16;
       ctx.globalAlpha = 1 - t * t;
-      if (p.dmg > 0) {
-        ctx.fillStyle = p.crit ? '#ff8a2a' : '#c81e1e';
-        ctx.beginPath(); ctx.arc(sx + p.dx, y, p.crit ? 11 : 9, 0, 7); ctx.fill();
+      if (p.dmg > 0 && p.crit) {
+        // crits: big gold bitmap digits punching upward
+        const s = 20 + Math.min(10, p.dmg / 4);
+        if (!drawGoldNumber(ctx, p.dmg, sx + p.dx, y, s + (1 - t) * 4)) {
+          ctx.fillStyle = '#ff8a2a';
+          ctx.beginPath(); ctx.arc(sx + p.dx, y, 11, 0, 7); ctx.fill();
+          ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Georgia'; ctx.textAlign = 'center';
+          ctx.fillText(p.dmg, sx + p.dx, y + 4);
+        }
+      } else if (p.dmg > 0) {
+        ctx.fillStyle = '#c81e1e';
+        ctx.beginPath(); ctx.arc(sx + p.dx, y, 9, 0, 7); ctx.fill();
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 11px Georgia'; ctx.textAlign = 'center';
         ctx.fillText(p.dmg, sx + p.dx, y + 4);

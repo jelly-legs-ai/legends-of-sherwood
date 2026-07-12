@@ -1,6 +1,8 @@
 // Item icons: 32x32 procedural art with a consistent language — dark outline,
 // lit-from-upper-left shading, diagonal presentation for held weapons/tools.
+// Items with a `micon` ref use painted media-pack icons instead.
 import { ITEMS } from '/shared/data/items.js';
+import { drawMediaIcon } from './media.js';
 
 const cache = new Map();
 const INK = '#1b1410';
@@ -82,8 +84,14 @@ export function itemIcon(id) {
   c = document.createElement('canvas');
   c.width = 32; c.height = 32;
   const g = c.getContext('2d');
-  cache.set(id, c);
   const def = ITEMS[id] || {};
+  // media-pack icon (rare swords, potions, tomes, gems); skip caching until
+  // the sheet image is loaded so early calls retry instead of freezing blank
+  if (def.micon) {
+    if (drawMediaIcon(g, def.micon, 1, 1, 30)) cache.set(id, c);
+    return c;
+  }
+  cache.set(id, c);
   const name = id;
   const pal = metalFor(name);
   g.lineJoin = 'round';

@@ -7,6 +7,7 @@ import { REGIONS } from '/shared/constants.js';
 import { HOUSE } from '/shared/data/world.js';
 import { composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS, itemIcon, proc } from './sprites.js';
 import { MOBS } from '/shared/data/mobs.js';
+import { drawCreature, drawChest, drawGeode, drawSheetCell, MEDIA, mimg } from './media.js';
 
 export const TW = 64, TH = 32;         // iso tile size
 export const toScreen = (x, y) => [(x - y) * (TW / 2), (x + y) * (TH / 2)];
@@ -138,6 +139,26 @@ function chunkCanvas(plane, cx, cy) {
     // exposed cliff column: fill down to the tallest lower neighbour in front
     const hFront = Math.min(chunkElev(plane, x + 1, y), chunkElev(plane, x, y + 1), chunkElev(plane, x + 1, y + 1));
     const drop = Math.max(0, h - Math.max(0, hFront));
+    // Abyssal dungeon floors: crystal-cavern tiles from the Geo gem pack, with
+    // rare glowing crystal clusters sprouting from the rock.
+    if (plane >= PLANE.DUNGEON_BASE && t === TILE.CAVE) {
+      const gt = MEDIA.sheets?.geo_tiles;
+      const im = gt && mimg(gt.file);
+      if (im) {
+        // dark violet/navy cavern blocks (sheet rows 3-4)
+        const PICKS = [[0, 3], [1, 3], [2, 3], [3, 3], [1, 4], [3, 4], [2, 3], [0, 3]];
+        const [pc, pr] = PICKS[(shade * PICKS.length) | 0];
+        g.drawImage(im, pc * gt.cellW, pr * gt.cellH, gt.cellW, gt.cellH, lx - TW / 2, ly - TH / 2, TW, 48);
+        if (shade > 0.94) {
+          const gm = MEDIA.sheets?.gems, gim = gm && mimg(gm.file);
+          if (gim) {
+            const row = ((shade * 997) | 0) % 6, col = ((shade * 131) | 0) % 9;
+            g.drawImage(gim, col * gm.cellW, row * gm.cellH, gm.cellW, gm.cellH, lx - 14, ly - 22, 28, 28);
+          }
+        }
+        continue;
+      }
+    }
     const tex = tileTexture(t, (shade * 8) | 0);
     if (tex && !WALLS.has(t)) {
       for (let k = drop; k >= 1; k--) {
@@ -153,13 +174,24 @@ function chunkCanvas(plane, cx, cy) {
       g.moveTo(lx, ly - TH / 2 - 0.5); g.lineTo(lx + TW / 2 + 0.5, ly); g.lineTo(lx, ly + TH / 2 + 0.5); g.lineTo(lx - TW / 2 - 0.5, ly);
       g.closePath(); g.fill();
     }
-    // dungeon rock: flat dark tile (no tall prism, so corridors stay readable)
+    // dungeon rock: flat dark tile (no tall prism, so corridors stay readable),
+    // studded with abyssal rocks and glowing crystal veins
     if (t === TILE.WALL && plane >= PLANE.DUNGEON_BASE) {
-      g.fillStyle = shade > 0.5 ? '#2c2620' : '#241f1a';
+      g.fillStyle = shade > 0.5 ? '#1e1a24' : '#171420';
       g.beginPath();
       g.moveTo(lx, ly - TH / 2); g.lineTo(lx + TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx - TW / 2, ly);
       g.closePath(); g.fill();
-      if (shade > 0.7) { g.fillStyle = '#00000022'; g.fillRect(lx - 6, ly - 2, 4, 2); }
+      const rk = MEDIA.sheets?.geo_rocks, rim = rk && mimg(rk.file);
+      if (rim && shade > 0.45 && shade < 0.75) {
+        const col = ((shade * 331) | 0) % rk.cols, row = ((shade * 173) | 0) % 4;
+        g.drawImage(rim, col * rk.cellW, row * rk.cellH, rk.cellW, rk.cellH, lx - 22, ly - 30, 44, 44);
+      } else if (shade >= 0.86) {
+        const gm = MEDIA.sheets?.gems, gim = gm && mimg(gm.file);
+        if (gim) {
+          const row = ((shade * 997) | 0) % 6, col = ((shade * 131) | 0) % 9;
+          g.drawImage(gim, col * gm.cellW, row * gm.cellH, gm.cellW, gm.cellH, lx - 16, ly - 26, 32, 32);
+        }
+      }
       continue;
     }
     // building walls: prism on top of the (flattened) terrain
@@ -178,6 +210,8 @@ function chunkCanvas(plane, cx, cy) {
   }
   c = { canvas, top };
   chunkCache.set(key, c);
+  // dungeon chunks re-render until the geo sheets finish streaming in
+  if (plane >= PLANE.DUNGEON_BASE && !(MEDIA.sheets?.geo_tiles && mimg(MEDIA.sheets.geo_tiles.file))) chunkCache.delete(key);
   return c;
 }
 
@@ -367,6 +401,21 @@ export class Renderer {
       this.nameplate(ctx, sx, sy - 26, 'Convoy strongbox', '#ffd75e');
       return;
     }
+    if (e.k === 'chest') {
+      ctx.fillStyle = '#00000030'; ctx.beginPath(); ctx.ellipse(sx, sy + 4, 16, 6, 0, 0, 7); ctx.fill();
+      const openT = e.anim === 'open' ? now - e.animStart : 0;
+      if (!drawChest(ctx, e.variant, openT, e.snow, sx, sy, 1)) {
+        ctx.fillStyle = '#7a5a2a'; ctx.fillRect(sx - 12, sy - 16, 24, 16);
+      }
+      if (state.hoverId === e.id || e.locked) this.nameplate(ctx, sx, sy - 52, (e.locked ? '🔒 ' : '') + e.name, '#ffd75e');
+      return;
+    }
+    if (e.k === 'geode') {
+      ctx.fillStyle = '#00000038'; ctx.beginPath(); ctx.ellipse(sx, sy + 5, 20, 7, 0, 0, 7); ctx.fill();
+      drawGeode(ctx, e.gemRow, e.gemCol, now, sx, sy);
+      if (state.hoverId === e.id) this.nameplate(ctx, sx, sy - 66, `${e.name} — mining ${e.lvl}`, '#9ae0ff');
+      return;
+    }
 
     // shadow
     const scale = e.scale || 1;
@@ -388,7 +437,13 @@ export class Renderer {
     }
     if (anim === 'idle') frame = Math.floor((now + e.id * 217) / animInfo.ms) % animInfo.frames; // desynced breathing
 
-    if (e.critter) {
+    let sheetH = 0;
+    if (e.sheet) {
+      // sheet-animated creature (media.json packs); uses raw server anim +
+      // its own once-anim timing via e.animStart / e.deathStart
+      sheetH = drawCreature(ctx, e.sheet, e, e.anim, now, sx, sy, scale);
+    }
+    if (!sheetH && e.critter) {
       const dead = e.hp <= 0;
       const spr = critterSprite(e.critter, anim === 'walk' ? frame : 0, dead);
       const S = 64 * scale;
@@ -401,16 +456,16 @@ export class Renderer {
       if ((anim === 'slash' || anim === 'shoot' || anim === 'spellcast') && frame < 3) {
         ctx.fillStyle = '#ffffff22'; ctx.beginPath(); ctx.arc(sx, sy - 20 * scale, 16 * scale, 0, 7); ctx.fill();
       }
-    } else if (e.vis) {
+    } else if (!sheetH && e.vis) {
       const comp = composite(e.vis);
       drawChar(ctx, comp, anim, e.dir, frame, sx, sy, scale);
       drawOversize(ctx, comp, e.vis, anim, e.dir, frame, sx, sy, scale);
-    } else {
+    } else if (!sheetH && !e.sheet) {
       ctx.fillStyle = '#888'; ctx.fillRect(sx - 8, sy - 30, 16, 30);
     }
 
     // nameplates & bars
-    const topY = sy - 64 * scale + 4;
+    const topY = sy - (sheetH ? sheetH * 0.92 : 64 * scale) + 4;
     if (e.k === 'player') {
       const isMe = state.me && e.id === state.me.id;
       this.nameplate(ctx, sx, topY - 4, (e.skull ? '☠ ' : '') + e.name + ' (' + (e.cb || '?') + ')', isMe ? '#aef79a' : e.skull ? '#ff8a7a' : '#f1e6c0');

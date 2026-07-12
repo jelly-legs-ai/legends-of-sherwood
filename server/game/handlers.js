@@ -59,6 +59,26 @@ export function handleMessage(world, ws, msg) {
     case 'devgrant': if (process.argv.includes('--dev')) {
       if (msg.item && ITEMS[msg.item]) p.addItem(String(msg.item), Math.max(1, msg.qty | 0));
       if (msg.amt) { world.ledger.mint(p.name, msg.amt | 0, 'dev'); world.send(p, { t: MSG.TOKEN, bal: world.ledger.balance(p.name), delta: msg.amt | 0, reason: 'dev grant' }); }
+      if (msg.xp && msg.xp.skill) p.addXp(String(msg.xp.skill), Math.max(0, msg.xp.amount | 0));
+      if (msg.tp) {
+        p.plane = msg.tp.plane ?? PLANE.OVERWORLD;
+        p.x = (msg.tp.x | 0) + 0.5; p.y = (msg.tp.y | 0) + 0.5;
+        p.path = null; p.target = null; world.gridMove(p);
+        world.send(p, { t: MSG.RESPAWN, x: p.x, y: p.y });
+      }
+      if (msg.find) { // teleport to the nearest entity of a kind/type
+        let best = null, bd = 1e9;
+        for (const e of world.entities.values()) {
+          if (e.kind !== msg.find && e.type !== msg.find) continue;
+          const d = Math.hypot(e.x - p.x, e.y - p.y) + (e.plane !== p.plane ? 5000 : 0);
+          if (d < bd) { bd = d; best = e; }
+        }
+        if (best) {
+          p.plane = best.plane; p.x = best.x + 1.5; p.y = best.y + 1.5;
+          p.path = null; p.target = null; world.gridMove(p);
+          world.send(p, { t: MSG.RESPAWN, x: p.x, y: p.y });
+        } else world.send(p, { t: MSG.MSGBOX, m: `dev: no entity '${msg.find}' found` });
+      }
     } return;
   }
 }
@@ -254,6 +274,8 @@ function onAction(world, p, msg) {
   p.target = null; // interacting with the world stops fighting
   if (msg.pickpocket) return pickpocket(world, p, msg.pickpocket | 0);
   if (msg.evbox) return openEventBox(world, p, msg.evbox | 0);
+  if (msg.geode) return mineGeode(world, p, msg.geode | 0);
+  if (msg.chest) return openChestEnt(world, p, msg.chest | 0);
   const x = msg.x | 0, y = msg.y | 0;
   // dungeon exit ladder
   if (p.plane >= PLANE.DUNGEON_BASE) return dungeonAction(world, p, x, y, msg);
@@ -460,6 +482,53 @@ function openEventBox(world, p, id) {
   world.send(p, { t: MSG.MSGBOX, m: `You pry open the strongbox — ${amt} $SHL!` });
 }
 
+// Wandering gem geodes: high-level mining nodes that yield gems per swing.
+function mineGeode(world, p, id) {
+  const e = world.entities.get(id);
+  if (!e || e.kind !== 'geode') return;
+  if (Math.hypot(e.x - p.x, e.y - p.y) > 2.2) return walkThen(world, p, e.x | 0, e.y | 0, () => mineGeode(world, p, id));
+  const lvl = p.level('mining');
+  if (lvl < e.lvl) return world.send(p, { t: MSG.MSGBOX, m: `This ${e.gem} geode needs mining level ${e.lvl}.` });
+  if (!p.hasTool('pickaxe')) return world.send(p, { t: MSG.MSGBOX, m: 'You need a pickaxe.' });
+  if (p.freeSlots() === 0) return world.send(p, { t: MSG.MSGBOX, m: 'Your pack is full.' });
+  const now = Date.now();
+  p.action = {
+    type: 'geode', next: now + 2200,
+    step: (nw) => {
+      if (!world.entities.has(e.id) || Math.hypot(e.x - p.x, e.y - p.y) > 2.4) { p.action = null; p.anim = 'idle'; return; }
+      p.anim = 'slash'; p.animSeq++;
+      p.dir = Math.abs(e.x - p.x) > Math.abs(e.y - p.y) ? (e.x > p.x ? 3 : 1) : (e.y > p.y ? 2 : 0);
+      world.fx(p.plane, e.x, e.y, FX.MINE, {});
+      p.action.next = nw + 2200;
+      const chance = Math.min(0.9, 0.4 + (p.level('mining') - e.lvl) * 0.02);
+      if (Math.random() > chance) return;
+      p.addItem(e.gem, 1);
+      p.addXp('mining', 120 + e.lvl * 3);
+      world.send(p, { t: MSG.MSGBOX, kind: 'loot', m: `You chip a ${e.gem} from the geode!` });
+      p.questProgress('mine', e.gem);
+      if (--e.charges <= 0) {
+        world.send(p, { t: MSG.MSGBOX, m: 'The geode crumbles and sinks back into the earth.' });
+        world.depleteGeode(e);
+        p.action = null; p.anim = 'idle';
+      }
+    },
+  };
+}
+
+// Treasure chests: walk over, open, loot bursts out (ornate ones need a key).
+function openChestEnt(world, p, id) {
+  const e = world.entities.get(id);
+  if (!e || e.kind !== 'chest' || e.opened) return;
+  if (Math.hypot(e.x - p.x, e.y - p.y) > 2.0) return walkThen(world, p, e.x | 0, e.y | 0, () => openChestEnt(world, p, id));
+  if (e.locked) {
+    if (p.countItem('dungeon_key') < 1) return world.send(p, { t: MSG.MSGBOX, m: 'This ornate chest is locked tight — it needs an Abyssal key.' });
+    p.removeItem('dungeon_key', 1);
+  }
+  p.anim = 'thrust'; p.animSeq++;
+  world.fx(p.plane, e.x, e.y, FX.SPARK, {});
+  world.openChest(e, p);
+}
+
 // ---------------- crafting / production ----------------
 function stationNearby(world, p, station) {
   if (!station) return true;
@@ -580,6 +649,16 @@ function onUse(world, p, msg) {
   }
   if (def?.pouch) return onSummon(world, p, { pouch: s.id });
   if (def?.bones) return onBury(world, p, { slot: msg.slot });
+  if (def?.tome) { // skill tomes: a burst of XP scaled to your current level
+    const sk = def.tome;
+    const xp = 800 + p.level(sk) * 140;
+    p.removeItem(s.id, 1);
+    p.anim = 'spellcast'; p.animSeq++;
+    world.fx(p.plane, p.x, p.y, FX.LEVELUP, { id: p.id });
+    p.addXp(sk, xp);
+    world.send(p, { t: MSG.MSGBOX, kind: 'loot', m: `You study the ${def.name} — ${xp.toLocaleString()} ${sk} XP!` });
+    return;
+  }
   if (def?.food || def?.potion) return onEat(world, p, msg);
 }
 import { LOGS as _LOGS } from '../../shared/data/items.js';

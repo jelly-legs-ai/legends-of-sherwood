@@ -182,6 +182,12 @@ export const GEMS = [
   { id: 'ruby', lvl: 50, val: 550 }, { id: 'diamond', lvl: 70, val: 1500 },
 ];
 for (const g of GEMS) def(g.id, { name: g.id[0].toUpperCase() + g.id.slice(1), value: g.val, material: true });
+// Geode-node gems (mined from wandering gem geodes) + icon cells on the gem sheet
+def('citrine', { name: 'Citrine', value: 350, material: true, micon: ['gems', 12, 2] });
+def('amethyst', { name: 'Amethyst', value: 800, material: true, micon: ['gems', 12, 1] });
+ITEMS.sapphire.micon = ['gems', 12, 3]; ITEMS.emerald.micon = ['gems', 12, 0];
+ITEMS.ruby.micon = ['gems', 12, 5]; ITEMS.diamond.micon = ['gems', 12, 4];
+def('abyssal_pearl', { name: 'Abyssal pearl', value: 5200, material: true, micon: ['gems', 6, 6] });
 
 export const LOGS = [
   { id: 'logs', tree: 'Ash tree', lvl: 1, xp: 25, val: 3, fm: 1, fmxp: 40 },
@@ -227,15 +233,17 @@ for (const h of HERBS) {
 }
 def('vial_water', { name: 'Vial of water', stack: true, value: 2 });
 export const POTIONS = [
-  { id: 'attack_potion', name: 'Attack potion', lvl: 3, herb: 'nettle', xp: 25, boost: { attack: 3 }, val: 20 },
-  { id: 'strength_potion', name: 'Strength potion', lvl: 12, herb: 'yarrow', xp: 40, boost: { strength: 3 }, val: 40 },
-  { id: 'defence_potion', name: 'Defence potion', lvl: 27, herb: 'comfrey', xp: 65, boost: { defence: 4 }, val: 80 },
-  { id: 'ranging_potion', name: 'Ranging potion', lvl: 42, herb: 'wolfsbane', xp: 95, boost: { ranged: 4 }, val: 150 },
-  { id: 'magic_potion', name: 'Magic potion', lvl: 57, herb: 'mandrake', xp: 130, boost: { magic: 4 }, val: 280 },
-  { id: 'prayer_restore', name: 'Prayer restore', lvl: 68, herb: 'frostwort', xp: 170, restore: 'prayer', val: 450 },
-  { id: 'kings_elixir', name: "King's elixir", lvl: 85, herb: 'kingsfoil', xp: 260, boost: { attack: 5, strength: 5, defence: 5 }, val: 1200 },
+  { id: 'attack_potion', name: 'Attack potion', lvl: 3, herb: 'nettle', xp: 25, boost: { attack: 3 }, val: 20, icon: 1 },
+  { id: 'strength_potion', name: 'Strength potion', lvl: 12, herb: 'yarrow', xp: 40, boost: { strength: 3 }, val: 40, icon: 4 },
+  { id: 'defence_potion', name: 'Defence potion', lvl: 27, herb: 'comfrey', xp: 65, boost: { defence: 4 }, val: 80, icon: 7 },
+  { id: 'ranging_potion', name: 'Ranging potion', lvl: 42, herb: 'wolfsbane', xp: 95, boost: { ranged: 4 }, val: 150, icon: 10 },
+  { id: 'magic_potion', name: 'Magic potion', lvl: 57, herb: 'mandrake', xp: 130, boost: { magic: 4 }, val: 280, icon: 13 },
+  { id: 'prayer_restore', name: 'Prayer restore', lvl: 68, herb: 'frostwort', xp: 170, restore: 'prayer', val: 450, icon: 16 },
+  { id: 'kings_elixir', name: "King's elixir", lvl: 85, herb: 'kingsfoil', xp: 260, boost: { attack: 5, strength: 5, defence: 5 }, val: 1200, icon: 19 },
+  { id: 'titan_brew', name: 'Titan brew', lvl: 78, herb: 'frostwort', xp: 210, boost: { attack: 6, strength: 6 }, val: 800, icon: 100 },
+  { id: 'sage_elixir', name: 'Sage elixir', lvl: 90, herb: 'kingsfoil', xp: 320, boost: { magic: 7 }, restore: 'prayer', val: 1600, icon: 25 },
 ];
-for (const p of POTIONS) def(p.id, { name: p.name, value: p.val, potion: true, boost: p.boost, restore: p.restore });
+for (const p of POTIONS) def(p.id, { name: p.name, value: p.val, potion: true, boost: p.boost, restore: p.restore, micon: ['potions_atlas', p.icon] });
 
 // Farming
 export const CROPS = [
@@ -320,6 +328,39 @@ def('coins', { name: 'Copper coins', stack: true, value: 1 });
 def('dungeon_key', { name: 'Abyssal key', value: 0, tradeable: false });
 def('marians_letter', { name: "Marian's letter", value: 0, tradeable: false, quest: true });
 def('convoy_strongbox', { name: 'Convoy strongbox', value: 0, tradeable: false, quest: true });
+
+// ---------------------------------------------------------------------------
+// Rare swords: named boss-drop blades with painted icons (Weapons/Rare swords).
+// [id, name, attack lvl, icon idx, 2H?, LPC color]
+export const RARE_SWORDS = [
+  ['blade_of_the_burrow', 'Blade of the Burrow', 20, 1, 0, 'bronze'],
+  ['tidebreaker_cutlass', 'Tidebreaker cutlass', 30, 6, 0, 'steel'],
+  ['fanged_ripper', 'Fanged ripper', 40, 11, 0, 'iron'],
+  ['gollux_greatblade', 'Gollux greatblade', 50, 14, 1, 'brass'],
+  ['glacier_edge', 'Glacier edge', 55, 19, 0, 'silver'],
+  ['tyrants_cleaver', "Tyrant's cleaver", 65, 23, 1, 'steel'],
+  ['rexfang_saber', 'Rexfang saber', 72, 27, 0, 'brass'],
+  ['abyssal_edge', 'Abyssal edge', 78, 30, 0, 'dark'],
+  ['aracnyx_talon', 'Aracnyx talon', 82, 32, 0, 'silver'],
+  ['glacial_reaver', 'Glacial reaver', 86, 34, 1, 'silver'],
+  ['hellrender', 'Hellrender', 92, 36, 1, 'gold'],
+  ['dragonbane_greatsword', 'Dragonbane greatsword', 95, 39, 1, 'gold'],
+];
+for (const [id, name, lvl, icon, twoHand, color] of RARE_SWORDS) {
+  const s = T(lvl);
+  def(id, { name, slot: 'weapon', kind: 'sword', style: 'melee', anim: 'slash',
+    speed: twoHand ? 2800 : 2200, twoHand: !!twoHand, req: { attack: lvl },
+    bonus: { acc: Math.round(s * (twoHand ? 1.15 : 1.25)), str: Math.round(s * (twoHand ? 1.5 : 1.1)) },
+    value: 900 + lvl * lvl * 6, unique: lvl >= 78, micon: ['rareSwords', icon],
+    vis: { layer: 'weapon', type: 'sword', color } });
+}
+
+// Skill tomes: rare boss/chest drops; reading one grants a burst of XP.
+export const TOME_SKILLS = ['attack', 'strength', 'defence', 'constitution', 'ranged', 'magic', 'prayer', 'summoning',
+  'mining', 'fishing', 'woodcutting', 'farming', 'hunter', 'archaeology', 'smithing', 'cooking', 'crafting', 'herblore'];
+TOME_SKILLS.forEach((sk, i) => def(`tome_${sk}`, {
+  name: `Tome of ${sk[0].toUpperCase() + sk.slice(1)}`, value: 2600, tome: sk, micon: ['skillBooks', i],
+}));
 
 // Unique boss drops
 def('sheriffs_blade', { name: "The Sheriff's blade", slot: 'weapon', kind: 'sword', style: 'melee', anim: 'slash',

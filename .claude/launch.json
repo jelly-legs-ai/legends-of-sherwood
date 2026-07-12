@@ -4,7 +4,7 @@
     {
       "name": "sherwood",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["server/index.js"],
+      "runtimeArgs": ["server/index.js", "--dev"],
       "port": 8123
     }
   ]

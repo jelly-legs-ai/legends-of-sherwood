@@ -240,8 +240,14 @@ export const SPELLS = {
   bay_call: { name: 'Call of the Bay', lvl: 52, teleport: 'bay', xp: 45, runes: { air_rune: 3, water_rune: 2 }, fx: 'TELEPORT' },
   holy_smite: { name: 'Holy smite', lvl: 60, dmg: 21, xp: 42, runes: { air_rune: 2, cosmic_rune: 2 }, fx: 'HOLYBOLT', proj: 'holy' },
   frosthollow_call: { name: 'Call of Frosthollow', lvl: 68, teleport: 'frosthollow', xp: 60, runes: { air_rune: 4, water_rune: 3 }, fx: 'TELEPORT' },
-  blood_ray: { name: 'Blood ray', lvl: 75, dmg: 26, xp: 55, runes: { fire_rune: 2, blood_rune: 2 }, fx: 'FIREBOLT', proj: 'blood', leech: 0.25 },
-  wrath_of_sherwood: { name: 'Wrath of Sherwood', lvl: 90, dmg: 32, xp: 75, runes: { nature_rune: 3, blood_rune: 2, cosmic_rune: 1 }, fx: 'NATURE', proj: 'sherwood', aoe: 1 },
+  blood_ray: { name: 'Blood ray', lvl: 75, dmg: 26, xp: 55, runes: { fire_rune: 2, blood_rune: 2 }, fx: 'FIREBOLT', proj: 'sheet:staffhi:3', leech: 0.25 },
+  wrath_of_sherwood: { name: 'Wrath of Sherwood', lvl: 90, dmg: 32, xp: 75, runes: { nature_rune: 3, blood_rune: 2, cosmic_rune: 1 }, fx: 'NATURE', proj: 'sheet:twisted_3', aoe: 1 },
+  // ---- animated-FX spell line (sheet projectiles from the new Combat packs) ----
+  cosmic_bolt: { name: 'Cosmic bolt', lvl: 48, dmg: 18, xp: 33, runes: { air_rune: 2, cosmic_rune: 1 }, fx: 'HOLYBOLT', proj: 'sheet:cosmic:1' },
+  emberstorm_orb: { name: 'Emberstorm orb', lvl: 63, dmg: 22, xp: 46, runes: { fire_rune: 3, cosmic_rune: 1 }, fx: 'FIREBOLT', proj: 'sheet:orb:3' },
+  venom_surge: { name: 'Venom surge', lvl: 70, dmg: 24, xp: 50, runes: { nature_rune: 2, blood_rune: 1 }, fx: 'NATURE', proj: 'sheet:staffhi:2' },
+  abyssal_orb: { name: 'Abyssal orb', lvl: 82, dmg: 29, xp: 62, runes: { cosmic_rune: 2, blood_rune: 2 }, fx: 'HOLYBOLT', proj: 'sheet:orb:2', leech: 0.1 },
+  twisted_cataclysm: { name: 'Twisted cataclysm', lvl: 95, dmg: 36, xp: 90, runes: { blood_rune: 3, cosmic_rune: 2, fire_rune: 2 }, fx: 'FIREBOLT', proj: 'sheet:twisted_4', aoe: 1 },
 };
 
 // PRAYER book

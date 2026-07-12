@@ -33,6 +33,35 @@ const server = http.createServer((req, res) => {
     });
     return;
   }
+  // Dev asset pipeline: browser-side packer reads raw packs from /rawassets and
+  // writes finished sheets into client/assets via /debug/save.
+  if (req.method === 'POST' && url === '/debug/save' && process.argv.includes('--dev')) {
+    let body = '';
+    req.on('data', (c) => { body += c; if (body.length > 40e6) req.destroy(); });
+    req.on('end', () => {
+      try {
+        const { file, dataUrl } = JSON.parse(body);
+        const safe = String(file).replace(/\.\./g, '');
+        const dest = path.normalize(path.join(ROOT, 'client', 'assets', safe));
+        if (!dest.startsWith(path.join(ROOT, 'client', 'assets'))) { res.writeHead(403); return res.end('no'); }
+        fs.mkdirSync(path.dirname(dest), { recursive: true });
+        fs.writeFileSync(dest, Buffer.from(dataUrl.replace(/^data:\w+\/\w+;base64,/, ''), 'base64'));
+        res.writeHead(200); res.end('ok');
+      } catch (e) { res.writeHead(400); res.end(String(e.message)); }
+    });
+    return;
+  }
+  if (url.startsWith('/rawassets/') && process.argv.includes('--dev')) {
+    const rel = decodeURIComponent(url.slice('/rawassets/'.length));
+    const file = path.normalize(path.join(ROOT, 'model assets', rel));
+    if (!file.startsWith(path.join(ROOT, 'model assets'))) { res.writeHead(403); return res.end('no'); }
+    fs.readFile(file, (err, data) => {
+      if (err) { res.writeHead(404); return res.end('nf'); }
+      res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
+      res.end(data);
+    });
+    return;
+  }
   if (url === '/') url = '/client/index.html';
   if (!/^\/(client|shared)\//.test(url)) url = '/client' + url; // page-relative assets
   const file = path.normalize(path.join(ROOT, url));
