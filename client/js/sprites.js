@@ -202,7 +202,7 @@ const CRITTER_STYLE = {
   rat: { kind: 'quad', body: '#8a8072', hi: '#a89c8c', sh: '#645b50', size: 0.45, ears: 'round', tail: 'thin', snout: 'point' },
   rabbit: { kind: 'quad', body: '#b59a77', hi: '#e0cdb0', sh: '#8a7255', size: 0.55, ears: 'tall', tail: 'puff', snout: 'short', hop: true },
   boar: { kind: 'quad', body: '#4e3a28', hi: '#6b5238', sh: '#31241a', size: 1.0, ears: 'round', tail: 'curl', snout: 'boar', tusks: true, mane: true, hump: true, headLow: true },
-  bear: { kind: 'quad', body: '#6b4a2e', hi: '#8a6540', sh: '#47301d', size: 1.15, ears: 'round', snout: 'short', hump: true },
+  bear: { kind: 'quad', body: '#5a3c22', hi: '#7c5636', sh: '#38230f', size: 1.35, ears: 'round', snout: 'long', hump: true, headLow: true, mane: true },
   wolf: { kind: 'quad', body: '#767a82', hi: '#9a9da5', sh: '#4e5158', size: 0.92, ears: 'point', tail: 'bush', snout: 'long' },
   icewolf: { kind: 'quad', body: '#c4d6e4', hi: '#eef6fb', sh: '#8fa8bc', size: 0.98, ears: 'point', tail: 'bush', snout: 'long', glow: '#bfe0ff' },
   panther: { kind: 'quad', body: '#26282f', hi: '#3c3f4a', sh: '#141519', size: 0.95, ears: 'round', tail: 'long', snout: 'short', sleek: true },
@@ -214,6 +214,7 @@ const CRITTER_STYLE = {
   treant: { kind: 'tree', bark: '#5a4326', barkHi: '#785c38', leaf: '#3e7a2e', leafHi: '#5aa03c', size: 1.05 },
   troll: { kind: 'brute', body: '#5e7150', hi: '#7e9070', sh: '#3e4c34', size: 1.1 },
   giant: { kind: 'brute', body: '#8fa8bc', hi: '#b8cbd9', sh: '#5e7284', size: 1.35, frost: true },
+  abyssal: { kind: 'brute', body: '#4a1f2e', hi: '#7a3550', sh: '#26101a', size: 1.28, horns: true, glow: '#e0304a', cracks: true },
   sprite: { kind: 'wisp', body: '#9fd8ef', hi: '#e6f8ff', size: 0.6, glow: '#bfefff' },
   spider: { kind: 'spider', body: '#332838', hi: '#54425c', sh: '#1c141f', size: 0.82 },
   // ---- pets (small, characterful, animated like all critters) ----

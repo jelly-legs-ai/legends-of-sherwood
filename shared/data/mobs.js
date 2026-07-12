@@ -176,7 +176,7 @@ mob('web_stalker', { name: 'Web stalker', lvl: 66, life: 240, atk: 42, def: 34, 
 // Abyssal Depths
 mob('cursed_skull', { name: 'Cursed skull', lvl: 45, life: 110, atk: 28, def: 20, sheet: 'cursed_skull', style: 'magic', aggro: true, dungeon: true, speed: 3.2,
   drops: [['coins', [20, 60], 0.8], ['blood_rune', [1, 4], 0.3], ['dungeon_key', 1, 0.2], ['tome_prayer', 1, 0.006]] });
-mob('abyssal_sentinel', { name: 'Abyssal sentinel', lvl: 76, life: 300, atk: 50, def: 46, sheet: 'abyssal_sentinel', style: 'melee', aggro: true, dungeon: true, scale: 0.72, shil: 3,
+mob('abyssal_sentinel', { name: 'Abyssal sentinel', lvl: 76, life: 300, atk: 50, def: 46, critter: 'abyssal', style: 'melee', aggro: true, dungeon: true, scale: 1.3, shil: 3,
   drops: [['ancient_bones', 1, 1], ['coins', [60, 180], 0.9], ['abyssal_edge', 1, 0.005], ['dungeon_key', 1, 0.3], ['abyssal_pearl', 1, 0.02]] });
 
 // ---- BOSSES -------------------------------------------------------------------
@@ -222,4 +222,4 @@ boss('dragon_tyrant', { name: 'Vermithrax, the Three-Headed Tyrant', lvl: 99, li
   region: 'WILDLANDS', drops: [['ancient_bones', [2, 3], 1], ['dragonbane_greatsword', 1, 0.03], ['coins', [1000, 2400], 1], ['diamond', [1, 2], 0.5], ['abyssal_pearl', 1, 0.3], ['tome_farming', 1, 0.05], ['sylvanite_ore', [2, 5], 0.7], ['sky_screecher', 1, 0.012], ['aura_spectral', 1, 0.02]] });
 
 // Vis for hair may be absent (helmets); critters are drawn by client code.
-export const CRITTERS = ['rat', 'rabbit', 'boar', 'wolf', 'icewolf', 'hawk', 'leech', 'serpent', 'panther', 'treant', 'goat', 'troll', 'sprite', 'spider', 'giant'];
+export const CRITTERS = ['rat', 'rabbit', 'boar', 'wolf', 'icewolf', 'hawk', 'leech', 'serpent', 'panther', 'treant', 'goat', 'troll', 'sprite', 'spider', 'giant', 'bear', 'stag', 'abyssal'];

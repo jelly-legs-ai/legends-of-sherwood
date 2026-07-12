@@ -22,6 +22,12 @@ export function mimg(file) {
   if (!im) { im = new Image(); im.src = 'assets/' + file; images.set(file, im); }
   return im.complete && im.naturalWidth ? im : null;
 }
+// Eagerly load EVERY anim sheet of a creature the first time it's seen, so an
+// attack/special never flashes blank because only its idle frame was cached.
+const preloaded = new Set();
+function preloadCreature(def) {
+  for (const m of Object.values(def.anims)) if (m.file && !images.has(m.file)) mimg(m.file);
+}
 
 // Server anim names -> sheet anim names (with graceful fallbacks)
 const ANIM_MAP = { idle: 'idle', walk: 'walk', slash: 'attack', thrust: 'attack', shoot: 'attack', spellcast: 'special', hurt: 'hit' };
@@ -43,6 +49,7 @@ const ONCE_MS = { attack: 55, special: 60, hit: 70, death: 80, heal: 60 };
 export function drawCreature(ctx, key, e, animName, now, sx, sy, scale = 1) {
   const def = MEDIA.creatures?.[key];
   if (!def) return 0;
+  if (!preloaded.has(key)) { preloaded.add(key); preloadCreature(def); }
   const dead = e.hp <= 0;
   let a = dead && def.anims.death ? 'death' : pickAnim(def, animName);
   const m = def.anims[a];
