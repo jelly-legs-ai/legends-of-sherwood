@@ -197,7 +197,7 @@ function renderSkills(p) {
       const paid = (G.milestones[sk] || []);
       const nextMile = MILESTONE_LEVELS.find(m => !paid.includes(m) && m > lvl);
       tooltip(e, `<b>${sk[0].toUpperCase() + sk.slice(1)}</b> — level ${lvl}<br>XP: ${fmt(xp)}${lvl < 99 ? ` (${fmt(next - xp)} to next)` : ' — MAX'}<br>` +
-        (nextMile ? `Next milestone: lvl ${nextMile} → <b>${MILESTONE_SHILLINGS[nextMile]} $SHL</b><br>` : '') +
+        (nextMile ? `Next milestone: lvl ${nextMile} → <b>${MILESTONE_SHILLINGS[nextMile]} $LoS</b><br>` : '') +
         `<i>Click for the ${sk} guide</i>`);
     };
     t.onmouseleave = hideTooltip;
@@ -236,7 +236,7 @@ function openSkillGuide(sk) {
     const paid = (G.milestones[sk] || []);
     const nextMile = MILESTONE_LEVELS.find(m => !paid.includes(m) && m > lvl);
     head.innerHTML = `XP <b>${fmt(G.xp[sk] || 0)}</b>${lvl < 99 ? ` — ${fmt(XP_TABLE[lvl + 1] - (G.xp[sk] || 0))} to level ${lvl + 1}` : ' — <b>MASTERED</b>'}` +
-      (nextMile ? ` &nbsp;·&nbsp; next $SHL milestone at <b>lvl ${nextMile}</b> (+${MILESTONE_SHILLINGS[nextMile]})` : '');
+      (nextMile ? ` &nbsp;·&nbsp; next $LoS milestone at <b>lvl ${nextMile}</b> (+${MILESTONE_SHILLINGS[nextMile]})` : '');
     body.appendChild(head);
     if (!rows.length) { body.insertAdjacentHTML('beforeend', '<i>This skill learns by doing — no listed unlocks.</i>'); return; }
     const list = document.createElement('div');
@@ -311,7 +311,7 @@ function openQuestInfo(qid) {
       body.insertAdjacentHTML('beforeend', '<div class="craft-cat">Rewards</div>');
       const row = document.createElement('div');
       row.className = 'q-rewards';
-      if (q.rewards.shillings) row.insertAdjacentHTML('beforeend', `<span class="tok">✦ ${q.rewards.shillings} $SHL</span> `);
+      if (q.rewards.shillings) row.insertAdjacentHTML('beforeend', `<span class="tok">✦ ${q.rewards.shillings} $LoS</span> `);
       if (q.rewards.coins) row.insertAdjacentHTML('beforeend', `<span>${fmt(q.rewards.coins)} coins</span> `);
       for (const [id, qty] of Object.entries(q.rewards.items || {})) {
         const chip = document.createElement('span'); chip.className = 'q-chip';
@@ -382,20 +382,23 @@ export function prayerIconCanvas(id) {
   return c;
 }
 
+// Prayers & spells are compact icon strips: images packed side by side, no
+// card frames or names — a tiny level badge and full info on hover.
 function renderPrayers(p) {
   p.innerHTML = `<div class="craft-cat">Prayer points: ${G.self?.pray ?? 0}</div>`;
   const grid = document.createElement('div');
-  grid.className = 'icon-grid';
+  grid.className = 'spell-strip';
   const plvl = levelForXp(G.xp.prayer || 0);
   for (const [id, pr] of Object.entries(PRAYERS)) {
     const b = document.createElement('button');
-    b.className = 'icon-btn' + (G.prayersOn.has(id) ? ' on' : '');
-    b.disabled = plvl < pr.lvl;
+    b.className = 'spell-cell' + (G.prayersOn.has(id) ? ' on' : '') + (plvl < pr.lvl ? ' locked' : '');
     b.appendChild(prayerIconCanvas(id));
-    b.insertAdjacentHTML('beforeend', `<span class="ib-name">${pr.name}</span><span class="ib-lvl">${pr.lvl}</span>`);
-    b.draggable = !b.disabled;
-    b.ondragstart = (e) => e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'prayer', id }));
-    b.onclick = () => G.net.send({ t: MSG.PRAYER, id });
+    b.insertAdjacentHTML('beforeend', `<span class="sc-lvl">${pr.lvl}</span>`);
+    if (plvl >= pr.lvl) {
+      b.draggable = true;
+      b.ondragstart = (e) => e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'prayer', id }));
+      b.onclick = () => G.net.send({ t: MSG.PRAYER, id });
+    }
     b.onmouseenter = (e) => tooltip(e, `<b>${pr.name}</b> (prayer ${pr.lvl})<br>${pr.boost ? Object.entries(pr.boost).map(([k, v]) => `+${Math.round(v * 100)}% ${k}`).join(', ') : ''}${pr.protect ? 'Protects from ' + pr.protect : ''}${pr.regen ? 'Speeds healing' : ''}<br>Drain: ${pr.drain}/tick — drag to hotbar`);
     b.onmouseleave = hideTooltip;
     grid.appendChild(b);
@@ -405,20 +408,21 @@ function renderPrayers(p) {
 function renderMagic(p) {
   p.innerHTML = `<div class="craft-cat">Spellbook ${G.selSpell ? '— casting: ' + SPELLS[G.selSpell].name : ''}</div>`;
   const grid = document.createElement('div');
-  grid.className = 'icon-grid';
+  grid.className = 'spell-strip';
   const mlvl = levelForXp(G.xp.magic || 0);
   for (const [id, s] of Object.entries(SPELLS)) {
     const b = document.createElement('button');
-    b.className = 'icon-btn' + (G.selSpell === id ? ' on' : '');
-    b.disabled = mlvl < s.lvl;
+    b.className = 'spell-cell' + (G.selSpell === id ? ' on' : '') + (mlvl < s.lvl ? ' locked' : '');
     b.appendChild(spellIconCanvas(id));
-    b.insertAdjacentHTML('beforeend', `<span class="ib-name">${s.name}</span><span class="ib-lvl">${s.lvl}</span>`);
-    b.draggable = !b.disabled;
-    b.ondragstart = (e) => e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'spell', id }));
-    b.onclick = () => {
-      if (s.teleport || s.heal) G.net.send({ t: MSG.CAST, spell: id });
-      else { G.selSpell = G.selSpell === id ? null : id; renderPanel(); toast(G.selSpell ? `Click a target to cast ${s.name}.` : 'Spell deselected.'); }
-    };
+    b.insertAdjacentHTML('beforeend', `<span class="sc-lvl">${s.lvl}</span>`);
+    if (mlvl >= s.lvl) {
+      b.draggable = true;
+      b.ondragstart = (e) => e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'spell', id }));
+      b.onclick = () => {
+        if (s.teleport || s.heal) G.net.send({ t: MSG.CAST, spell: id });
+        else { G.selSpell = G.selSpell === id ? null : id; renderPanel(); toast(G.selSpell ? `Click a target to cast ${s.name}.` : 'Spell deselected.'); }
+      };
+    }
     b.onmouseenter = (e) => tooltip(e, `<b>${s.name}</b> (magic ${s.lvl})<br>${s.dmg ? 'Damage spell — base ' + s.dmg : s.teleport ? 'Teleport to ' + s.teleport : 'Heals 20% LP'}<br>Runes: ${Object.entries(s.runes).map(([r, q]) => q + ' ' + r.replace('_rune', '')).join(', ')}<br><i>drag to hotbar</i>`);
     b.onmouseleave = hideTooltip;
     grid.appendChild(b);
@@ -641,7 +645,7 @@ export function openBank(bank) {
     const info = document.createElement('div');
     info.style.marginBottom = '8px';
     info.innerHTML = `Click items to withdraw. Your pack: click items in the side panel to deposit. <button id="depall">Deposit all</button>
-      <div class="craft-cat" style="margin-top:8px">$Shilling vault — balance ${fmt(G.bal || 0)}</div>
+      <div class="craft-cat" style="margin-top:8px">$LoS vault — balance ${fmt(G.bal || 0)}</div>
       <div style="display:flex;gap:5px;align-items:center;font-size:12px">
         <input id="wd-amt" type="number" min="5" placeholder="amount" style="width:76px">
         <input id="wd-addr" placeholder="rh1… chain address" style="flex:1">
@@ -704,7 +708,7 @@ export function openShop(npcEntId, npcName, shop) {
 }
 
 export function openGE(data) {
-  openWin('⚖ Grand Exchange — balance: ' + fmt(data.bal) + ' $SHL', (body) => {
+  openWin('⚖ Grand Exchange — balance: ' + fmt(data.bal) + ' $LoS', (body) => {
     const form = document.createElement('div');
     form.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px';
     form.innerHTML = `
@@ -712,7 +716,7 @@ export function openGE(data) {
       <input id="ge-item" list="ge-items" placeholder="item id" style="width:150px">
       <datalist id="ge-items">${Object.values(ITEMS).filter(i => i.tradeable).map(i => `<option value="${i.id}">${i.name}</option>`).join('')}</datalist>
       <input id="ge-qty" type="number" min="1" value="1" style="width:64px" title="quantity">
-      <input id="ge-price" type="number" min="1" value="1" style="width:80px" title="price each ($SHL)">
+      <input id="ge-price" type="number" min="1" value="1" style="width:80px" title="price each ($LoS)">
       <button id="ge-place">Place offer</button>`;
     body.appendChild(form);
     form.querySelector('#ge-place').onclick = () => {
@@ -731,7 +735,7 @@ export function openGE(data) {
     for (const o of data.offers) {
       const row = document.createElement('div');
       row.className = 'ge-offer';
-      row.innerHTML = `<span>${o.type.toUpperCase()} ${o.left}/${o.qty} × ${ITEMS[o.item]?.name || o.item} @ ${o.price} $SHL</span>`;
+      row.innerHTML = `<span>${o.type.toUpperCase()} ${o.left}/${o.qty} × ${ITEMS[o.item]?.name || o.item} @ ${o.price} $LoS</span>`;
       const b = document.createElement('button');
       b.textContent = 'Cancel';
       b.onclick = () => G.net.send({ t: MSG.GE, cancel: o.id });
@@ -743,7 +747,7 @@ export function openGE(data) {
 
 export function openDungeon(best) {
   openWin('⚒ The Abyssal Depths', (body) => {
-    body.innerHTML = `<div style="margin-bottom:8px">Cleared floors pay $Shillings — deeper pays more. You must clear floors in order; the stair needs an <b>Abyssal key</b> from the floor's creatures. Best floor: <b>${best}</b>.</div>`;
+    body.innerHTML = `<div style="margin-bottom:8px">Cleared floors pay $LoS — deeper pays more. You must clear floors in order; the stair needs an <b>Abyssal key</b> from the floor's creatures. Best floor: <b>${best}</b>.</div>`;
     const grid = document.createElement('div');
     grid.style.cssText = 'display:grid;grid-template-columns:repeat(5,1fr);gap:6px';
     for (let f = 1; f <= DUNGEON.MAX_FLOOR; f++) {
@@ -751,7 +755,7 @@ export function openDungeon(best) {
       const req = DUNGEON.floorReq(f);
       b.textContent = `Floor ${f}` + (f % 5 === 0 ? ' ☠' : '');
       b.disabled = f > best + 1 || levelForXp(G.xp.dungeoneering || 0) < req;
-      b.title = `Requires dungeoneering ${req} — pays ${DUNGEON.tokenReward(f)} $SHL`;
+      b.title = `Requires dungeoneering ${req} — pays ${DUNGEON.tokenReward(f)} $LoS`;
       b.onclick = () => { G.net.send({ t: MSG.DUNGEON, floor: f }); closeWin(); };
       grid.appendChild(b);
     }
@@ -825,7 +829,7 @@ export function openWorldMap() {
     wrap.appendChild(c);
     const note = document.createElement('div');
     note.style.cssText = 'text-align:center;color:#b3a06d;font-size:12px;margin-top:6px';
-    note.textContent = 'North of the red line lies the Wild Lands — PvP is enabled and your $Shilling pouch is at risk.';
+    note.textContent = 'North of the red line lies the Wild Lands — PvP is enabled and your $LoS pouch is at risk.';
     body.appendChild(wrap);
     body.appendChild(note);
   });
@@ -858,7 +862,7 @@ export function hideDialogue() { $('#dialogue').classList.add('hidden'); }
 export function duelInvite(msg) {
   $('#dialogue').classList.remove('hidden');
   $('#dlg-name').textContent = 'Colosseum challenge!';
-  $('#dlg-line').textContent = `${msg.from} challenges you to a duel for ${msg.stake} $SHL. Winner takes the pot.`;
+  $('#dlg-line').textContent = `${msg.from} challenges you to a duel for ${msg.stake} $LoS. Winner takes the pot.`;
   const opts = $('#dlg-opts');
   opts.innerHTML = '';
   const a = document.createElement('button');

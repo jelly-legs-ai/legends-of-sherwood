@@ -295,11 +295,12 @@ geoScale('geo_objects', 'Geo node gem pack/1024x512 Objects01.png', 4, 1024, 512
       if (e) media.sheets.rareSwords.push(e.file);
     }
   }
-  // skill book icons for the UI (18 painterly 512px icons; take without background)
+  // skill/spell book icons for the UI (painterly 512px icons; without background).
+  // All 50 imported; array is 0-based so skillBooks[n-1] is source file n.png.
   media.sheets.skillBooks = [];
-  for (let i = 1; i <= 18; i++) {
+  for (let i = 1; i <= 50; i++) {
     const e = cp(`UI Packs/skill book icons/PNG/without background/${i}.png`, `ui/books/${i}.png`);
-    if (e) media.sheets.skillBooks.push(e.file);
+    media.sheets.skillBooks.push(e ? e.file : null);
   }
 }
 

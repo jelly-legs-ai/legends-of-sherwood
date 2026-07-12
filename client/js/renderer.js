@@ -482,14 +482,20 @@ export class Renderer {
       drawFxSprite(ctx, e.aura, 0.22 + 0.5 * (((now + (e.id % 89) * 131) % 2400) / 2400), sx, sy - 14, 112);
       ctx.restore();
     }
-    // mount: creature drawn under the rider, who sits lifted (flyers hover+bob)
-    let lift = 0;
+    // mount: the beast is drawn under the rider, facing the player's heading.
+    // The rider sits still on the saddle — never the walk cycle — and the mount's
+    // near flank is re-drawn over the rider's shins so the legs read as astride.
+    let lift = 0, mounted = false, mountBob = 0;
     if (e.mnt) {
-      const bob = e.mnt.f ? Math.sin(now / 320 + e.id) * 3 + 10 : 0;
-      const mh = drawCreature(ctx, e.mnt.s, { id: e.id, dir: e.dir, hp: 1, tint: e.mnt.t, animStart: e.animStart }, e.anim === 'walk' ? 'walk' : 'idle', now, sx, sy - bob, 1);
-      lift = (mh ? mh * 0.45 : 15) + bob;
+      mounted = true;
+      mountBob = e.mnt.f ? Math.sin(now / 320 + e.id) * 3 + 10 : 0;
+      const mh = drawCreature(ctx, e.mnt.s, { id: e.id, dir: e.dir, hp: 1, tint: e.mnt.t, animStart: e.animStart }, e.anim === 'walk' ? 'walk' : 'idle', now, sx, sy - mountBob, 1);
+      lift = (mh ? mh * 0.42 : 15) + mountBob;
     }
     const ry = sy - lift;
+    // while mounted, the rider holds a fixed seated pose (idle frame 0)
+    const rAnim = mounted ? 'idle' : anim;
+    const rFrame = mounted ? 0 : frame;
 
     let sheetH = 0;
     if (e.sheet) {
@@ -512,8 +518,15 @@ export class Renderer {
       }
     } else if (!sheetH && e.vis) {
       const comp = composite(e.vis);
-      drawChar(ctx, comp, anim, e.dir, frame, sx, ry, scale);
-      drawOversize(ctx, comp, e.vis, anim, e.dir, frame, sx, ry, scale);
+      drawChar(ctx, comp, rAnim, e.dir, rFrame, sx, ry, scale);
+      drawOversize(ctx, comp, e.vis, rAnim, e.dir, rFrame, sx, ry, scale);
+      // re-draw the mount's lower body over the rider's legs (seated occlusion)
+      if (mounted) {
+        ctx.save();
+        ctx.beginPath(); ctx.rect(sx - 40, ry - 8, 80, 40); ctx.clip();
+        drawCreature(ctx, e.mnt.s, { id: e.id, dir: e.dir, hp: 1, tint: e.mnt.t, animStart: e.animStart }, e.anim === 'walk' ? 'walk' : 'idle', now, sx, sy - mountBob, 1);
+        ctx.restore();
+      }
     } else if (!sheetH && !e.sheet) {
       ctx.fillStyle = '#888'; ctx.fillRect(sx - 8, sy - 30, 16, 30);
     }

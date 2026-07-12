@@ -322,7 +322,7 @@ def('fishing_bait', { name: 'Fishing bait', stack: true, value: 1 });
 
 // Currency & tokens
 def('coins', { name: 'Copper coins', stack: true, value: 1 });
-// $Shilling never exists in inventory — ground pickups credit the ledger directly.
+// $LoS never exists in inventory — ground pickups credit the ledger directly.
 
 // Keys & misc
 def('dungeon_key', { name: 'Abyssal key', value: 0, tradeable: false });

@@ -34,14 +34,14 @@ export function levelForXp(xp) {
   return lvl;
 }
 
-// ---- $Shilling economy ----------------------------------------------------
+// ---- $LoS economy ----------------------------------------------------
 // Skill milestones: every skill pays at these levels, gradually increasing,
 // with 99 paying a generous lump sum for the dedication to the grind.
 export const MILESTONE_LEVELS = [5, 10, 20, 25, 50, 75, 99];
 export const MILESTONE_SHILLINGS = { 5: 1, 10: 2, 20: 4, 25: 6, 50: 18, 75: 45, 99: 250 };
 
 export const SHILLING = {
-  SYMBOL: '$SHL',
+  SYMBOL: '$LoS',
   DECIMALS: 0,               // whole shillings in-game; contract uses 18
   BOSS_BOUNTY_BASE: 3,       // per contributor, scales with boss tier
   BOSS_JACKPOT_CHANCE: 1 / 50,
@@ -91,7 +91,7 @@ export const ENERGY = { MAX: 100, DRAIN_PER_TILE: 0.9, REGEN_BASE: 0.35, REGEN_P
 export const PRAYER_DRAIN_S = 1 / 6;
 
 // ---- Ground items (Curse-of-Aros style timers) ------------------------------
-export const GROUND = { OWNER_MS: 30000, SHARED_MS: 30000 }; // then despawn
+export const GROUND = { OWNER_MS: 60000, SHARED_MS: 1740000 }; // owner-only 1 min, then anyone; total 30 min before despawn
 
 // ---- Wilderness / PvP -------------------------------------------------------
 export const WILDERNESS_Y = 96 * WORLD.SCALE;  // overworld y < this = Wild Lands (PvP on)

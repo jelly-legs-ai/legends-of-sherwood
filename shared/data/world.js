@@ -266,7 +266,7 @@ export const DUNGEON_MAP = { size: 48 };
 export const EVENTS = [
   { id: 'convoy', name: "The Sheriff's Convoy", desc: 'A tax convoy rolls north! Raid the strongbox on the North Road.', x: 318, y: 240, everyMin: 22, durMin: 6 },
   { id: 'golden_stag', name: 'The Golden Stag', desc: 'A golden stag has been sighted — first hunters to fell it share its blessing.', x: 220, y: 290, everyMin: 31, durMin: 8 },
-  { id: 'archery_contest', name: 'Nottingham Archery Contest', desc: 'Hit the butts! Most hits before the horn wins $Shillings.', x: 348, y: 336, everyMin: 45, durMin: 5 },
+  { id: 'archery_contest', name: 'Nottingham Archery Contest', desc: 'Hit the butts! Most hits before the horn wins $LoS.', x: 348, y: 336, everyMin: 45, durMin: 5 },
 ];
 
 // ---------------------------------------------------------------------------

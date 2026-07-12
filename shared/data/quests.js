@@ -29,7 +29,7 @@ export const QUESTS = {
       { type: 'talk', npc: 'robin_hood', hint: 'Robin: "Report back to me — you\'ve the makings of a Merry One."' },
     ],
     rewards: { shillings: 5, coins: 200, items: { outlaw_tunic: 1, peasant_trousers: 1, leather_boots: 1 }, xp: { constitution: 200 } },
-    outro: 'Robin claps your shoulder. "Welcome to the Merry Men. The forest is yours now — and so is its work. Five true $Shillings, as promised."',
+    outro: 'Robin claps your shoulder. "Welcome to the Merry Men. The forest is yours now — and so is its work. Five true $LoS, as promised."',
   },
 
   marians_message: {
@@ -52,7 +52,7 @@ export const QUESTS = {
       { type: 'talk', npc: 'much_the_miller', hint: 'Bring Much the good news.' },
     ],
     rewards: { coins: 120, shillings: 1, xp: { farming: 350, cooking: 350 } },
-    outro: '"The ovens sing again! Take these shillings — honest pay for honest bread."',
+    outro: '"The ovens sing again! Take these $LoS — honest pay for honest bread."',
   },
 
   wolves_at_the_door: {

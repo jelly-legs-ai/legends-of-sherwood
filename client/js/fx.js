@@ -32,14 +32,18 @@ export class Fx {
         break;
       }
       case FX.LEVELUP: this.burst(msg, entities, '#ffd75e', 26, 3); this.burst(msg, entities, '#fff3b0', 14, 2); break;
-      case FX.SHILLING: this.burst(msg, entities, '#ffd75e', 18, 2.4); this.text(msg, entities, '✦ $SHL', '#ffd75e'); break;
+      case FX.SHILLING: this.burst(msg, entities, '#ffd75e', 18, 2.4); this.text(msg, entities, '✦ $LoS', '#ffd75e'); break;
       case FX.HEAL: this.burst(msg, entities, '#7fd05f', 10, 1.6); break;
       case FX.TELEPORT: {
-        // arcane swirl pinned to the SPOT (not the entity — it just teleported
-        // away), plus rising sparks
-        this.markers.push({ x: msg.x, y: msg.y, spec: 'twisted_6', t0: now, dur: 850, size: 128, dy: -18 });
-        this.markers.push({ x: msg.x, y: msg.y, spec: 'cosmic:0', t0: now, dur: 700, size: 64, dy: -14 });
-        this.burst(msg, entities, '#c77ce7', 18, 2.6);
+        // A slow arcane channel: a gentle cosmic bloom over the caster plus
+        // slowly-rising violet motes. No twisted-cataclysm swirl. Long/slow so
+        // it reads across the 6-second cast.
+        const dur = msg.channel ? 6000 : 1400;
+        this.markers.push({ x: msg.x, y: msg.y, spec: 'cosmic:1', t0: now, dur, size: 74, dy: -22, slow: true });
+        for (let i = 0; i < 14; i++) {
+          const a = Math.random() * Math.PI * 2, r = 0.3 + Math.random() * 0.5;
+          this.particles.push({ x: msg.x + Math.cos(a) * r, y: msg.y - 0.4, vx: Math.cos(a) * 0.25, vy: -0.5 - Math.random() * 0.6, t0: now + i * 60, dur: 900 + Math.random() * 500, color: i % 2 ? '#c77ce7' : '#9fd8ef', size: 2 + Math.random() * 2 });
+        }
         break;
       }
       case FX.SPLASH: this.burst(msg, entities, '#9ad2e8', 6, 1.4); break;
@@ -173,9 +177,15 @@ export class Fx {
         if (e) { wx = e.rx; wy = e.ry; }
         else if (wx === undefined) continue;      // entity gone, no fallback spot
       }
-      const t = (now - p.t0) / p.dur;
+      const el = now - p.t0;
+      // slow channels (teleport) loop the sheet gently and fade in/out at the ends
+      const t = p.slow ? (el % 900) / 900 : el / p.dur;
+      let a = 1;
+      if (p.slow) { const f = el / p.dur; a = Math.min(1, f * 6) * Math.min(1, (1 - f) * 6); }
       const [sx, sy] = R.screenOf(0, wx, wy);
+      ctx.globalAlpha = a;
       drawFxSprite(ctx, p.spec, t, sx, sy + (p.dy || 0), p.size || 54);
+      ctx.globalAlpha = 1;
     }
     // hit splats (drawn near entity if still present)
     this.splats = this.splats.filter(p => now - p.t0 < p.dur);

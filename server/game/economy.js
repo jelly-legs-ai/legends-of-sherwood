@@ -1,4 +1,4 @@
-// $Shilling ledger (custodial, double-entry with audit log) + Grand Exchange.
+// $LoS ledger (custodial, double-entry with audit log) + Grand Exchange.
 // The ledger mirrors what contracts/Shilling.sol would do on-chain; a bridge
 // would replay `log` entries as mint/burn/transfer calls.
 
@@ -74,10 +74,10 @@ export class GrandExchange {
       if (p.countItem(itemId) < qty) return this.err(p, "You don't have those.");
       p.removeItem(itemId, qty);
       // No upfront fee — the sink is taken from proceeds at match time so a
-      // penniless player can always sell loot for their first $SHL.
+      // penniless player can always sell loot for their first $LoS.
     } else {
       const cost = qty * price;
-      if (L.balance(p.name) < cost) return this.err(p, 'Not enough $SHL.');
+      if (L.balance(p.name) < cost) return this.err(p, 'Not enough $LoS.');
       L.burn(p.name, cost, 'ge:escrow'); // escrowed (re-minted on cancel/fill)
     }
     const offer = { id: this.nextOffer++, player: p.name, type, item: itemId, qty, left: qty, price, filled: 0, escrow: type === 'buy' ? qty * price : 0 };
@@ -112,7 +112,7 @@ export class GrandExchange {
       if (buy.left === 0 && buy.escrow > 0) { this.world.ledger.mint(buy.player, buy.escrow, 'ge:refund'); buy.escrow = 0; }
       for (const nm of [buy.player, sell.player]) {
         const pl = this.world.players.get(nm);
-        if (pl) { this.world.send(pl, { t: MSG.MSGBOX, kind: 'ge', m: `GE: ${n} × ${ITEMS[offer.item].name} @ ${price} $SHL` }); this.sync(pl); }
+        if (pl) { this.world.send(pl, { t: MSG.MSGBOX, kind: 'ge', m: `GE: ${n} × ${ITEMS[offer.item].name} @ ${price} $LoS` }); this.sync(pl); }
       }
       if (other.left === 0 && other.escrow <= 0) this.offers.delete(other.id);
     }

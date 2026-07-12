@@ -142,13 +142,13 @@ export class World {
         this.send(killer, { t: MSG.MSGBOX, kind: 'loot', m: `${Math.ceil(qty * scale)} coins` });
       } else this.dropItem(mob.plane, mob.x, mob.y, item, qty, killer.id);
     }
-    // The very rare $Shilling drop — scaled by mob level, zone and mob multiplier
+    // The very rare $LoS drop — scaled by mob level, zone and mob multiplier
     const wild = mob.plane === PLANE.OVERWORLD && mob.y < WILDERNESS_Y ? SHILLING.WILDERNESS_BONUS : 1;
     const p = SHILLING.MOB_DROP_CHANCE_BASE * (1 + mob.lvl / 12) * (def.shil || 1) * wild;
     if (Math.random() < p) {
       const amt = 1 + (Math.random() * (1 + mob.lvl / 25) | 0);
       this.dropShillings(mob.plane, mob.x, mob.y, amt, killer.id);
-      this.announce(`✦ ${killer.name} struck lucky — a $Shilling drop from ${def.name}!`);
+      this.announce(`✦ ${killer.name} struck lucky — a $LoS drop from ${def.name}!`);
     }
     // Pet drops: [superRare, ultraRare] pool per mob; bosses roll far better odds.
     const petPool = PET_DROPS[mob.type];
@@ -181,7 +181,7 @@ export class World {
       let amt = SHILLING.BOSS_BOUNTY_BASE * (def.tier || 1);
       if (Math.random() < SHILLING.BOSS_JACKPOT_CHANCE) {
         amt += SHILLING.BOSS_JACKPOT;
-        this.announce(`✦✦ JACKPOT! ${pl.name} claims a bounty of ${amt} $SHL from ${def.name}!`);
+        this.announce(`✦✦ JACKPOT! ${pl.name} claims a bounty of ${amt} $LoS from ${def.name}!`);
       }
       this.earn(pl, amt, `boss:${def.id}`);
     }
@@ -427,6 +427,27 @@ export class World {
     return s;
   }
   tickPlayer(p, now, dt) {
+    // Teleport channel: a 6s focus. Movement or damage since the channel began
+    // breaks it; otherwise the world folds when the timer elapses.
+    if (p.teleporting) {
+      const tp = p.teleporting;
+      const channelStart = tp.until - 6000;
+      if ((p.vel && now - p.velT < 400) || (p.path && p.path.length) || (p.lastCombat || 0) > channelStart) {
+        p.teleporting = null;
+        this.send(p, { t: MSG.MSGBOX, m: 'Your focus breaks and the teleport fizzles.' });
+      } else if (now >= tp.until) {
+        const a = ANCHORS[tp.to];
+        p.plane = PLANE.OVERWORLD; p.x = a.x + 0.5; p.y = a.y + 0.5; p.path = null; p.target = null;
+        this.gridMove(p);
+        p.addXp('magic', tp.xp);
+        this.fx(p.plane, p.x, p.y, 14 /* FX.TELEPORT */, { id: p.id });
+        this.send(p, { t: MSG.RESPAWN, x: p.x, y: p.y });
+        p.questProgress && p.questProgress('cast', tp.spellId);
+        p.teleporting = null;
+      } else {
+        return; // stay put while channelling
+      }
+    }
     tickCombat(this, p, now);
     // movement: follow path or velocity
     let moved = false;

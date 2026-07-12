@@ -1,6 +1,6 @@
 // Bestiary. Humanoids render via LPC composites (vis), beasts via the
 // procedural critter renderer (critter). Drop tables: [itemId, qty|[min,max], chance].
-// Every mob also rolls the global very-rare $Shilling drop (scaled by level and
+// Every mob also rolls the global very-rare $LoS drop (scaled by level and
 // SHILLING.MOB_DROP_CHANCE_BASE); shil field multiplies that rate.
 
 export const MOBS = {};

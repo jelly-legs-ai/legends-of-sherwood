@@ -306,7 +306,7 @@ export const FAMILIARS = {
 export const DUNGEON = {
   MAX_FLOOR: 25,
   floorReq: f => Math.max(1, (f - 1) * 4),           // dungeoneering level required
-  tokenReward: f => 2 + Math.floor(f * 1.5),          // $Shillings per floor clear
+  tokenReward: f => 2 + Math.floor(f * 1.5),          // $LoS per floor clear
   xpReward: f => 150 + f * 90,
 };
 

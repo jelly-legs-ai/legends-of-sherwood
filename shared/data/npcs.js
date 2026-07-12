@@ -53,7 +53,7 @@ npc('peasant', {
 npc('alan_a_dale', {
   name: 'Alan-a-Dale', x: 321, y: 342, quest: 'marians_message_target',
   vis: { skin: 'light', hair: ['curly_long', 'ginger'], torso: ['longsleeve', 'red'], legs: ['pants', 'charcoal'] },
-  lines: ['A song for a shilling? Or news for free — the Colosseum pays fighters in $Shillings, real ones.'],
+  lines: ['A song for a $LoS? Or news for free — the Colosseum pays fighters in $LoS, real ones.'],
 });
 npc('nottingham_banker', {
   name: 'Banker Reginald', x: 321, y: 318, banker: true,
@@ -63,12 +63,12 @@ npc('nottingham_banker', {
 npc('ge_clerk', {
   name: 'Exchange Clerk Hild', x: 340, y: 318, geClerk: true,
   vis: { skin: 'light', hair: ['bangs', 'blonde'], torso: ['longsleeve', 'white'], legs: ['pants', 'black'] },
-  lines: ['Buy low, sell high — all offers settled in $Shillings, the only honest coin left in England.'],
+  lines: ['Buy low, sell high — all offers settled in $LoS, the only honest coin left in England.'],
 });
 npc('colosseum_marshal', {
   name: 'Marshal Brand', x: 323, y: 336, marshal: true,
   vis: { skin: 'brown', hair: ['buzzcut', 'black'], torso: ['plate', 'iron'], legs: ['plate', 'iron'], weapon: ['spear', 'steel'] },
-  lines: ['Care to wager your $Shillings on your own blood? Challenge another warrior, agree a stake, and the pot is winner-takes-all. I keep five parts in a hundred for the sand.'],
+  lines: ['Care to wager your $LoS on your own blood? Challenge another warrior, agree a stake, and the pot is winner-takes-all. I keep five parts in a hundred for the sand.'],
 });
 npc('fletcher_ansel', {
   name: 'Fletcher Ansel', x: 336, y: 334, tutor: 'fletching',
@@ -129,7 +129,7 @@ npc('elder_druid', {
 npc('warden_askel', {
   name: 'Dungeon Warden Askel', x: 360, y: 290, quest: 'depths_of_the_abyss', tutor: 'dungeoneering',
   vis: { skin: 'brown', hair: ['buzzcut', 'black'], torso: ['chainmail', 'iron'], legs: ['plate', 'iron'], weapon: ['sword', 'steel'] },
-  lines: ['The Abyssal Depths go down further than any sane man has mapped. Clear a floor, earn true $Shillings — the deeper, the richer.'],
+  lines: ['The Abyssal Depths go down further than any sane man has mapped. Clear a floor, earn true $LoS — the deeper, the richer.'],
 });
 npc('ranger_hodd', {
   name: 'Ranger Hodd', x: 284, y: 314, tutor: 'hunter',
@@ -171,7 +171,7 @@ npc('elder_sigrid', {
 npc('frost_banker', {
   name: 'Banker Njall', x: 295, y: 125, banker: true,
   vis: { skin: 'light', hair: ['plain', 'blonde'], beard: 'blonde', torso: ['longsleeve', 'charcoal'], legs: ['pants', 'black'] },
-  lines: ['Even shillings shiver up here.'],
+  lines: ['Even $LoS shiver up here.'],
 });
 npc('trader_ulf', {
   name: 'Trader Ulf', x: 305, y: 127, wander: 3, pickpocket: { lvl: 55, xp: 150, loot: [['coins', [30, 90]], ['fox_fur', 1, 0.2]] },

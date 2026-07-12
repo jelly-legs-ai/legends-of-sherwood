@@ -17,7 +17,7 @@ export const COMMANDS = {
   tp: { args: ['number', 'number', 'number'], desc: 'tp <x> <y> [plane] — teleport to coordinates' },
   xp: { args: ['skill', 'number'], desc: 'xp <skill> <amount> — grant experience' },
   lvl: { args: ['skill', 'number'], desc: 'lvl <skill> <level> — set a skill level' },
-  shl: { args: ['number'], desc: 'shl <amount> — mint $Shillings' },
+  shl: { args: ['number'], desc: 'shl <amount> — mint $LoS' },
   heal: { args: [], desc: 'heal — restore hp/prayer/energy' },
   killtarget: { args: [], desc: 'killtarget — slay your current target' },
   items: { args: ['text'], desc: 'items <filter> — list matching item ids', local: true },

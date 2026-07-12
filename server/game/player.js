@@ -73,14 +73,14 @@ export class Player {
       this.world.broadcastNear(this.plane, this.x, this.y, { t: MSG.MSGBOX, kind: 'level', m: `${this.name} reached ${skill} level ${after}!` });
       if (skill === 'constitution') this.hp = Math.min(this.maxHp, this.hp + (after - before));
       if (skill === 'prayer') this.prayerPts = Math.min(after, this.prayerPts + 1);
-      // $Shilling milestones — 5,10,20,25,50,75,99, gradually increasing; 99 pays big
+      // $LoS milestones — 5,10,20,25,50,75,99, gradually increasing; 99 pays big
       const paid = this.milestonesPaid[skill] || (this.milestonesPaid[skill] = []);
       for (const ml of MILESTONE_LEVELS) {
         if (after >= ml && !paid.includes(ml)) {
           paid.push(ml);
           this.world.earn(this, MILESTONE_SHILLINGS[ml], `milestone:${skill}:${ml}`);
-          this.world.send(this, { t: MSG.MSGBOX, kind: 'milestone', m: `Milestone! ${skill} ${ml} — ${MILESTONE_SHILLINGS[ml]} $SHL earned.` });
-          if (ml === 99) this.world.announce(`♛ ${this.name} has achieved level 99 ${skill} — a true Legend of Sherwood! (+${MILESTONE_SHILLINGS[99]} $SHL)`);
+          this.world.send(this, { t: MSG.MSGBOX, kind: 'milestone', m: `Milestone! ${skill} ${ml} — ${MILESTONE_SHILLINGS[ml]} $LoS earned.` });
+          if (ml === 99) this.world.announce(`♛ ${this.name} has achieved level 99 ${skill} — a true Legend of Sherwood! (+${MILESTONE_SHILLINGS[99]} $LoS)`);
         }
       }
     }

@@ -132,13 +132,12 @@ export function castSpellAt(world, p, spellId, target) {
   p.anim = ITEMS[p.equip.weapon?.id]?.kind === 'staff' ? 'thrust' : 'spellcast';
   p.animSeq++; p.lastAttack = now;
   if (s.teleport) {
-    const a = ANCHORS[s.teleport];
-    world.fx(p.plane, p.x, p.y, FX.TELEPORT, { id: p.id });
-    p.plane = PLANE.OVERWORLD; p.x = a.x + 0.5; p.y = a.y + 0.5; p.path = null; p.target = null;
-    world.gridMove(p);
-    p.addXp('magic', s.xp);
-    world.fx(p.plane, p.x, p.y, FX.TELEPORT, { id: p.id });
-    p.questProgress('cast', spellId);
+    // 6-second channel: the arcane focus builds, then the world folds. Moving or
+    // taking damage during the channel breaks it (handled in world.tickPlayer).
+    world.fx(p.plane, p.x, p.y, FX.TELEPORT, { id: p.id, channel: 1 });
+    world.send(p, { t: MSG.MSGBOX, m: `Channelling ${s.name}… hold still for 6 seconds.` });
+    p.teleporting = { until: now + 6000, to: s.teleport, spellId, xp: s.xp, x: p.x, y: p.y };
+    p.path = null; p.target = null;
     return true;
   }
   if (s.heal) {
@@ -255,7 +254,7 @@ export function applyPlayerDamage(world, p, dmg, source) {
   if (inArena) { world.duelDeath && world.duelDeath(p); return; }
   if (inWild && killer) {
     // killer takes the victim's shilling pouch + their five most valuable carried items
-    if (p.pouch > 0) { world.earn(killer, p.pouch, `pvp:${p.name}`); world.send(killer, { t: MSG.MSGBOX, m: `You loot ${p.pouch} $SHL from ${p.name}'s pouch!` }); p.pouch = 0; }
+    if (p.pouch > 0) { world.earn(killer, p.pouch, `pvp:${p.name}`); world.send(killer, { t: MSG.MSGBOX, m: `You loot ${p.pouch} $LoS from ${p.name}'s pouch!` }); p.pouch = 0; }
     const carried = p.inv.map((s, i) => s && { ...s, i, v: (ITEMS[s.id]?.value || 0) * s.qty }).filter(Boolean).sort((a, b) => b.v - a.v);
     for (const s of carried.slice(0, 5)) { world.dropItem(p.plane, p.x, p.y, s.id, s.qty, killer.id); p.inv[s.i] = null; }
     p.invDirty();

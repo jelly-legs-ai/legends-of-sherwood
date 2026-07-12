@@ -1,4 +1,4 @@
-// PDA Vault: custodial gateway between the in-game $Shilling ledger and the
+// PDA Vault: custodial gateway between the in-game $LoS ledger and the
 // Robinhood-chain payout queue. Every withdrawal passes the security screen —
 // large or rapid-fire withdrawals and any anti-cheat flag freeze the
 // transaction AND temp-ban the account pending review, with admins notified
@@ -80,14 +80,14 @@ export class Vault {
     amount = Math.floor(amount);
     address = String(address || '').slice(0, 64);
     const bal = this.world.ledger.balance(p.name);
-    if (!(amount >= VAULT_RULES.MIN)) return this.world.send(p, { t: MSG.MSGBOX, m: `Withdrawals start at ${VAULT_RULES.MIN} $SHL.` });
-    if (amount > bal) return this.world.send(p, { t: MSG.MSGBOX, m: 'You do not hold that many $Shillings.' });
+    if (!(amount >= VAULT_RULES.MIN)) return this.world.send(p, { t: MSG.MSGBOX, m: `Withdrawals start at ${VAULT_RULES.MIN} $LoS.` });
+    if (amount > bal) return this.world.send(p, { t: MSG.MSGBOX, m: 'You do not hold that many $LoS.' });
     if (!/^rh1[a-zA-Z0-9]{8,}$/.test(address)) return this.world.send(p, { t: MSG.MSGBOX, m: 'That is not a valid Robinhood-chain address (rh1…).' });
 
     const now = Date.now();
     const recent = this.requests.filter(r => r.name === p.name && now - r.t < VAULT_RULES.FREQ_WINDOW_MS);
     const reasons = [];
-    if (amount >= VAULT_RULES.LARGE) reasons.push(`large withdrawal (${amount} $SHL)`);
+    if (amount >= VAULT_RULES.LARGE) reasons.push(`large withdrawal (${amount} $LoS)`);
     if (recent.length + 1 > VAULT_RULES.FREQ_N) reasons.push(`${recent.length + 1} withdrawals inside an hour`);
     if ((this.flags[p.name] || []).length) reasons.push('outstanding anti-cheat flags');
 
@@ -97,13 +97,13 @@ export class Vault {
     if (req.status === 'frozen') {
       // funds stay on the ledger; the account is iced while admins investigate
       this.tempBan(p.name, reasons.join('; '));
-      this.alert('vault', `FROZEN #${req.id}: ${p.name} → ${amount} $SHL to ${address} (${reasons.join('; ')})`);
+      this.alert('vault', `FROZEN #${req.id}: ${p.name} → ${amount} $LoS to ${address} (${reasons.join('; ')})`);
       this.world.announce(`🛡 The Vault Wardens froze a suspicious transaction — the realm's treasury stands protected.`);
     } else {
       this.world.ledger.burn(p.name, amount, `vault:withdraw#${req.id}:${address}`);
       this.world.send(p, { t: MSG.TOKEN, bal: this.world.ledger.balance(p.name), delta: -amount, reason: 'withdrawn to chain' });
-      this.world.send(p, { t: MSG.MSGBOX, kind: 'milestone', m: `✦ ${amount} $SHL queued for the Robinhood chain (${address.slice(0, 12)}…).` });
-      this.alert('vault', `released #${req.id}: ${p.name} → ${amount} $SHL to ${address}`);
+      this.world.send(p, { t: MSG.MSGBOX, kind: 'milestone', m: `✦ ${amount} $LoS queued for the Robinhood chain (${address.slice(0, 12)}…).` });
+      this.alert('vault', `released #${req.id}: ${p.name} → ${amount} $LoS to ${address}`);
     }
     this.save();
     return req;
@@ -116,7 +116,7 @@ export class Vault {
       if (!this.world.ledger.burn(req.name, req.amount, `vault:withdraw#${req.id}:${req.address}`)) return false;
       req.status = 'released';
       this.unban(req.name);
-      this.alert('vault', `admin APPROVED #${req.id}: ${req.name} → ${req.amount} $SHL`);
+      this.alert('vault', `admin APPROVED #${req.id}: ${req.name} → ${req.amount} $LoS`);
     } else {
       req.status = 'denied';
       this.alert('vault', `admin DENIED #${req.id}: ${req.name} (funds returned, ban stands)`);

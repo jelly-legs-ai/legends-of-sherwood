@@ -351,7 +351,7 @@ function doNode(world, p, type, node, x, y, msg) {
       // extra rolls
       if (node.gem && Math.random() < node.gem) { p.addItem(['sapphire', 'emerald', 'ruby', 'diamond'][Math.random() * 4 | 0], 1); world.send(p, { t: MSG.MSGBOX, m: 'You uncover a gem!' }); }
       if (node.rare && Math.random() < node.rare[1]) { p.addItem(node.rare[0], 1); world.announce(`⚔ Unbelievable! ${p.name} fished up ${ITEMS[node.rare[0]].name}!`); }
-      if (node.skill === 'fishing' && Math.random() < 1 / 4000) { world.dropShillings(p.plane, p.x, p.y, 1, p.id); world.send(p, { t: MSG.MSGBOX, m: 'Something glints in the net — a $Shilling!' }); }
+      if (node.skill === 'fishing' && Math.random() < 1 / 4000) { world.dropShillings(p.plane, p.x, p.y, 1, p.id); world.send(p, { t: MSG.MSGBOX, m: 'Something glints in the net — a $LoS!' }); }
       // deplete?
       const stay = node.multi && Math.random() < node.multi;
       if (!stay && node.respawnMs > 1) { world.deplete(x, y, node.respawnMs); p.action = null; p.anim = 'idle'; }
@@ -484,7 +484,7 @@ function openEventBox(world, p, id) {
   const amt = SHILLING.EVENT_PAYOUT_BASE + (Math.random() * 4 | 0);
   world.earn(p, amt, 'event:convoy');
   world.fx(p.plane, e.x, e.y, FX.SHILLING, {});
-  world.send(p, { t: MSG.MSGBOX, m: `You pry open the strongbox — ${amt} $SHL!` });
+  world.send(p, { t: MSG.MSGBOX, m: `You pry open the strongbox — ${amt} $LoS!` });
 }
 
 // Mount up / dismount ('M'). Combat within the last 5s keeps you grounded.
@@ -977,10 +977,10 @@ function onDuel(world, p, msg) {
     const target = world.players.get(String(msg.challenge));
     const stake = Math.max(COLOSSEUM.MIN_WAGER, Math.min(COLOSSEUM.MAX_WAGER, msg.stake | 0));
     if (!target || target === p) return world.send(p, { t: MSG.MSGBOX, m: 'No such warrior online.' });
-    if (world.ledger.balance(p.name) < stake) return world.send(p, { t: MSG.MSGBOX, m: `You need ${stake} $SHL to stake.` });
+    if (world.ledger.balance(p.name) < stake) return world.send(p, { t: MSG.MSGBOX, m: `You need ${stake} $LoS to stake.` });
     target.duelInvite = { from: p.name, stake, at: Date.now() };
     world.send(target, { t: 'duelInvite', from: p.name, stake });
-    world.send(p, { t: MSG.MSGBOX, m: `Challenge sent to ${target.name} for ${stake} $SHL.` });
+    world.send(p, { t: MSG.MSGBOX, m: `Challenge sent to ${target.name} for ${stake} $LoS.` });
   } else if (msg.accept) {
     const inv = p.duelInvite;
     if (!inv || inv.from !== msg.accept || Date.now() - inv.at > 60000) return;
@@ -1004,7 +1004,7 @@ function onDuel(world, p, msg) {
     }
     p.duelInvite = null;
     setTimeout(() => { duel.started = true; for (const nm of [duel.a, duel.b]) { const pl = world.players.get(nm); if (pl) world.send(pl, { t: MSG.MSGBOX, m: 'FIGHT!' }); } }, 3000);
-    world.announce(`⚔ Colosseum: ${a.name} vs ${p.name} — ${stake} $SHL each. Winner takes the pot!`);
+    world.announce(`⚔ Colosseum: ${a.name} vs ${p.name} — ${stake} $LoS each. Winner takes the pot!`);
   } else if (msg.decline) p.duelInvite = null;
 }
 function duelEnd(world, loser, how) {
@@ -1018,7 +1018,7 @@ function duelEnd(world, loser, how) {
   world.ledger.mint(winnerName, pot - rake, `duel:won:${loser.name}`);
   world.ledger.log.push([Date.now(), 'burn', 'arena', rake, 'duel:rake']);
   world.ledger.burned += rake;
-  world.announce(`⚔ ${winnerName} defeats ${loser.name} in the Colosseum and claims ${pot - rake} $SHL!`);
+  world.announce(`⚔ ${winnerName} defeats ${loser.name} in the Colosseum and claims ${pot - rake} $LoS!`);
   for (const nm of [duel.a, duel.b]) {
     const pl = world.players.get(nm);
     if (!pl) continue;
@@ -1067,7 +1067,7 @@ function dungeonAction(world, p, x, y, msg) {
     p.addXp('dungeoneering', DUNGEON.xpReward(floor));
     p.dungeonBest = Math.max(p.dungeonBest, floor);
     p.questProgress('dungeon', floor);
-    world.announce(`⚒ ${p.name} cleared Abyssal Depths floor ${floor} (+${tokens} $SHL)!`);
+    world.announce(`⚒ ${p.name} cleared Abyssal Depths floor ${floor} (+${tokens} $LoS)!`);
     world.dungeonPop.delete(floor); // repopulate for the next runner
     for (const e of [...world.entities.values()]) if (e.kind === 'mob' && e.plane === p.plane) world.removeEntity(e);
     exitDungeon(world, p);

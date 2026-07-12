@@ -66,7 +66,7 @@ function renderDash() {
       <div class="card"><b>${s ? s.mobs : '…'}</b><span>mobs</span></div>
       <div class="card"><b>${s ? s.entities : '…'}</b><span>entities</span></div>
       <div class="card"><b>${s ? s.chests + '/' + s.geodes : '…'}</b><span>chests / geodes</span></div>
-      <div class="card"><b style="color:var(--gold)">${s ? s.supply : '…'}</b><span>$SHL supply</span></div>
+      <div class="card"><b style="color:var(--gold)">${s ? s.supply : '…'}</b><span>$LoS supply</span></div>
       <div class="card"><b>${s ? Object.keys(s.bans).length : '…'}</b><span>active bans</span></div>
       <div class="card"><b>${s ? Math.floor(s.up / 60) + 'm' : '…'}</b><span>uptime</span></div>
     </div>
@@ -105,7 +105,7 @@ function renderTerm() {
 
 function renderEco() {
   const l = state.ledger;
-  main.innerHTML = `<h2>$Shilling economy</h2>
+  main.innerHTML = `<h2>$LoS economy</h2>
     <div class="cards">
       <div class="card"><b class="mint">${l ? l.log.filter(e => e[1] === 'mint').length : '…'}</b><span>mints (recent)</span></div>
       <div class="card"><b class="burn">${l ? l.log.filter(e => e[1] === 'burn').length : '…'}</b><span>burns (recent)</span></div>
@@ -115,7 +115,7 @@ function renderEco() {
     <table><tr><th>time</th><th>op</th><th>who</th><th>amt</th><th>reason</th></tr>
     ${l ? l.log.map(e => `<tr><td>${fmtT(e[0])}</td><td class="${e[1]}">${e[1]}</td><td>${e[2]}</td><td>${e[3]}</td><td>${e[4] || ''}</td></tr>`).join('') : ''}</table>
     <h2 style="margin-top:14px">Balances</h2>
-    <table><tr><th>player</th><th>$SHL</th></tr>
+    <table><tr><th>player</th><th>$LoS</th></tr>
     ${l ? Object.entries(l.balances).sort((a, b) => b[1] - a[1]).map(([n, v]) => `<tr><td>${n}</td><td>${v}</td></tr>`).join('') : ''}</table>`;
   if (!l) send({ t: 'ledger', n: 150 });
 }
@@ -123,7 +123,7 @@ function renderEco() {
 function renderVault() {
   const v = state.vault;
   main.innerHTML = `<h2>PDA Vault — Robinhood-chain withdrawals</h2>
-    <p style="color:var(--dim);margin-bottom:12px">Flags: single withdrawal ≥ 500 $SHL · &gt;3 withdrawals per hour · any anti-cheat flag. Frozen transactions keep funds on the ledger and temp-ban the account until reviewed here.</p>
+    <p style="color:var(--dim);margin-bottom:12px">Flags: single withdrawal ≥ 500 $LoS · &gt;3 withdrawals per hour · any anti-cheat flag. Frozen transactions keep funds on the ledger and temp-ban the account until reviewed here.</p>
     <table><tr><th>#</th><th>time</th><th>player</th><th>amount</th><th>address</th><th>status</th><th>flags</th><th></th></tr>
     ${v ? v.requests.map(r => `<tr><td>${r.id}</td><td>${fmtT(r.t)}</td><td>${r.name}</td><td>${r.amount}</td><td>${r.address.slice(0, 18)}…</td>
       <td class="${r.status}">${r.status.toUpperCase()}</td><td>${(r.reasons || []).join('; ')}</td>

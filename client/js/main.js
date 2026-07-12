@@ -155,9 +155,9 @@ G.net.on('xp', (m) => {
 G.net.on(MSG.TOKEN, (m) => {
   if (m.bal !== undefined) G.bal = m.bal;
   if (m.delta > 0) {
-    UI.toast(`+${m.delta} $SHL ${m.risk ? '(in pouch — bank it!)' : ''} — ${m.reason || ''}`, 'milestone');
-    UI.chatLine(`<span class="tok">+${m.delta} $SHL (${m.reason || 'earned'})</span>`);
-    if (G.me) fx.floatText(G.me.rx, G.me.ry, `+${m.delta} $SHL`, '#ffd75e', true);
+    UI.toast(`+${m.delta} $LoS ${m.risk ? '(in pouch — bank it!)' : ''} — ${m.reason || ''}`, 'milestone');
+    UI.chatLine(`<span class="tok">+${m.delta} $LoS (${m.reason || 'earned'})</span>`);
+    if (G.me) fx.floatText(G.me.rx, G.me.ry, `+${m.delta} $LoS`, '#ffd75e', true);
   }
   UI.updateOrbs();
 });
@@ -187,7 +187,7 @@ G.net.on('quest', (m) => {
 G.net.on('questStart', (m) => { G.quests[m.id] = { step: 0, n: 0 }; UI.toast(`📜 Quest started: ${m.name}`); UI.chatLine(`<span class="sys">${m.intro}</span>`); if (m.hint) UI.toast('📜 ' + m.hint); UI.renderPanel(); });
 G.net.on('questDone', (m) => { G.quests[m.id] = { ...(G.quests[m.id] || {}), done: true }; UI.toast(`📜 Quest complete: ${m.name}!`, 'milestone'); UI.chatLine(`<span class="tok">${m.outro}</span>`); if (G.tab === 'quests') UI.renderPanel(); });
 G.net.on('duelInvite', (m) => UI.duelInvite(m));
-G.net.on('duelStart', (m) => UI.toast(`⚔ Duel vs ${m.vs} — ${m.stake} $SHL staked. Fight begins in 3…`));
+G.net.on('duelStart', (m) => UI.toast(`⚔ Duel vs ${m.vs} — ${m.stake} $LoS staked. Fight begins in 3…`));
 G.net.on('ge', (m) => UI.openGE(m));
 G.net.on('cooldown', (m) => { G.cooldowns[m.ability] = m.until; });
 G.net.on('pets', (m) => { G.pets = m.pets || []; G.activePet = m.activePet ?? null; if (G.tab === 'pets') UI.renderPanel(); });
@@ -282,7 +282,7 @@ function clickEntity(ent, e, menu) {
     opts.push(['🖐 Pickpocket', () => send({ t: MSG.ACTION, pickpocket: ent.id })]);
   }
   if (ent.k === 'item') opts.push(['Take ' + (ITEMS[ent.item]?.name || ent.item), () => send({ t: MSG.PICKUP, id: ent.id })]);
-  if (ent.k === 'shil') opts.push(['✦ Take $Shillings', () => send({ t: MSG.PICKUP, id: ent.id })]);
+  if (ent.k === 'shil') opts.push(['✦ Take $LoS', () => send({ t: MSG.PICKUP, id: ent.id })]);
   if (ent.k === 'evbox') opts.push(['Open strongbox', () => send({ t: MSG.ACTION, evbox: ent.id })]);
   if (ent.k === 'chest') opts.push([(ent.locked ? '🔒 Unlock ' : '🧰 Open ') + ent.name, () => send({ t: MSG.ACTION, chest: ent.id })]);
   if (ent.k === 'geode') opts.push([`⛏ Mine ${ent.name}`, () => send({ t: MSG.ACTION, geode: ent.id })]);
@@ -290,7 +290,7 @@ function clickEntity(ent, e, menu) {
     const inWild = G.me && G.self && G.self.plane === 0 && G.self.y < WILDERNESS_Y;
     if (inWild) opts.push(['⚔ Attack ' + ent.name, () => send({ t: MSG.ATTACK, id: ent.id })]);
     opts.push(['🏟 Challenge to duel', () => {
-      const stake = parseInt(prompt(`Stake in $SHL vs ${ent.name}? (you have ${G.bal})`, '10')) || 0;
+      const stake = parseInt(prompt(`Stake in $LoS vs ${ent.name}? (you have ${G.bal})`, '10')) || 0;
       if (stake > 0) send({ t: MSG.DUEL, challenge: ent.name, stake });
     }]);
   }
