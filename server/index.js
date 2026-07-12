@@ -6,10 +6,14 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { World } from './game/world.js';
 import { handleMessage, onDisconnect, installHooks } from './game/handlers.js';
+import { handleAdminMessage } from './game/admin.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
 const PORT = process.env.PORT || 8123;
+// Admin studio auth: explicit key in production, 'dev' under --dev.
+const ADMIN_KEY = process.env.ADMIN_KEY || (process.argv.includes('--dev') ? 'dev' : null);
+const adminOk = (u) => ADMIN_KEY && new URL(u, 'http://x').searchParams.get('key') === ADMIN_KEY;
 const HOST = process.env.HOST || '0.0.0.0'; // bind all interfaces (required on Replit)
 
 const MIME = {
@@ -62,6 +66,15 @@ const server = http.createServer((req, res) => {
     });
     return;
   }
+  // Admin dev-studio (key-gated; the page itself holds no secrets)
+  if (url === '/admin') {
+    if (!adminOk(req.url)) { res.writeHead(403); return res.end('admin key required (?key=…)'); }
+    return fs.readFile(path.join(ROOT, 'client', 'admin.html'), (err, data) => {
+      if (err) { res.writeHead(404); return res.end('nf'); }
+      res.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-cache' });
+      res.end(data);
+    });
+  }
   if (url === '/') url = '/client/index.html';
   if (!/^\/(client|shared)\//.test(url)) url = '/client' + url; // page-relative assets
   const file = path.normalize(path.join(ROOT, url));
@@ -81,8 +94,21 @@ await world.init();          // load durable store (Postgres or hardened files) 
 installHooks(world);
 world.start();
 
-const wss = new WebSocketServer({ server, maxPayload: 16 * 1024 });
-wss.on('connection', (ws) => {
+const wss = new WebSocketServer({ server, maxPayload: 64 * 1024 });
+wss.on('connection', (ws, req) => {
+  // admin studio channel: separate path, key-gated at upgrade time
+  if ((req.url || '').startsWith('/adminws')) {
+    if (!adminOk(req.url)) { ws.close(); return; }
+    world.adminSockets.add(ws);
+    ws.on('message', (buf) => {
+      let msg;
+      try { msg = JSON.parse(buf.toString()); } catch { return; }
+      try { handleAdminMessage(world, ws, msg); } catch (e) { console.error('admin handler:', e); }
+    });
+    ws.on('close', () => world.adminSockets.delete(ws));
+    ws.on('error', () => {});
+    return;
+  }
   ws.rateBucket = 40;
   ws.on('message', (buf) => {
     if (--ws.rateBucket < 0) return;               // flood guard, refilled each tick

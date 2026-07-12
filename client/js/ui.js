@@ -640,9 +640,22 @@ export function openBank(bank) {
   openWin('🏦 Bank of Sherwood', (body) => {
     const info = document.createElement('div');
     info.style.marginBottom = '8px';
-    info.innerHTML = `Click items to withdraw. Your pack: click items in the side panel to deposit. <button id="depall">Deposit all</button>`;
+    info.innerHTML = `Click items to withdraw. Your pack: click items in the side panel to deposit. <button id="depall">Deposit all</button>
+      <div class="craft-cat" style="margin-top:8px">$Shilling vault — balance ${fmt(G.bal || 0)}</div>
+      <div style="display:flex;gap:5px;align-items:center;font-size:12px">
+        <input id="wd-amt" type="number" min="5" placeholder="amount" style="width:76px">
+        <input id="wd-addr" placeholder="rh1… chain address" style="flex:1">
+        <button id="wd-go">Withdraw ⛓</button>
+      </div>
+      <div style="font-size:10.5px;color:#8d7a5b;margin-top:3px">Withdrawals to the Robinhood chain are screened by the Vault Wardens — large or rapid transactions are held for review.</div>`;
     body.appendChild(info);
     info.querySelector('#depall').onclick = () => G.net.send({ t: MSG.BANK, depositAll: 1 });
+    info.querySelector('#wd-go').onclick = () => {
+      const amount = parseInt(info.querySelector('#wd-amt').value) || 0;
+      const address = info.querySelector('#wd-addr').value.trim();
+      if (amount > 0 && address) G.net.send({ t: 'withdraw', amount, address });
+      else toast('Enter an amount and your rh1… address.');
+    };
     const grid = document.createElement('div');
     grid.className = 'bank-grid';
     const entries = Object.entries(bank);

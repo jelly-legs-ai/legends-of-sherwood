@@ -14,6 +14,8 @@ import { PETS, PET_DROPS, PET_ODDS, PET_POWER, petLevel } from '../../shared/dat
 import { Ledger } from './economy.js';
 import { tickCombat, mobAttack } from './combat.js';
 import { createStore } from './store.js';
+import { Vault } from './vault.js';
+import { loadCustomEvents } from './admin.js';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -49,6 +51,9 @@ export class World {
     this.houseIdx = houseIdx || {};
     this.ledger = new Ledger(this.store);
     this.ledger.load(await this.store.loadLedger());
+    this.vault = new Vault(this, this.dataDir);
+    this.customEvents = loadCustomEvents(this.dataDir);
+    this.adminSockets = new Set();
     this.spawnMobs();
     this.spawnNpcs();
     this.spawnGeodes();
@@ -311,6 +316,11 @@ export class World {
     const s = JSON.stringify({ t: MSG.EVENT, m });
     for (const ws of this.sockets.values()) if (ws.readyState === 1) ws.send(s);
   }
+  adminBroadcast(obj) {
+    const str = JSON.stringify(obj);
+    for (const ws of this.adminSockets || []) { try { if (ws.readyState === 1) ws.send(str); } catch { } }
+  }
+  builtinEvents() { return EVENTS; }
   fx(plane, x, y, fxId, extra = {}) { this.broadcastNear(plane, x, y, { t: MSG.FX, fx: fxId, x, y, ...extra }); }
   // Broadcast a player's mount/aura state (equip changes + mount toggles).
   rideState(p) {
@@ -651,7 +661,7 @@ export class World {
 
   // ---------------- world events ----------------
   tickEvents(now) {
-    for (const ev of EVENTS) {
+    for (const ev of [...EVENTS, ...(this.customEvents || [])]) {
       const st = this.eventState[ev.id] || (this.eventState[ev.id] = { next: now + ev.everyMin * 60000 * (0.3 + Math.random() * 0.5), until: 0 });
       if (!st.active && now >= st.next) {
         st.active = true; st.until = now + ev.durMin * 60000; st.claims = new Map();
@@ -661,6 +671,12 @@ export class World {
           for (let i = 0; i < 4; i++) st.ents.push(this.spawnMob('sheriffs_guard', { x: ev.x, y: ev.y, r: 3, n: 1 }, PLANE.OVERWORLD, 1.5));
           const box = this.addEntity({ kind: 'evbox', ev: 'convoy', plane: PLANE.OVERWORLD, x: ev.x + 0.5, y: ev.y + 0.5, anim: 'idle', animSeq: 0, dir: 2, hp: 1, maxHp: 1 });
           st.box = box;
+        } else if (ev.custom) {
+          st.ents = [];
+          if (ev.mob && ev.n) for (let i = 0; i < ev.n; i++) {
+            const m = this.spawnMob(ev.mob, { x: ev.x, y: ev.y, r: 4, n: 1 }, PLANE.OVERWORLD);
+            m.noRespawn = true; st.ents.push(m);
+          }
         } else if (ev.id === 'golden_stag') {
           const stag = this.spawnMob('golden_stag', { x: ev.x, y: ev.y, r: 8, n: 1 }, PLANE.OVERWORLD);
           stag.noRespawn = true; st.stag = stag;

@@ -57,6 +57,7 @@ export function handleMessage(world, ws, msg) {
     case MSG.EMOTE: p.anim = 'spellcast'; p.animSeq++; return;
     case 'pet': return onPet(world, p, msg);
     case 'mount': return onMount(world, p);
+    case 'withdraw': return world.vault.requestWithdraw(p, msg.amount | 0, msg.address);
     case 'devcmd': return onDevCmd(world, p, msg);
     case 'devgrant': if (process.argv.includes('--dev')) {
       if (msg.item && ITEMS[msg.item]) p.addItem(String(msg.item), Math.max(1, msg.qty | 0));
@@ -102,6 +103,8 @@ export function onDisconnect(world, ws) {
 function onHello(world, ws, msg) {
   const name = String(msg.name || '').trim().slice(0, 16).replace(/[^\w \-]/g, '');
   if (name.length < 2) return ws.send(JSON.stringify({ t: MSG.MSGBOX, m: 'Pick a name (2-16 letters).' }));
+  const ban = world.vault?.isBanned(name);
+  if (ban) return ws.send(JSON.stringify({ t: MSG.MSGBOX, m: `⚠ This account is suspended pending review (${ban.reason}). Try again later.` }));
   const existing = world.players.get(name);
   if (existing) { // reconnect takes over the old session
     const oldWs = world.sockets.get(existing.id);
@@ -501,7 +504,10 @@ function onMount(world, p) {
 
 // Dev chat commands (// in chat). Hard-gated on --dev: inert in production.
 function onDevCmd(world, p, msg) {
-  if (!process.argv.includes('--dev')) return;
+  if (!process.argv.includes('--dev')) {
+    world.vault?.flagCheat(p.name, `devcmd '${String(msg.cmd).slice(0, 24)}' on production`);
+    return;
+  }
   const args = Array.isArray(msg.args) ? msg.args.map(String) : [];
   const say = (m) => world.send(p, { t: MSG.MSGBOX, kind: 'loot', m: `dev: ${m}` });
   const tpTo = (x, y, plane = p.plane) => {

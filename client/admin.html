@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sherwood Admin Studio</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --bg:#0d1117; --panel:#161b22; --line:#30363d; --tx:#c9d1d9; --dim:#8b949e; --gold:#e3b341; --green:#3fb950; --red:#f85149; --blue:#58a6ff; }
+  body { background: var(--bg); color: var(--tx); font: 13px/1.5 Consolas, 'Cascadia Code', monospace; height: 100vh; display: flex; overflow: hidden; }
+  #nav { width: 170px; background: var(--panel); border-right: 1px solid var(--line); padding: 14px 0; flex: none; }
+  #nav h1 { font-size: 13px; color: var(--gold); padding: 0 14px 12px; letter-spacing: 1px; }
+  #nav button { display: block; width: 100%; text-align: left; padding: 8px 14px; background: none; border: none; color: var(--dim); font: inherit; cursor: pointer; border-left: 3px solid transparent; }
+  #nav button:hover { color: var(--tx); }
+  #nav button.on { color: var(--gold); border-left-color: var(--gold); background: #e3b34111; }
+  #nav .conn { padding: 10px 14px; font-size: 11px; color: var(--dim); }
+  #nav .conn.ok { color: var(--green); }
+  main { flex: 1; overflow: auto; padding: 18px 22px; }
+  h2 { font-size: 15px; color: var(--gold); margin-bottom: 12px; }
+  .cards { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; min-width: 130px; }
+  .card b { display: block; font-size: 20px; color: var(--tx); }
+  .card span { font-size: 11px; color: var(--dim); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--dim); font-weight: normal; }
+  .mint { color: var(--green); } .burn { color: var(--red); } .xfer { color: var(--blue); }
+  .frozen { color: var(--red); font-weight: bold; } .released { color: var(--green); } .denied { color: var(--dim); }
+  input, select { background: #0d1117; border: 1px solid var(--line); color: var(--tx); font: inherit; padding: 5px 8px; border-radius: 5px; }
+  button.act { background: #21262d; border: 1px solid var(--line); color: var(--tx); font: inherit; padding: 5px 12px; border-radius: 5px; cursor: pointer; }
+  button.act:hover { border-color: var(--gold); color: var(--gold); }
+  #term-log { background: #010409; border: 1px solid var(--line); border-radius: 8px; padding: 10px; height: calc(100vh - 160px); overflow: auto; white-space: pre-wrap; font-size: 12.5px; }
+  #term-log .in { color: var(--gold); }
+  #term-in { width: 100%; margin-top: 8px; padding: 8px 10px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+  .cell { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 3px; text-align: center; cursor: pointer; overflow: hidden; }
+  .cell:hover { border-color: var(--gold); }
+  .cell canvas { image-rendering: pixelated; }
+  .cell div { font-size: 9.5px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #preview { position: sticky; top: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin-bottom: 14px; display: flex; gap: 18px; align-items: center; min-height: 150px; }
+  #preview canvas { background: #23422a; border-radius: 6px; image-rendering: pixelated; }
+  #preview pre { font-size: 11px; color: var(--dim); max-height: 170px; max-width: 460px; overflow: auto; }
+  .tabs2 { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .tabs2 button { background: #21262d; border: 1px solid var(--line); color: var(--dim); font: inherit; padding: 4px 12px; border-radius: 14px; cursor: pointer; }
+  .tabs2 button.on { color: var(--gold); border-color: var(--gold); }
+  form.ev { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 14px; }
+  form.ev label { font-size: 11px; color: var(--dim); display: flex; flex-direction: column; gap: 3px; }
+  .sec { font-size: 12px; }
+  .sec .anticheat { color: var(--red); } .sec .ban { color: var(--gold); } .sec .vault { color: var(--blue); } .sec .event, .sec .unban { color: var(--green); }
+</style>
+</head>
+<body>
+  <nav id="nav">
+    <h1>⚔ SHERWOOD ADMIN</h1>
+    <button data-v="dash" class="on">Dashboard</button>
+    <button data-v="term">Terminal</button>
+    <button data-v="eco">Economy</button>
+    <button data-v="vault">PDA Vault</button>
+    <button data-v="events">Events</button>
+    <button data-v="comp">Compositor</button>
+    <div class="conn" id="conn">connecting…</div>
+  </nav>
+  <main id="main"></main>
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>
