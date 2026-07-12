@@ -1609,6 +1609,56 @@
    "w": 576,
    "h": 816
   },
+  "undeadDecor": [
+   {
+    "file": "dungeon/undead/grave.png",
+    "w": 32,
+    "h": 32,
+    "tag": "grave"
+   },
+   {
+    "file": "dungeon/undead/bones.png",
+    "w": 32,
+    "h": 32,
+    "tag": "bones"
+   },
+   {
+    "file": "dungeon/undead/dead_tree.png",
+    "w": 128,
+    "h": 128,
+    "tag": "dead_tree"
+   },
+   {
+    "file": "dungeon/undead/thorn.png",
+    "w": 128,
+    "h": 128,
+    "tag": "thorn"
+   },
+   {
+    "file": "dungeon/undead/ruin.png",
+    "w": 128,
+    "h": 128,
+    "tag": "ruin"
+   },
+   {
+    "file": "dungeon/undead/broken_tree.png",
+    "w": 128,
+    "h": 128,
+    "tag": "broken_tree"
+   },
+   {
+    "file": "dungeon/undead/dead_arm.png",
+    "w": 64,
+    "h": 64,
+    "tag": "dead_arm"
+   },
+   {
+    "file": "dungeon/undead/rock.png",
+    "w": 64,
+    "h": 64,
+    "tag": "rock"
+   }
+  ],
   "geo_objects": {
    "file": "dungeon/geo_objects.png",
    "w": 1280,

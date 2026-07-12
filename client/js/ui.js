@@ -818,14 +818,39 @@ export function openWorldMap() {
       g.fillStyle = '#00000090'; g.fillText(t.name, t.cx * sc + 1, t.cy * sc - 8 + 1);
       g.fillStyle = '#ffe98a'; g.fillText(t.name, t.cx * sc, t.cy * sc - 8);
     }
-    // player marker
+    // player marker (pulsing ring)
     if (G.self && G.self.plane === 0) {
       const px = G.self.x * sc, py = G.self.y * sc;
-      g.fillStyle = '#ffffff'; g.strokeStyle = '#000';
-      g.beginPath(); g.arc(px, py, 5, 0, 7); g.fill(); g.stroke();
-      g.fillStyle = '#00000090'; g.fillText('You', px + 1, py - 9 + 1);
-      g.fillStyle = '#ffffff'; g.fillText('You', px, py - 9);
+      g.strokeStyle = '#ffffffcc'; g.lineWidth = 2; g.beginPath(); g.arc(px, py, 8, 0, 7); g.stroke();
+      g.fillStyle = '#ffffff'; g.strokeStyle = '#000'; g.lineWidth = 1;
+      g.beginPath(); g.arc(px, py, 4, 0, 7); g.fill(); g.stroke();
+      g.fillStyle = '#00000090'; g.fillText('You', px + 1, py - 11 + 1);
+      g.fillStyle = '#ffffff'; g.fillText('You', px, py - 11);
     }
+    // compass rose (top-right)
+    const cx = 480, cy = 42, rr = 22;
+    g.save();
+    g.translate(cx, cy);
+    g.fillStyle = '#1c130888'; g.beginPath(); g.arc(0, 0, rr + 4, 0, 7); g.fill();
+    g.strokeStyle = '#caa64e'; g.lineWidth = 1.5; g.beginPath(); g.arc(0, 0, rr, 0, 7); g.stroke();
+    for (const [ang, lab, col] of [[-Math.PI / 2, 'N', '#ff6a5a'], [Math.PI / 2, 'S', '#e8dcc0'], [0, 'E', '#e8dcc0'], [Math.PI, 'W', '#e8dcc0']]) {
+      g.fillStyle = col;
+      g.beginPath(); g.moveTo(Math.cos(ang) * rr, Math.sin(ang) * rr);
+      g.lineTo(Math.cos(ang + 0.35) * 5, Math.sin(ang + 0.35) * 5);
+      g.lineTo(Math.cos(ang - 0.35) * 5, Math.sin(ang - 0.35) * 5); g.closePath(); g.fill();
+      g.font = 'bold 10px Georgia'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillStyle = '#f4e9c8'; g.fillText(lab, Math.cos(ang) * (rr - 9), Math.sin(ang) * (rr - 9));
+    }
+    g.textBaseline = 'alphabetic';
+    g.restore();
+    // scale bar (bottom-left): 100 tiles
+    const barPx = 100 * sc;
+    g.strokeStyle = '#1c1308'; g.lineWidth = 3; g.beginPath(); g.moveTo(16, 502); g.lineTo(16 + barPx, 502); g.stroke();
+    g.strokeStyle = '#f4e9c8'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(16, 502); g.lineTo(16 + barPx, 502); g.stroke();
+    g.fillStyle = '#f4e9c8'; g.font = '10px Georgia'; g.textAlign = 'left'; g.fillText('100 tiles', 16, 498);
+    // ornate double frame
+    g.strokeStyle = '#caa64e'; g.lineWidth = 3; g.strokeRect(2, 2, 516, 516);
+    g.strokeStyle = '#3a2a12'; g.lineWidth = 1; g.strokeRect(6, 6, 508, 508);
     wrap.appendChild(c);
     const note = document.createElement('div');
     note.style.cssText = 'text-align:center;color:#b3a06d;font-size:12px;margin-top:6px';

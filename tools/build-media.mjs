@@ -284,6 +284,15 @@ geoScale('geo_rocks', 'Geo node gem pack/512x512 Rocks.png', 4, 512, 512, 'geo_r
 geoScale('geo_tiles', 'Geo node gem pack/256x192 Tiles.png', 2, 256, 192, 'geo_tiles');
 media.sheets.iso_tiles = { ...cp('isometric tileset/spritesheet.png', 'dungeon/iso_tiles.png'), cell: 32 };
 media.sheets.raou_tiles = cp('raou_isometric_fantasy/isometric tiles.png', 'dungeon/raou_tiles.png');
+// Abyssal undead decor: shadow-baked top-down props scattered in dungeon floors
+{
+  const usep = 'Abyssal dungeon map assests and tiles/Free-Undead-Tileset-Top-Down-Pixel-Art/PNG/Objects_separately';
+  media.sheets.undeadDecor = [];
+  for (const [file, tag] of [['Grave_shadow1_1', 'grave'], ['Bones_shadow1_1', 'bones'], ['Dead_tree_shadow1_1', 'dead_tree'], ['Thorn_plant_shadow1_1', 'thorn'], ['Ruin_shadow1_1', 'ruin'], ['Broken_tree_shadow1_1', 'broken_tree'], ['Dead_arm_shadow1_1', 'dead_arm'], ['Rock_shadow1_1', 'rock']]) {
+    const e = cp(`${usep}/${file}.png`, `dungeon/undead/${tag}.png`);
+    if (e) media.sheets.undeadDecor.push({ ...e, tag });
+  }
+}
 geoScale('geo_objects', 'Geo node gem pack/1024x512 Objects01.png', 4, 1024, 512, 'geo_objects');
 // rare sword icons: 40 numbered 32px icons
 {

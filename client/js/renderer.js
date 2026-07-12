@@ -111,6 +111,7 @@ function mixColor(h1, h2, t) {
 // ---- chunk cache -------------------------------------------------------------
 const CH = 16;
 const chunkCache = new Map(); // "plane:cx,cy" -> {canvas, top}
+let _decorReady = false;      // one-time chunk-cache flush when undead decor loads
 function chunkElev(plane, x, y) { return plane === PLANE.OVERWORLD ? heightAt(x, y) : 0; }
 function chunkCanvas(plane, cx, cy) {
   const key = plane + ':' + cx + ',' + cy;
@@ -245,8 +246,64 @@ function chunkCanvas(plane, cx, cy) {
       }
     }
   }
+  // ---- de-grid detail scatter: deterministic tufts/pebbles that spill across
+  // tile seams so the diamond tessellation stops reading as a grid (overworld
+  // vegetated ground only; walls/water/dungeon skip it) ----
+  if (plane === PLANE.OVERWORLD) {
+    const GROUNDY = { [TILE.GRASS]: ['#4f7d33', '#7cb14e'], [TILE.MEADOW]: ['#5f923a', '#8ac04e'], [TILE.FOREST]: ['#3c6427', '#5a8a38'], [TILE.DEEPFOREST]: ['#335821', '#4a7a2c'], [TILE.JUNGLE]: ['#2f5c22', '#4a7a34'], [TILE.SWAMP]: ['#49573c', '#5f7048'], [TILE.DIRT]: ['#8a6f45', '#a0855a'], [TILE.SAND]: ['#c9b06a', '#ddc888'], [TILE.TUNDRA]: ['#999c7a', '#b2b48f'] };
+    for (let j = 0; j < CH; j++) for (let i = 0; i < CH; i++) {
+      const x = cx * CH + i, y = cy * CH + j;
+      const t = tileAtPlane(plane, x, y);
+      const pal = GROUNDY[t];
+      if (!pal) continue;
+      const h = chunkElev(plane, x, y);
+      const lx = (i - j) * TW / 2 + ox;
+      const ly = (i + j) * TH / 2 + oy + TH / 2 - h * ESTEP;
+      // 3 specks per tile, hashed positions that push past the diamond edges
+      for (let s = 0; s < 3; s++) {
+        const r1 = hashXY(x * 3 + s, y * 7 - s), r2 = hashXY(x * 11 - s, y * 5 + s), r3 = hashXY(x + s * 97, y + s * 41);
+        const px = lx + (r1 - 0.5) * TW * 0.9;
+        const py = ly + (r2 - 0.5) * TH * 1.5;
+        g.globalAlpha = 0.5 + r3 * 0.4;
+        g.fillStyle = pal[r3 > 0.5 ? 1 : 0];
+        if (t === TILE.GRASS || t === TILE.MEADOW || t === TILE.FOREST || t === TILE.DEEPFOREST || t === TILE.JUNGLE) {
+          // little grass tuft: two short blades
+          g.fillRect(px | 0, (py - 2) | 0, 1, 3);
+          if (r3 > 0.4) g.fillRect((px + 1) | 0, (py - 1) | 0, 1, 2);
+        } else {
+          g.fillRect(px | 0, py | 0, r3 > 0.7 ? 2 : 1, 1); // pebble/grain fleck
+        }
+      }
+    }
+    g.globalAlpha = 1;
+  }
+  // ---- abyssal dungeon: scatter undead decor (graves, bones, dead trees,
+  // ruins, thorns) across the cave floor for atmosphere ----
+  if (plane >= PLANE.DUNGEON_BASE) {
+    const decor = MEDIA.sheets?.undeadDecor;
+    if (decor && decor.length) {
+      for (let j = 0; j < CH; j++) for (let i = 0; i < CH; i++) {
+        const x = cx * CH + i, y = cy * CH + j;
+        if (tileAtPlane(plane, x, y) !== TILE.CAVE) continue;
+        const r = hashXY(x * 13 + 5, y * 29 - 7);
+        if (r > 0.09) continue;                       // ~9% of floor tiles get a prop
+        const pick = decor[(hashXY(x * 7, y * 3) * decor.length) | 0];
+        const im = mimg(pick.file);
+        if (!im) continue;
+        const lx = (i - j) * TW / 2 + ox;
+        const ly = (i + j) * TH / 2 + oy + TH / 2;
+        const big = pick.w >= 128;
+        const s = big ? 0.42 : pick.w >= 64 ? 0.6 : 1;   // scale 128s down, keep small props
+        const dw = pick.w * s, dh = pick.h * s;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(im, lx - dw / 2, ly - dh + 6, dw, dh);
+      }
+    }
+  }
   c = { canvas, top };
   chunkCache.set(key, c);
+  // dungeon chunks re-render until the undead decor + geo sheets stream in
+  if (plane >= PLANE.DUNGEON_BASE && MEDIA.sheets?.undeadDecor?.length && !mimg(MEDIA.sheets.undeadDecor[0].file)) chunkCache.delete(key);
   // dungeon chunks re-render until the geo sheets finish streaming in
   if (plane >= PLANE.DUNGEON_BASE && !(MEDIA.sheets?.geo_tiles && mimg(MEDIA.sheets.geo_tiles.file))) chunkCache.delete(key);
   return c;
@@ -300,6 +357,12 @@ export class Renderer {
     ctx.fillStyle = '#0b0f0a';
     ctx.fillRect(0, 0, W, H);
     if (!me) return;
+    // once the undead decor sheets finish streaming in, drop chunks cached
+    // before they were ready so the decor actually appears (one-time)
+    if (!_decorReady) {
+      const decor = MEDIA.sheets?.undeadDecor;
+      if (decor && decor.length && decor.every(d => mimg(d.file))) { chunkCache.clear(); _decorReady = true; }
+    }
     // frame-rate-independent camera smoothing (robust at any fps)
     const dt = Math.min(0.25, (now - (this._lastNow || now)) / 1000);
     this._lastNow = now;
@@ -666,20 +729,28 @@ export function worldMapCanvas() {
   base.width = S; base.height = S;
   const bg = base.getContext('2d');
   const { tiles, nodes } = computeWorld();
+  // Base terrain (the clean flat colouring), with roads/bridges lifted to pale
+  // tracks and a faint relief tint that reads without muddying the map.
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
-    const col = TILE_COLOR[tiles[y * WORLD.W + x]] || ['#f0f', '#a0a'];
+    const t = tiles[y * WORLD.W + x];
+    if (t === TILE.ROAD || t === TILE.BRIDGE) { bg.fillStyle = '#c6ac74'; bg.fillRect(x, y, 1, 1); continue; }
+    const col = TILE_COLOR[t] || ['#f0f', '#a0a'];
     bg.fillStyle = mixColor(col[0], col[1], smoothNoise(x, y));
     bg.fillRect(x, y, 1, 1);
   }
-  // forests read as texture at this scale
-  bg.fillStyle = '#2f5c22aa';
+  // forest canopy stipple: darker specks give woodland texture at this scale
+  bg.fillStyle = '#2f5c2299';
   for (const [k, type] of nodes) {
     if (!type.includes('tree')) continue;
     const [x, y] = k.split(',').map(Number);
-    bg.fillRect(x, y, 1.5, 1.5);
+    bg.beginPath(); bg.arc(x, y, type.includes('yew') || type.includes('maple') ? 1.8 : 1.2, 0, 7); bg.fill();
   }
+  // light parchment vignette to frame the edges without dimming the centre
+  const grad = bg.createRadialGradient(S / 2, S / 2, S * 0.46, S / 2, S / 2, S * 0.76);
+  grad.addColorStop(0, '#00000000'); grad.addColorStop(1, '#2a1c0a26');
+  bg.fillStyle = grad; bg.fillRect(0, 0, S, S);
   // wilderness border
-  bg.strokeStyle = '#ff5544cc'; bg.setLineDash([6, 4]);
+  bg.strokeStyle = '#ff5544cc'; bg.setLineDash([6, 4]); bg.lineWidth = 2;
   bg.beginPath(); bg.moveTo(0, WILDERNESS_Y); bg.lineTo(S, WILDERNESS_Y); bg.stroke();
   bg.setLineDash([]);
   _worldMapBase = base;
