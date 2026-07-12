@@ -133,23 +133,45 @@ function drawFrame(ctx, def, m, e, a, now, sx, sy, scale, fi) {
 // ---------------------------------------------------------------------------
 // FX sheets. spec: 'key:variant' into media.fx (vargrid = row per variant, or
 // grid = sequential). t01 = normalized 0..1 animation progress.
-export function drawFxSprite(ctx, spec, t01, sx, sy, size = 42, rot = 0) {
+// Cache of hue-tinted whole-sheet copies (alpha preserved) so tinted effects
+// draw as fast as untinted ones.
+const _fxTint = new Map();
+function tintedFxSheet(im, file, tint) {
+  const k = file + '|' + tint;
+  let c = _fxTint.get(k);
+  if (c) return c;
+  c = document.createElement('canvas');
+  c.width = im.naturalWidth; c.height = im.naturalHeight;
+  const g = c.getContext('2d');
+  g.drawImage(im, 0, 0);
+  g.globalCompositeOperation = 'color';       // shift hue, keep luminance
+  g.globalAlpha = 0.72; g.fillStyle = tint; g.fillRect(0, 0, c.width, c.height);
+  g.globalAlpha = 1;
+  g.globalCompositeOperation = 'destination-in'; // clip back to the effect's alpha
+  g.drawImage(im, 0, 0);
+  _fxTint.set(k, c);
+  return c;
+}
+export function drawFxSprite(ctx, spec, t01, sx, sy, size = 42, rot = 0, tint = null) {
   const [key, vs] = String(spec).split(':');
   const f = MEDIA.fx?.[key];
   if (!f) return false;
   const im = mimg(f.file);
   if (!im) return false;
+  const src = tint ? tintedFxSheet(im, f.file, tint) : im;
+  const fw = f.frame, fh = f.fh || f.frame;              // rectangular frames (VFX packs)
   const v = Math.max(0, Math.min((vs | 0), (f.variants || 1) - 1));
   let sxx, syy;
   const n = f.frames;
   const fi = Math.max(0, Math.min(n - 1, Math.floor(t01 * n)));
-  if (f.kind === 'vargrid') { sxx = fi * f.frame; syy = v * f.frame; }
-  else { sxx = (fi % f.cols) * f.frame; syy = Math.floor(fi / f.cols) * f.frame; }
+  if (f.kind === 'vargrid') { sxx = fi * fw; syy = v * fw; }
+  else { sxx = (fi % f.cols) * fw; syy = Math.floor(fi / f.cols) * fh; }
+  const dw = size, dh = size * (fh / fw);                 // preserve aspect
   ctx.save();
   ctx.translate(sx, sy);
   if (rot) ctx.rotate(rot);
-  ctx.imageSmoothingEnabled = f.frame >= 64;
-  ctx.drawImage(im, sxx, syy, f.frame, f.frame, -size / 2, -size / 2, size, size);
+  ctx.imageSmoothingEnabled = fw >= 48;
+  ctx.drawImage(src, sxx, syy, fw, fh, -dw / 2, -dh / 2, dw, dh);
   ctx.restore();
   ctx.imageSmoothingEnabled = true;
   return true;

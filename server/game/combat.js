@@ -180,10 +180,24 @@ export function resolveHit(world, p, t, style, spell) {
   if (dmg > 0) {
     p.lastCombat = Date.now();                     // dealing damage locks teleports/mounts
     if (t.kind === 'player') t.lastCombat = Date.now();
+    // impact VFX matched to the blow: spells bloom by element, melee/ranged flash
+    const imp = style === 'magic' ? spellImpact(spell) : { spec: style === 'ranged' ? 'vfx_smallhit' : 'vfx_impact', tint: null };
+    world.fx(t.plane, t.x, t.y, FX.IMPACT, { id: t.id, spec: imp.spec, tint: imp.tint, size: style === 'magic' ? 78 : 56 });
     grantCombatXp(p, style, dmg, world);
     if (t.kind === 'player') applyPlayerDamage(world, t, dmg, p);
     else world.applyMobDamage(t, dmg, p);
   }
+}
+
+// Impact effect for a spell, by its element/projectile.
+function spellImpact(spell) {
+  const el = spell?.proj ? String(spell.proj).replace('sheet:', '').split(':')[0] : '';
+  if (spell?.fx === 'FIREBOLT' || /fire|ember|orb|twisted|staffhi/.test(el)) return { spec: 'vfx_explosion', tint: '#ff7a2a' };
+  if (spell?.fx === 'ICEBOLT' || /water|ice|air/.test(el)) return { spec: 'vfx_impact', tint: '#7ac8f0' };
+  if (spell?.fx === 'NATURE' || /nature|sherwood/.test(el)) return { spec: 'vfx_impact', tint: '#6fc04a' };
+  if (spell?.fx === 'HOLYBOLT' || /holy|cosmic/.test(el)) return { spec: 'vfx_puffstars', tint: '#fff3b0' };
+  if (/blood/.test(el)) return { spec: 'vfx_blood', tint: '#e0304a' };
+  return { spec: 'vfx_impact', tint: '#c08aff' };
 }
 
 export function mobAttack(world, m, t, now) {

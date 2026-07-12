@@ -35,15 +35,28 @@ export class Fx {
       case FX.SHILLING: this.burst(msg, entities, '#ffd75e', 18, 2.4); this.text(msg, entities, '✦ $LoS', '#ffd75e'); break;
       case FX.HEAL: this.burst(msg, entities, '#7fd05f', 10, 1.6); break;
       case FX.TELEPORT: {
-        // A slow arcane channel: a gentle cosmic bloom over the caster plus
-        // slowly-rising violet motes. No twisted-cataclysm swirl. Long/slow so
-        // it reads across the 6-second cast.
-        const dur = msg.channel ? 6000 : 1400;
-        this.markers.push({ x: msg.x, y: msg.y, spec: 'cosmic:1', t0: now, dur, size: 74, dy: -22, slow: true });
-        for (let i = 0; i < 14; i++) {
-          const a = Math.random() * Math.PI * 2, r = 0.3 + Math.random() * 0.5;
-          this.particles.push({ x: msg.x + Math.cos(a) * r, y: msg.y - 0.4, vx: Math.cos(a) * 0.25, vy: -0.5 - Math.random() * 0.6, t0: now + i * 60, dur: 900 + Math.random() * 500, color: i % 2 ? '#c77ce7' : '#9fd8ef', size: 2 + Math.random() * 2 });
+        // The Anima channel: the 30-frame anima effect stretched across the full
+        // 6-second cast (one slow playthrough), with rising arcane motes.
+        const dur = msg.channel ? 6000 : 1200;
+        this.markers.push({ x: msg.x, y: msg.y, spec: 'anima', t0: now, dur, size: 150, dy: -26, single: true });
+        for (let i = 0; i < (msg.channel ? 20 : 12); i++) {
+          const a = Math.random() * Math.PI * 2, r = 0.3 + Math.random() * 0.6;
+          this.particles.push({ x: msg.x + Math.cos(a) * r, y: msg.y - 0.4, vx: Math.cos(a) * 0.22, vy: -0.45 - Math.random() * 0.6, t0: now + i * (msg.channel ? 260 : 50), dur: 1000 + Math.random() * 600, color: i % 2 ? '#c77ce7' : '#9fd8ef', size: 2 + Math.random() * 2 });
         }
+        break;
+      }
+      case FX.IMPACT: {   // a VFX burst on the struck target (spell/melee/ranged)
+        const e = msg.id ? entities.get(msg.id) : null;
+        const wx = e ? e.rx : msg.x, wy = e ? e.ry : msg.y;
+        if (wx !== undefined) this.markers.push({ id: msg.id, x: wx, y: wy, spec: msg.spec || 'vfx_impact', tint: msg.tint || null, t0: now, dur: msg.dur || 520, size: msg.size || 70, dy: -20 });
+        break;
+      }
+      case FX.PRAYFX: {   // a divine effect over the praying player
+        this.markers.push({ id: msg.id, spec: msg.spec || 'aura_ring', tint: msg.tint || '#fff3b0', t0: now, dur: 900, size: 90, dy: -22, single: true });
+        break;
+      }
+      case FX.CASTFX: {   // a channel effect on a spell/action caster
+        this.markers.push({ id: msg.id, spec: msg.spec || 'aura_charged', tint: msg.tint || null, t0: now, dur: msg.dur || 700, size: msg.size || 72, dy: -18 });
         break;
       }
       case FX.SPLASH: this.burst(msg, entities, '#9ad2e8', 6, 1.4); break;
@@ -178,13 +191,15 @@ export class Fx {
         else if (wx === undefined) continue;      // entity gone, no fallback spot
       }
       const el = now - p.t0;
-      // slow channels (teleport) loop the sheet gently and fade in/out at the ends
-      const t = p.slow ? (el % 900) / 900 : el / p.dur;
+      const f = el / p.dur;
+      // single: one slow playthrough across the whole duration (anima teleport).
+      // slow: loops the sheet gently. else: plays once over dur.
+      const t = p.single ? f : p.slow ? (el % 900) / 900 : f;
       let a = 1;
-      if (p.slow) { const f = el / p.dur; a = Math.min(1, f * 6) * Math.min(1, (1 - f) * 6); }
+      if (p.single || p.slow) a = Math.min(1, f * 8) * Math.min(1, (1 - f) * 8);
       const [sx, sy] = R.screenOf(0, wx, wy);
       ctx.globalAlpha = a;
-      drawFxSprite(ctx, p.spec, t, sx, sy + (p.dy || 0), p.size || 54);
+      drawFxSprite(ctx, p.spec, t, sx, sy + (p.dy || 0), p.size || 54, 0, p.tint);
       ctx.globalAlpha = 1;
     }
     // hit splats (drawn near entity if still present)

@@ -371,15 +371,19 @@ TOME_SKILLS.forEach((sk, i) => def(`tome_${sk}`, {
 
 // ---------------------------------------------------------------------------
 // Auras: purely cosmetic equipment — a looping elemental FX around the wearer.
+// Auras now use the VFX Free Pack looping effects, tinted to their element.
+// aura field: { fx: media.fx key, tint: recolour }.
 export const AURAS = [
-  ['aura_ember', 'Ember Aura', 'twisted_1', 4000],
-  ['aura_frost', 'Frost Aura', 'twisted_2', 4000],
-  ['aura_verdant', 'Verdant Aura', 'twisted_3', 6500],
-  ['aura_royal', 'Royal Aura', 'twisted_4', 14000],
-  ['aura_blood', 'Blood Aura', 'twisted_5', 14000],
-  ['aura_spectral', 'Spectral Aura', 'twisted_6', 24000],
+  ['aura_ember', 'Ember Aura', 'vfx_fire', '#ff7a2a', 4000],
+  ['aura_frost', 'Frost Aura', 'aura_shield', '#7ac8f0', 4000],
+  ['aura_verdant', 'Verdant Aura', 'aura_charged', '#6fc04a', 6500],
+  ['aura_royal', 'Royal Aura', 'aura_ring', '#e8c84e', 14000],
+  ['aura_blood', 'Blood Aura', 'aura_vortex', '#e0304a', 14000],
+  ['aura_spectral', 'Spectral Aura', 'aura_constellation', '#c08aff', 24000],
+  ['aura_storm', 'Storm Aura', 'aura_wheel', '#9fd8ef', 20000],
+  ['aura_void', 'Void Aura', 'aura_tentacles', '#8a5cff', 30000],
 ];
-for (const [id, name, fx, val] of AURAS) def(id, { name, slot: 'aura', aura: fx, value: val, req: {} });
+for (const [id, name, fx, tint, val] of AURAS) def(id, { name, slot: 'aura', aura: { fx, tint }, value: val, req: {} });
 
 // Mounts: +travel speed scaling with rarity. Flyers cross water and low
 // obstructions but give up a little pace versus ground mounts of their tier.

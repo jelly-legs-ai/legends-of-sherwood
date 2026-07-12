@@ -542,12 +542,13 @@ export class Renderer {
     }
     if (anim === 'idle') frame = Math.floor((now + e.id * 217) / animInfo.ms) % animInfo.frames; // desynced breathing
 
-    // cosmetic aura: looping elemental swirl beneath the wearer
+    // cosmetic aura: a looping VFX effect around the wearer, tinted to element
     if (e.aura) {
+      const au = typeof e.aura === 'string' ? { fx: e.aura } : e.aura;
       ctx.save();
-      ctx.globalAlpha = 0.75;
+      ctx.globalAlpha = 0.85;
       ctx.globalCompositeOperation = 'lighter';   // additive: glows on any ground
-      drawFxSprite(ctx, e.aura, 0.22 + 0.5 * (((now + (e.id % 89) * 131) % 2400) / 2400), sx, sy - 14, 112);
+      drawFxSprite(ctx, au.fx, ((now + (e.id % 89) * 131) % 1600) / 1600, sx, sy - 20, 120, 0, au.tint);
       ctx.restore();
     }
     // mount: the beast is drawn under the rider, facing the player's heading.

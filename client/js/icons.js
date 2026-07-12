@@ -498,7 +498,7 @@ export function itemIcon(id) {
     g.restore();
   } else if (name.startsWith('aura_')) {
     // glowing elemental ring
-    const ac = { ember: '#ff8a2a', frost: '#7ac8f0', verdant: '#6fc04a', royal: '#e070d8', blood: '#e0304a', spectral: '#d8e2ea' }[name.slice(5)] || '#ffd75e';
+    const ac = { ember: '#ff8a2a', frost: '#7ac8f0', verdant: '#6fc04a', royal: '#e8c84e', blood: '#e0304a', spectral: '#c08aff', storm: '#9fd8ef', void: '#8a5cff' }[name.slice(5)] || '#ffd75e';
     g.shadowColor = ac; g.shadowBlur = 7;
     g.strokeStyle = ac; g.lineWidth = 2.6;
     g.beginPath(); g.ellipse(16, 18, 9.5, 5, 0, 0, 7); g.stroke();

@@ -1454,6 +1454,226 @@
    "kind": "vargrid",
    "frames": 15,
    "variants": 9
+  },
+  "anima": {
+   "file": "fx/anima.png",
+   "w": 437,
+   "h": 364,
+   "frame": 73,
+   "fh": 73,
+   "kind": "grid",
+   "cols": 6,
+   "frames": 30
+  },
+  "aura_charged": {
+   "file": "fx/aura_charged.png",
+   "w": 449,
+   "h": 445,
+   "frame": 64,
+   "fh": 74,
+   "kind": "grid",
+   "cols": 7,
+   "frames": 42
+  },
+  "aura_constellation": {
+   "file": "fx/aura_constellation.png",
+   "w": 448,
+   "h": 391,
+   "frame": 75,
+   "fh": 78,
+   "kind": "grid",
+   "cols": 6,
+   "frames": 30
+  },
+  "aura_shield": {
+   "file": "fx/aura_shield.png",
+   "w": 397,
+   "h": 331,
+   "frame": 66,
+   "fh": 66,
+   "kind": "grid",
+   "cols": 6,
+   "frames": 30
+  },
+  "aura_ring": {
+   "file": "fx/aura_ring.png",
+   "w": 421,
+   "h": 354,
+   "frame": 70,
+   "fh": 71,
+   "kind": "grid",
+   "cols": 6,
+   "frames": 30
+  },
+  "aura_vortex": {
+   "file": "fx/aura_vortex.png",
+   "w": 427,
+   "h": 359,
+   "frame": 71,
+   "fh": 72,
+   "kind": "grid",
+   "cols": 6,
+   "frames": 30
+  },
+  "aura_wheel": {
+   "file": "fx/aura_wheel.png",
+   "w": 409,
+   "h": 341,
+   "frame": 68,
+   "fh": 68,
+   "kind": "grid",
+   "cols": 6,
+   "frames": 30
+  },
+  "aura_worm": {
+   "file": "fx/aura_worm.png",
+   "w": 413,
+   "h": 307,
+   "frame": 69,
+   "fh": 62,
+   "kind": "grid",
+   "cols": 6,
+   "frames": 30
+  },
+  "aura_tentacles": {
+   "file": "fx/aura_tentacles.png",
+   "w": 453,
+   "h": 280,
+   "frame": 76,
+   "fh": 56,
+   "kind": "grid",
+   "cols": 6,
+   "frames": 30
+  },
+  "vfx_bighit": {
+   "file": "fx/vfx_bighit.png",
+   "w": 417,
+   "h": 345,
+   "frame": 70,
+   "fh": 69,
+   "kind": "grid",
+   "cols": 6,
+   "frames": 30
+  },
+  "vfx_smallhit": {
+   "file": "fx/vfx_smallhit.png",
+   "w": 456,
+   "h": 377,
+   "frame": 76,
+   "fh": 75,
+   "kind": "grid",
+   "cols": 6,
+   "frames": 30
+  },
+  "vfx_impact": {
+   "file": "fx/vfx_impact.png",
+   "w": 436,
+   "h": 376,
+   "frame": 73,
+   "fh": 75,
+   "kind": "grid",
+   "cols": 6,
+   "frames": 30
+  },
+  "vfx_blood": {
+   "file": "fx/vfx_blood.png",
+   "w": 414,
+   "h": 300,
+   "frame": 69,
+   "fh": 60,
+   "kind": "grid",
+   "cols": 6,
+   "frames": 30
+  },
+  "vfx_explosion": {
+   "file": "fx/vfx_explosion.png",
+   "w": 443,
+   "h": 369,
+   "frame": 74,
+   "fh": 74,
+   "kind": "grid",
+   "cols": 6,
+   "frames": 30
+  },
+  "vfx_explosion2": {
+   "file": "fx/vfx_explosion2.png",
+   "w": 426,
+   "h": 355,
+   "frame": 71,
+   "fh": 71,
+   "kind": "grid",
+   "cols": 6,
+   "frames": 30
+  },
+  "vfx_kaboom": {
+   "file": "fx/vfx_kaboom.png",
+   "w": 401,
+   "h": 270,
+   "frame": 67,
+   "fh": 54,
+   "kind": "grid",
+   "cols": 6,
+   "frames": 30
+  },
+  "vfx_magma": {
+   "file": "fx/vfx_magma.png",
+   "w": 457,
+   "h": 186,
+   "frame": 76,
+   "fh": 37,
+   "kind": "grid",
+   "cols": 6,
+   "frames": 30
+  },
+  "vfx_fire": {
+   "file": "fx/vfx_fire.png",
+   "w": 443,
+   "h": 175,
+   "frame": 74,
+   "fh": 35,
+   "kind": "grid",
+   "cols": 6,
+   "frames": 30
+  },
+  "vfx_pixfire": {
+   "file": "fx/vfx_pixfire.png",
+   "w": 346,
+   "h": 321,
+   "frame": 58,
+   "fh": 64,
+   "kind": "grid",
+   "cols": 6,
+   "frames": 30
+  },
+  "vfx_puffstars": {
+   "file": "fx/vfx_puffstars.png",
+   "w": 420,
+   "h": 327,
+   "frame": 60,
+   "fh": 55,
+   "kind": "grid",
+   "cols": 7,
+   "frames": 42
+  },
+  "vfx_powerchords": {
+   "file": "fx/vfx_powerchords.png",
+   "w": 443,
+   "h": 252,
+   "frame": 74,
+   "fh": 50,
+   "kind": "grid",
+   "cols": 6,
+   "frames": 30
+  },
+  "vfx_hyperspeed": {
+   "file": "fx/vfx_hyperspeed.png",
+   "w": 443,
+   "h": 367,
+   "frame": 74,
+   "fh": 74,
+   "kind": "grid",
+   "cols": 6,
+   "frames": 30
   }
  },
  "sheets": {

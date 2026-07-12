@@ -232,6 +232,40 @@ fxPack('stave', 'Combat/mid lvl stave projectile animation fx', 32);
 fxPack('cosmic', 'Combat/low, mid and high lvl cosmic spell animations', 32);
 fxPack('staffhi', 'Combat/high lvl elemental, blood,cursed,poison,and cosmic staff projectile animation', 16);
 
+// VFX Free Pack: pre-packed spritesheets (frame size encoded in the filename,
+// grids of 30/42 frames). Downscaled so frames land ~<=80px for the client.
+function vfxPack(key, effName) {
+  const dir = path.join(RAW, 'effects/Aura effects/VFX Free Pack', effName, '30fps/Spritesheets');
+  if (!fs.existsSync(dir)) { console.log('MISSING vfx', effName); return; }
+  const file = fs.readdirSync(dir).find(f => f.endsWith('.png'));
+  if (!file) { console.log('no sheet', effName); return; }
+  const m = file.match(/_(\d+)x(\d+)\.png$/);
+  const fw = m ? +m[1] : 0, fh = m ? +m[2] : 0;
+  if (!fw) { console.log('no frame size', file); return; }
+  const img = decode(fs.readFileSync(path.join(dir, file)));
+  const cols = Math.floor(img.w / fw), rows = Math.floor(img.h / fh);
+  const factor = Math.max(1, Math.round(Math.max(fw, fh) / 72));
+  const out = downscale(img, factor);
+  const rel = `fx/${key}.png`;
+  fs.mkdirSync(path.dirname(path.join(OUT, rel)), { recursive: true });
+  fs.writeFileSync(path.join(OUT, rel), encode(out.w, out.h, out.data));
+  copied++;
+  media.fx[key] = { file: rel, w: out.w, h: out.h, frame: Math.round(fw / factor), fh: Math.round(fh / factor), kind: 'grid', cols, frames: cols * rows };
+  console.log('  vfx', key, `${cols}x${rows}=${cols * rows}f @${Math.round(fw / factor)}x${Math.round(fh / factor)}`);
+}
+// auras / channels (looping)
+for (const [k, e] of [['anima', 'Effect_Anima'], ['aura_charged', 'Effect_Charged'], ['aura_constellation', 'Effect_Constellation'],
+  ['aura_shield', 'Effect_ElectricShield'], ['aura_ring', 'Effect_EldenRing'], ['aura_vortex', 'Effect_TheVortex'],
+  ['aura_wheel', 'Effect_Wheel'], ['aura_worm', 'Effect_Worm'], ['aura_tentacles', 'Effect_Tentacles']])
+  vfxPack(k, e);
+// impacts / bursts (one-shot)
+for (const [k, e] of [['vfx_bighit', 'Effect_BigHit'], ['vfx_smallhit', 'Effect_SmallHit'], ['vfx_impact', 'Effect_Impact'],
+  ['vfx_blood', 'Effect_BloodImpact'], ['vfx_explosion', 'Effect_Explosion'], ['vfx_explosion2', 'Effect_Explosion2'],
+  ['vfx_kaboom', 'Effect_Kabooms'], ['vfx_magma', 'Effect_Magma'], ['vfx_fire', 'Effect_DitheredFire'],
+  ['vfx_pixfire', 'Effect_FastPixelFire'], ['vfx_puffstars', 'Effect_PuffAndStars'], ['vfx_powerchords', 'Effect_PowerChords'],
+  ['vfx_hyperspeed', 'Effect_Hyperspeed']])
+  vfxPack(k, e);
+
 // Numbered-loose-file icon folders packed into fixed-cell atlases (icon = index)
 function atlas(key, dir, prefix, cell = 16, cols = 16) {
   const src = path.join(RAW, dir);

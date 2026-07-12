@@ -338,7 +338,7 @@ export function spellIconCanvas(id) {
   g.fillStyle = '#100d16'; g.beginPath(); g.arc(16, 16, 15, 0, 7); g.fill();
   let ok = true;
   if (s.teleport) {
-    ok = drawFxSprite(g, 'twisted_6', 0.45, 16, 16, 28);
+    ok = drawFxSprite(g, 'anima', 0.5, 16, 16, 30);
     g.fillStyle = '#ffd75e'; g.font = 'bold 13px Georgia'; g.textAlign = 'center';
     g.fillText('➤', 16, 21);
   } else if (s.heal) {
