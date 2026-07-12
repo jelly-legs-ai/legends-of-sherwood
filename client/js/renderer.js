@@ -4,7 +4,7 @@
 import { WORLD, TILE, PLANE, WILDERNESS_Y } from '/shared/constants.js';
 import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV } from '/shared/mapgen.js';
 import { REGIONS } from '/shared/constants.js';
-import { HOUSE } from '/shared/data/world.js';
+import { HOUSE, TOWNS } from '/shared/data/world.js';
 import { composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS, itemIcon, proc } from './sprites.js';
 import { MOBS } from '/shared/data/mobs.js';
 import { drawCreature, drawChest, drawGeode, drawSheetCell, drawFxSprite, MEDIA, mimg } from './media.js';
@@ -199,7 +199,7 @@ function chunkCanvas(plane, cx, cy) {
     // timber framing over lime-washed wattle for village walls
     if (WALLS.has(t)) {
       const stone = t === TILE.WALL;
-      const wh = stone ? 40 : 34;
+      const wh = stone ? 56 : 46;
       const wear = 0.9 + shade * 0.2;                     // per-tile weathering
       const tint = (hex, f) => {
         const [r, gg, b] = hexRgb(hex);
@@ -421,6 +421,11 @@ export class Renderer {
       else this.drawEntity(ctx, dr.ent, now, state);
     }
 
+    // ---- building roofs: complete pitched roofs over town buildings, drawn on
+    // top of everything, that fade out as the player steps inside/adjacent so
+    // the interior (floor, stalls, shopkeeper) is revealed ----
+    if (plane === PLANE.OVERWORLD) this.drawRoofs(ctx, me, now);
+
     // ---- fx layer ----
     fx.draw(ctx, this, now);
 
@@ -622,6 +627,63 @@ export class Renderer {
       ctx.fillStyle = '#332';
       ctx.textAlign = 'center';
       ctx.fillText(e.bubble.slice(0, 40), sx, topY - 20);
+    }
+  }
+  // Pitched roofs over town buildings, drawn on top so structures read as
+  // complete; each fades as the player steps inside/adjacent, revealing the
+  // interior (floor + shopkeeper). Roofs sit on the baked wall prisms.
+  drawRoofs(ctx, me, now) {
+    const W = this.canvas.width, H = this.canvas.height;
+    for (const town of Object.values(TOWNS)) {
+      for (const b of town.buildings) {
+        const cxw = b.x + b.w / 2, cyw = b.y + b.h / 2;
+        const [ccx, ccy] = this.screenOf(0, cxw, cyw);
+        if (ccx < -140 || ccx > W + 140 || ccy < -160 || ccy > H + 160) continue;
+        // proximity fade: transparent when the player is within the footprint
+        // (+1.5 tile porch), opaque again 3 tiles out
+        const dx = Math.max(b.x - 1 - me.rx, 0, me.rx - (b.x + b.w) - 0.5);
+        const dy = Math.max(b.y - 1 - me.ry, 0, me.ry - (b.y + b.h) - 0.5);
+        const edge = Math.hypot(dx, dy);
+        const alpha = Math.max(0, Math.min(1, (edge - 0.4) / 3));
+        if (alpha < 0.02) continue;                       // fully inside — skip the roof entirely
+        const stone = b.castle;
+        const wallH = stone ? 56 : 46;
+        // top-of-wall screen corners (elevation already folded into screenOf)
+        const P = (wx, wy) => { const [sx, sy] = this.screenOf(0, wx, wy); return [sx, sy - wallH]; };
+        const c00 = P(b.x, b.y), c10 = P(b.x + b.w, b.y), c11 = P(b.x + b.w, b.y + b.h), c01 = P(b.x, b.y + b.h);
+        const rise = 16 + Math.max(b.w, b.h) * 3.2;
+        const apex = [(c00[0] + c11[0]) / 2, (c00[1] + c11[1]) / 2 - rise];
+        // eave overhang: push corners slightly outward
+        const ov = 5;
+        const out = (c, cx2, cy2) => [c[0] + Math.sign(c[0] - cx2) * ov, c[1] + Math.sign(c[1] - cy2) * ov + 2];
+        const mx = (c00[0] + c11[0]) / 2, myy = (c00[1] + c11[1]) / 2;
+        const e00 = out(c00, mx, myy), e10 = out(c10, mx, myy), e11 = out(c11, mx, myy), e01 = out(c01, mx, myy);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        const roofTop = stone ? '#8a8578' : '#b06a3a';       // near-camera face
+        const roofL = stone ? '#6e6a5e' : '#8a4f2a';
+        const roofR = stone ? '#7a766a' : '#9a5c32';
+        const roofBack = stone ? '#5e5a50' : '#733f22';
+        const face = (a, c, col, shade) => { ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(c[0], c[1]); ctx.lineTo(apex[0], apex[1]); ctx.closePath(); ctx.fill(); if (shade) { ctx.strokeStyle = '#00000033'; ctx.lineWidth = 1; ctx.stroke(); } };
+        // draw far faces first, near faces last (painter's order in iso)
+        face(e01, e11, roofBack);          // north/back
+        face(e00, e01, roofL);             // west/left
+        face(e10, e11, roofR);             // east/right
+        face(e00, e10, roofTop, true);     // south/front (toward camera)
+        // ridge highlight
+        ctx.strokeStyle = stone ? '#a8a290aa' : '#d0925caa'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo((e00[0] + e10[0]) / 2, (e00[1] + e10[1]) / 2); ctx.lineTo(apex[0], apex[1]); ctx.stroke();
+        // thatch/tile striations on the front face
+        ctx.strokeStyle = '#00000022'; ctx.lineWidth = 1;
+        for (let k = 1; k < 4; k++) {
+          const t = k / 4;
+          ctx.beginPath();
+          ctx.moveTo(e00[0] + (apex[0] - e00[0]) * t, e00[1] + (apex[1] - e00[1]) * t);
+          ctx.lineTo(e10[0] + (apex[0] - e10[0]) * t, e10[1] + (apex[1] - e10[1]) * t);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
     }
   }
   nameplate(ctx, x, y, text, color) {

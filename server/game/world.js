@@ -9,7 +9,7 @@ import { MOBS } from '../../shared/data/mobs.js';
 import { NPCS } from '../../shared/data/npcs.js';
 import { NODES } from '../../shared/data/skills.js';
 import { ITEMS } from '../../shared/data/items.js';
-import { SPAWNS, BOSS_SPAWNS, EVENTS, ANCHORS, ARENA } from '../../shared/data/world.js';
+import { SPAWNS, BOSS_SPAWNS, EVENTS, ANCHORS, ARENA, TOWNS } from '../../shared/data/world.js';
 import { PETS, PET_DROPS, PET_ODDS, PET_POWER, petLevel } from '../../shared/data/pets.js';
 import { Ledger } from './economy.js';
 import { tickCombat, mobAttack } from './combat.js';
@@ -120,7 +120,15 @@ export class World {
   spawnNpcs() {
     for (const id in NPCS) {
       const n = NPCS[id];
-      this.addEntity({ kind: 'npc', type: id, plane: PLANE.OVERWORLD, x: n.x + 0.5, y: n.y + 0.5, dir: 2, anim: 'idle', animSeq: 0, home: { x: n.x + 0.5, y: n.y + 0.5 } });
+      const e = this.addEntity({ kind: 'npc', type: id, plane: PLANE.OVERWORLD, x: n.x + 0.5, y: n.y + 0.5, dir: 2, anim: 'idle', animSeq: 0, home: { x: n.x + 0.5, y: n.y + 0.5 } });
+      // Bind shopkeepers/tutors to the building they belong to so they pace the
+      // interior floor and the doorstep instead of standing inside a wall.
+      const b = this.buildingContaining(n.x, n.y);
+      if (b && (n.shop || n.tutor || n.quest)) {
+        e.building = b;
+        const home = this.interiorFloor(b);
+        if (home) { e.x = home.x; e.y = home.y; e.home = home; this.gridMove(e); }
+      }
     }
   }
 
@@ -518,8 +526,40 @@ export class World {
     } else m.anim = 'idle';
   }
 
+  // Building whose footprint (incl. walls) contains a tile, or null.
+  buildingContaining(x, y) {
+    for (const t of Object.values(TOWNS)) for (const b of t.buildings) {
+      if (x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) return b;
+    }
+    return null;
+  }
+  // A walkable interior floor tile of a building (avoids the wall ring).
+  interiorFloor(b) {
+    for (let tries = 0; tries < 20; tries++) {
+      const ix = b.x + 1 + (Math.random() * Math.max(1, b.w - 2) | 0);
+      const iy = b.y + 1 + (Math.random() * Math.max(1, b.h - 2) | 0);
+      if (!isBlocked(PLANE.OVERWORLD, ix, iy)) return { x: ix + 0.5, y: iy + 0.5 };
+    }
+    return { x: b.x + b.w / 2, y: b.y + b.h / 2 };
+  }
+  // The tile just outside a building's door (for shopkeepers to step out).
+  doorstep(b) {
+    const mid = { S: [b.x + (b.w >> 1), b.y + b.h], N: [b.x + (b.w >> 1), b.y - 1], E: [b.x + b.w, b.y + (b.h >> 1)], W: [b.x - 1, b.y + (b.h >> 1)] }[b.door] || [b.x + (b.w >> 1), b.y + b.h];
+    return { x: mid[0] + 0.5, y: mid[1] + 0.5 };
+  }
   tickNpc(n, now, dt) {
     const def = NPCS[n.type];
+    // shopkeepers/tutors pace their shop interior + occasionally the doorstep
+    if (n.building) {
+      if (!n.wander && Math.random() < 0.01) {
+        n.wander = Math.random() < 0.25 ? this.doorstep(n.building) : this.interiorFloor(n.building);
+      }
+      if (n.wander) {
+        if (this.moveEntity(n, n.wander.x, n.wander.y, 1.0, dt)) { n.wander = null; n.anim = 'idle'; }
+        else n.anim = 'walk';
+      }
+      return;
+    }
     if (!def.wander) return;
     if (Math.random() < 0.008) n.wander = { x: n.home.x + (Math.random() * 2 - 1) * def.wander, y: n.home.y + (Math.random() * 2 - 1) * def.wander };
     if (n.wander) {
