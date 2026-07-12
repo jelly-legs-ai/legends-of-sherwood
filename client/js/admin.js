@@ -25,12 +25,15 @@ function connect() {
 }
 const send = (o) => { if (ws?.readyState === 1) ws.send(JSON.stringify(o)); };
 
-const state = { status: null, ledger: null, vault: null, events: null, security: [], term: [] };
+const state = { status: null, ledger: null, vault: null, events: null, security: [], term: [], treasury: null, token: null, sim: null };
 function onMsg(m) {
   if (m.t === 'status') { state.status = m; if (view === 'dash') render(); }
   else if (m.t === 'ledger') { state.ledger = m; if (view === 'eco') render(); }
   else if (m.t === 'vault') { state.vault = m; if (view === 'vault') render(); }
   else if (m.t === 'events') { state.events = m; if (view === 'events') render(); }
+  else if (m.t === 'treasury') { state.treasury = m; if (view === 'treasury') render(); }
+  else if (m.t === 'token') { state.token = m; if (view === 'token') render(); }
+  else if (m.t === 'simulate') { state.sim = m.result; if (view === 'sim') render(); }
   else if (m.t === 'securityLog') { state.security = m.log; if (view === 'dash') render(); }
   else if (m.t === 'security') { state.security.unshift(m.entry); if (view === 'dash') render(); }
   else if (m.t === 'cmd') { state.term.push({ text: m.out, cls: '' }); termOut(m.out); }
@@ -53,9 +56,96 @@ function render() {
   if (view === 'dash') return renderDash();
   if (view === 'term') return renderTerm();
   if (view === 'eco') return renderEco();
+  if (view === 'treasury') return renderTreasury();
+  if (view === 'token') return renderToken();
+  if (view === 'sim') return renderSim();
   if (view === 'vault') return renderVault();
   if (view === 'events') return renderEvents();
   if (view === 'comp') return renderComp();
+}
+
+function renderTreasury() {
+  const t = state.treasury;
+  main.innerHTML = `<h2>Protocol treasury</h2>
+    <div class="cards">
+      <div class="card"><b style="color:var(--gold)">${t ? t.balance.toLocaleString() : '…'}</b><span>$LoS in treasury</span></div>
+      <div class="card"><b>${t ? (t.taxBps / 100) : '…'}%</b><span>GE trade tax</span></div>
+    </div>
+    <p style="color:var(--dim);margin-bottom:10px">The treasury grows from the ${t ? t.taxBps / 100 : 5}% Grand Exchange trade tax, creator-wallet transfers and buybacks. Buybacks burn tokens from supply.</p>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+      <div class="card" style="min-width:230px">
+        <div style="font-size:12px;color:var(--dim);margin-bottom:6px">Buyback &amp; burn (from treasury)</div>
+        <input id="bb-amt" type="number" placeholder="amount" style="width:110px"> <button class="act" id="bb-go">Buyback</button>
+      </div>
+      <div class="card" style="min-width:280px">
+        <div style="font-size:12px;color:var(--dim);margin-bottom:6px">Creator-wallet transfer → treasury</div>
+        <input id="cr-from" placeholder="creator wallet" style="width:130px"> <input id="cr-amt" type="number" placeholder="amount" style="width:90px"> <button class="act" id="cr-go">Transfer</button>
+      </div>
+    </div>
+    <h2>Recent inflows</h2>
+    <table><tr><th>time</th><th>source</th><th>amount</th></tr>
+    ${t ? t.inflows.map(l => `<tr><td>${fmtT(l[0])}</td><td>${l[2]}</td><td class="mint">+${l[3]}</td></tr>`).join('') || '<tr><td colspan=3><i>no inflows yet</i></td></tr>' : ''}</table>`;
+  main.querySelector('#bb-go') && (main.querySelector('#bb-go').onclick = () => { send({ t: 'treasury', buyback: +main.querySelector('#bb-amt').value || 0 }); });
+  main.querySelector('#cr-go') && (main.querySelector('#cr-go').onclick = () => { send({ t: 'treasury', creatorFrom: main.querySelector('#cr-from').value.trim(), creatorAmt: +main.querySelector('#cr-amt').value || 0 }); });
+  send({ t: 'treasury' });
+}
+
+function renderToken() {
+  const tk = state.token;
+  const c = tk?.config || {};
+  main.innerHTML = `<h2>$LoS token migration</h2>
+    <p style="color:var(--dim);margin-bottom:12px">Launch or migrate to your on-chain token: enter its contract (or mint authority) address and the treasury address. The vault and contract config adapt automatically — releases below the review threshold auto-settle on-chain, larger ones still await admin review. A deployment manifest is generated for the operator to sign & deploy (no private keys are handled here).</p>
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:640px">
+        <label style="font-size:12px;color:var(--dim)">Ticker<br><input id="tk-sym" value="${c.symbol || '$LoS'}" style="width:100%"></label>
+        <label style="font-size:12px;color:var(--dim)">Chain<br><input id="tk-chain" value="${c.chain || 'robinhood'}" style="width:100%"></label>
+        <label style="font-size:12px;color:var(--dim)">Contract address<br><input id="tk-contract" value="${c.contract || ''}" placeholder="0x… or rh1…" style="width:100%"></label>
+        <label style="font-size:12px;color:var(--dim)">Mint authority (optional)<br><input id="tk-mint" value="${c.mintAuthority || ''}" placeholder="mint address" style="width:100%"></label>
+        <label style="font-size:12px;color:var(--dim)">Treasury address<br><input id="tk-treas" value="${c.treasuryAddress || ''}" placeholder="treasury wallet" style="width:100%"></label>
+        <div style="align-self:end"><button class="act" id="tk-go">${c.migrated ? 'Update migration' : 'Configure & generate deploy'}</button></div>
+      </div>
+      <div style="margin-top:8px;font-size:12px">${c.migrated ? `<span class="released">● LIVE</span> migrated ${c.migratedAt ? new Date(c.migratedAt).toLocaleString() : ''} — releases under threshold auto-settle to <b>${c.contract || c.mintAuthority}</b>` : '<span style="color:var(--dim)">○ not yet migrated (custodial off-chain ledger active)</span>'}</div>
+    </div>
+    <h2>Deployment manifest</h2>
+    <pre style="background:#010409;border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;max-height:340px">${tk ? JSON.stringify(tk.manifest, null, 2) : '…'}</pre>`;
+  main.querySelector('#tk-go').onclick = () => send({ t: 'token', migrate: {
+    symbol: main.querySelector('#tk-sym').value.trim(), chain: main.querySelector('#tk-chain').value.trim(),
+    contract: main.querySelector('#tk-contract').value.trim(), mintAuthority: main.querySelector('#tk-mint').value.trim(),
+    treasuryAddress: main.querySelector('#tk-treas').value.trim(),
+  } });
+  send({ t: 'token' });
+}
+
+function renderSim() {
+  const r = state.sim;
+  main.innerHTML = `<h2>Economy sustainability simulation</h2>
+    <p style="color:var(--dim);margin-bottom:10px">Projects $LoS emission (mob drops, boss bounties, dungeons, events, milestones) against sinks (GE treasury tax, burns, player withdrawals) using the live reward constants. Tune the activity assumptions and run.</p>
+    <form class="ev" id="sim-form" style="grid-template-columns:repeat(3,1fr)">
+      <label>Players<input name="players" type="number" value="${r?.assumptions.players || 200}"></label>
+      <label>Days<input name="days" type="number" value="${r?.assumptions.days || 30}"></label>
+      <label>Hours/player/day<input name="hoursPerDay" type="number" step="0.5" value="${r?.assumptions.hoursPerDay || 2}"></label>
+      <label>GE volume /player/day ($LoS)<input name="tradeVolPerPlayerDay" type="number" value="${r?.assumptions.tradeVolPerPlayerDay || 300}"></label>
+      <label>Withdraw fraction (0–1)<input name="withdrawFrac" type="number" step="0.05" value="${r?.assumptions.withdrawFrac ?? 0.25}"></label>
+      <label>Daily buyback ($LoS)<input name="dailyBuyback" type="number" value="${r?.assumptions.dailyBuyback || 0}"></label>
+      <label style="justify-content:end"><button class="act" type="submit">Run simulation</button></label>
+    </form>
+    ${r ? `<div class="cards">
+      <div class="card"><b>${r.daily.emission.toLocaleString()}</b><span>daily emission</span></div>
+      <div class="card"><b class="mint">${r.daily.tax.toLocaleString()}</b><span>daily treasury tax</span></div>
+      <div class="card"><b class="burn">${(r.daily.burns + r.daily.withdrawals + r.daily.buyback).toLocaleString()}</b><span>daily sinks (burn+withdraw)</span></div>
+      <div class="card"><b style="color:${r.daily.net > 0 ? 'var(--gold)' : 'var(--green)'}">${r.daily.net > 0 ? '+' : ''}${r.daily.net.toLocaleString()}</b><span>net daily supply</span></div>
+      <div class="card"><b>${r.annualisedInflationPct}%</b><span>annualised inflation</span></div>
+    </div>
+    <div class="card" style="margin-bottom:14px;border-color:${r.daily.net <= 0 ? 'var(--green)' : r.verdict[0] === 'S' ? 'var(--gold)' : 'var(--red)'}"><b style="font-size:14px">${r.verdict}</b></div>
+    <h2>Projection (per player-hour emission: ${r.perPlayerHour} $LoS)</h2>
+    <table><tr><th>day</th><th>circulating</th><th>treasury</th></tr>
+    ${r.series.map(s => `<tr><td>${s.day}</td><td>${s.circulating.toLocaleString()}</td><td>${s.treasury.toLocaleString()}</td></tr>`).join('')}</table>` : '<p style="color:var(--dim)">Run a simulation to see results.</p>'}`;
+  main.querySelector('#sim-form').onsubmit = (e) => {
+    e.preventDefault();
+    const f = Object.fromEntries(new FormData(e.target).entries());
+    for (const k in f) f[k] = parseFloat(f[k]) || 0;
+    send({ t: 'simulate', params: f });
+  };
 }
 
 function renderDash() {
@@ -67,6 +157,8 @@ function renderDash() {
       <div class="card"><b>${s ? s.entities : '…'}</b><span>entities</span></div>
       <div class="card"><b>${s ? s.chests + '/' + s.geodes : '…'}</b><span>chests / geodes</span></div>
       <div class="card"><b style="color:var(--gold)">${s ? s.supply : '…'}</b><span>$LoS supply</span></div>
+      <div class="card"><b style="color:var(--gold)">${s ? (s.treasury || 0).toLocaleString() : '…'}</b><span>treasury</span></div>
+      <div class="card"><b style="color:${s && s.migrated ? 'var(--green)' : 'var(--dim)'}">${s ? (s.migrated ? 'LIVE' : 'off-chain') : '…'}</b><span>token status</span></div>
       <div class="card"><b>${s ? Object.keys(s.bans).length : '…'}</b><span>active bans</span></div>
       <div class="card"><b>${s ? Math.floor(s.up / 60) + 'm' : '…'}</b><span>uptime</span></div>
     </div>

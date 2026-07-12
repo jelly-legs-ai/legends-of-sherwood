@@ -40,9 +40,10 @@ export function levelForXp(xp) {
 export const MILESTONE_LEVELS = [5, 10, 20, 25, 50, 75, 99];
 export const MILESTONE_SHILLINGS = { 5: 1, 10: 2, 20: 4, 25: 6, 50: 18, 75: 45, 99: 250 };
 
+// $LoS — the Legends of Sherwood reward token. Symbol is the ticker.
 export const SHILLING = {
   SYMBOL: '$LoS',
-  DECIMALS: 0,               // whole shillings in-game; contract uses 18
+  DECIMALS: 0,               // whole tokens in-game; contract uses 18
   BOSS_BOUNTY_BASE: 3,       // per contributor, scales with boss tier
   BOSS_JACKPOT_CHANCE: 1 / 50,
   BOSS_JACKPOT: 40,
@@ -50,9 +51,13 @@ export const SHILLING = {
   DUNGEON_FLOOR_BASE: 2,     // + floor depth scaling
   EVENT_PAYOUT_BASE: 5,
   COLOSSEUM_RAKE: 0.05,      // burned from every duel pot (token sink)
-  GE_LISTING_FEE: 0.01,      // fraction of ask burned on listing (min 0), sink
+  GE_LISTING_FEE: 0.01,      // fraction of proceeds burned as a sink
+  GE_TREASURY_TAX: 0.05,     // 5% of every GE p2p sale routed to the protocol treasury
   WILDERNESS_BONUS: 2.0,     // drop-rate multiplier in the Wild Lands (PvP zone)
 };
+// Reserved ledger account holding protocol treasury funds (GE tax, buybacks,
+// creator-wallet transfers). Never a real player name (has a leading $).
+export const TREASURY_ACCT = '$treasury';
 
 // ---- Skills ----------------------------------------------------------------
 export const SKILLS = [

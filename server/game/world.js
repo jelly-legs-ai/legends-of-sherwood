@@ -15,7 +15,7 @@ import { Ledger } from './economy.js';
 import { tickCombat, mobAttack } from './combat.js';
 import { createStore } from './store.js';
 import { Vault } from './vault.js';
-import { loadCustomEvents } from './admin.js';
+import { loadCustomEvents, loadTokenConfig } from './admin.js';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -51,7 +51,9 @@ export class World {
     this.houseIdx = houseIdx || {};
     this.ledger = new Ledger(this.store);
     this.ledger.load(await this.store.loadLedger());
+    this.tokenConfig = loadTokenConfig(this.dataDir);
     this.vault = new Vault(this, this.dataDir);
+    this.vault.tokenConfig = this.tokenConfig;
     this.customEvents = loadCustomEvents(this.dataDir);
     this.adminSockets = new Set();
     this.spawnMobs();

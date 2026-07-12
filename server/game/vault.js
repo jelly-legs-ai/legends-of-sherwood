@@ -101,9 +101,12 @@ export class Vault {
       this.world.announce(`🛡 The Vault Wardens froze a suspicious transaction — the realm's treasury stands protected.`);
     } else {
       this.world.ledger.burn(p.name, amount, `vault:withdraw#${req.id}:${address}`);
+      const live = this.tokenConfig?.migrated;
+      req.settled = live ? 'chain' : 'queued';
+      req.contract = live ? this.tokenConfig.contract : '';
       this.world.send(p, { t: MSG.TOKEN, bal: this.world.ledger.balance(p.name), delta: -amount, reason: 'withdrawn to chain' });
-      this.world.send(p, { t: MSG.MSGBOX, kind: 'milestone', m: `✦ ${amount} $LoS queued for the Robinhood chain (${address.slice(0, 12)}…).` });
-      this.alert('vault', `released #${req.id}: ${p.name} → ${amount} $LoS to ${address}`);
+      this.world.send(p, { t: MSG.MSGBOX, kind: 'milestone', m: `✦ ${amount} $LoS ${live ? 'settled on-chain' : 'queued for the chain'} (${address.slice(0, 12)}…).` });
+      this.alert('vault', `released #${req.id}: ${p.name} → ${amount} $LoS to ${address}${live ? ' [auto-settled on ' + this.tokenConfig.symbol + ']' : ''}`);
     }
     this.save();
     return req;

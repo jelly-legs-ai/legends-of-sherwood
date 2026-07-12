@@ -2,7 +2,7 @@
 // The ledger mirrors what contracts/Shilling.sol would do on-chain; a bridge
 // would replay `log` entries as mint/burn/transfer calls.
 
-import { SHILLING, MSG, GE } from '../../shared/constants.js';
+import { SHILLING, MSG, GE, TREASURY_ACCT } from '../../shared/constants.js';
 import { ITEMS } from '../../shared/data/items.js';
 
 export class Ledger {
@@ -50,6 +50,40 @@ export class Ledger {
   async save() {
     if (this.log.length > 50000) this.log = this.log.slice(-20000);
     if (this.store) await this.store.saveLedger({ balances: this.balances, log: this.log, burned: this.burned, minted: this.minted });
+  }
+
+  // ---------------- protocol treasury ----------------
+  // The treasury is a reserved ledger account. It grows from the GE trade tax,
+  // token buybacks and creator-wallet transfers; it can fund buybacks (burn).
+  treasuryBalance() { return this.balances[TREASURY_ACCT] || 0; }
+  fundTreasury(amt, source) {
+    amt = Math.floor(amt);
+    if (amt <= 0) return;
+    this.balances[TREASURY_ACCT] = (this.balances[TREASURY_ACCT] || 0) + amt;
+    this.log.push([Date.now(), 'treasury', source, amt, 'inflow']);
+    this._dirty = true;
+  }
+  // Buyback: the treasury spends its own balance to remove tokens from supply.
+  treasuryBuyback(amt) {
+    amt = Math.floor(amt);
+    if (amt <= 0 || this.treasuryBalance() < amt) return false;
+    this.balances[TREASURY_ACCT] -= amt;
+    this.burned += amt;
+    this.log.push([Date.now(), 'burn', TREASURY_ACCT, amt, 'buyback']);
+    return true;
+  }
+  // Move tokens from a creator/named wallet into the treasury.
+  creatorTransfer(from, amt) {
+    amt = Math.floor(amt);
+    if (amt <= 0) return false;
+    // creator wallets may be minted-to accounts; allow going into the reserve
+    if ((this.balances[from] || 0) < amt) { // top up a creator faucet then move
+      this.minted += amt; this.log.push([Date.now(), 'mint', from, amt, 'creator:seed']);
+      this.balances[from] = (this.balances[from] || 0) + amt;
+    }
+    this.balances[from] -= amt;
+    this.fundTreasury(amt, `creator:${from}`);
+    return true;
   }
 }
 
@@ -100,11 +134,14 @@ export class GrandExchange {
       buy.left -= n; buy.filled += n;
       sell.left -= n; sell.filled += n;
       this.history[offer.item] = price;
-      // pay the seller from the buyer's escrow, minus the burned listing fee (sink)
+      // pay the seller from the buyer's escrow, minus the sinks: a small burn
+      // and the 5% protocol-treasury trade tax.
       const proceeds = n * price;
       const fee = Math.floor(proceeds * SHILLING.GE_LISTING_FEE);
-      this.world.ledger.mint(sell.player, proceeds - fee, `ge:sold:${offer.item}`);
+      const tax = Math.floor(proceeds * SHILLING.GE_TREASURY_TAX);
+      this.world.ledger.mint(sell.player, proceeds - fee - tax, `ge:sold:${offer.item}`);
       if (fee > 0) { this.world.ledger.log.push([Date.now(), 'burn', 'ge', fee, 'ge:fee']); this.world.ledger.burned += fee; }
+      if (tax > 0) this.world.ledger.fundTreasury(tax, 'ge:tax');
       buy.escrow -= proceeds;
       // deliver items to buyer
       this.deliver(buy.player, offer.item, n);
