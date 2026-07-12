@@ -52,11 +52,11 @@ export const POIS = [
   ['allotment', 244, 348], ['allotment', 247, 348], ['herb_patch', 250, 348],
   ['essence_rock', 271, 340], ['copper_rock', 268, 338], ['copper_rock', 269, 341], ['tin_rock', 270, 336], ['tin_rock', 272, 342],
   ['net_spot', 248, 358], ['rod_spot', 256, 358], ['rod_spot', 262, 358],
-  ['house_portal', 240, 330],
+  ['house_portal', 240, 330], ['loom', 258, 327], ['tanning_rack', 246, 341],
   // --- Nottingham ---
   ['bank_booth', 320, 318], ['ge_booth', 339, 318], ['museum_bench', 339, 342],
   ['bakery_stall', 328, 330], ['fur_stall', 331, 330], ['silver_stall', 334, 330], ['gem_stall', 337, 330],
-  ['range', 320, 342], ['chapel_altar', 322, 334], ['furnace', 344, 330], ['anvil', 345, 332],
+  ['range', 320, 342], ['chapel_altar', 322, 334], ['furnace', 344, 330], ['anvil', 345, 332], ['loom', 342, 334], ['tanning_rack', 347, 334],
   // --- Bay ---
   ['bank_booth', 44, 412], ['range', 54, 412],
   ['net_spot', 40, 434], ['net_spot', 44, 436], ['rod_spot', 50, 436], ['harpoon_spot', 56, 438],

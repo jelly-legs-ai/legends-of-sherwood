@@ -82,6 +82,8 @@ export const NODES = {
   range: { skill: 'cooking', lvl: 1, xp: 0, name: 'Cooking range', station: 'range' },
   furnace: { skill: 'smithing', lvl: 1, xp: 0, name: 'Furnace', station: 'furnace' },
   anvil: { skill: 'smithing', lvl: 1, xp: 0, name: 'Anvil', station: 'anvil' },
+  loom: { skill: 'crafting', lvl: 1, xp: 0, name: 'Loom', station: 'loom' },
+  tanning_rack: { skill: 'crafting', lvl: 1, xp: 0, name: 'Tanning rack', station: 'tanning_rack' },
   bank_booth: { skill: null, lvl: 1, xp: 0, name: 'Bank booth', bank: true },
   ge_booth: { skill: null, lvl: 1, xp: 0, name: 'Grand Exchange', ge: true },
   house_portal: { skill: 'construction', lvl: 1, xp: 0, name: 'House portal', house: true },
@@ -149,12 +151,12 @@ import { GEMS } from './items.js';
 RECIPES.push(
   { id: 'craft_leather', skill: 'crafting', lvl: 1, xp: 25, station: null, tool: 'needle', inputs: { cow_hide: 1 }, output: { soft_leather: 1 }, name: 'Cure leather' },
   { id: 'craft_leather_coif', skill: 'crafting', lvl: 3, xp: 35, station: null, tool: 'needle', inputs: { soft_leather: 1 }, output: { leather_coif: 1 }, name: 'Leather coif' },
-  { id: 'craft_leather_chaps', skill: 'crafting', lvl: 8, xp: 50, station: null, tool: 'needle', inputs: { soft_leather: 2 }, output: { leather_chaps: 1 }, name: 'Leather chaps' },
-  { id: 'craft_leather_body', skill: 'crafting', lvl: 14, xp: 70, station: null, tool: 'needle', inputs: { soft_leather: 3 }, output: { leather_body: 1 }, name: 'Leather body' },
-  { id: 'craft_studded_body', skill: 'crafting', lvl: 28, xp: 110, station: null, tool: 'needle', inputs: { soft_leather: 3, iron_bar: 1 }, output: { studded_body: 1 }, name: 'Studded body' },
-  { id: 'craft_ranger_body', skill: 'crafting', lvl: 52, xp: 190, station: null, tool: 'needle', inputs: { soft_leather: 4, wolf_pelt: 2 }, output: { ranger_body: 1 }, name: 'Ranger body' },
-  { id: 'craft_lincoln_body', skill: 'crafting', lvl: 76, xp: 320, station: null, tool: 'needle', inputs: { soft_leather: 5, sable_pelt: 2 }, output: { lincoln_body: 1 }, name: 'Lincoln green body' },
-  { id: 'craft_bowstring', skill: 'crafting', lvl: 10, xp: 15, station: null, inputs: { flax: 1 }, output: { bowstring: 1 }, name: 'Spin bowstring' },
+  { id: 'craft_leather_chaps', skill: 'crafting', lvl: 8, xp: 50, station: 'tanning_rack', tool: 'needle', inputs: { soft_leather: 2 }, output: { leather_chaps: 1 }, name: 'Leather chaps' },
+  { id: 'craft_leather_body', skill: 'crafting', lvl: 14, xp: 70, station: 'tanning_rack', tool: 'needle', inputs: { soft_leather: 3 }, output: { leather_body: 1 }, name: 'Leather body' },
+  { id: 'craft_studded_body', skill: 'crafting', lvl: 28, xp: 110, station: 'tanning_rack', tool: 'needle', inputs: { soft_leather: 3, iron_bar: 1 }, output: { studded_body: 1 }, name: 'Studded body' },
+  { id: 'craft_ranger_body', skill: 'crafting', lvl: 52, xp: 190, station: 'tanning_rack', tool: 'needle', inputs: { soft_leather: 4, wolf_pelt: 2 }, output: { ranger_body: 1 }, name: 'Ranger body' },
+  { id: 'craft_lincoln_body', skill: 'crafting', lvl: 76, xp: 320, station: 'tanning_rack', tool: 'needle', inputs: { soft_leather: 5, sable_pelt: 2 }, output: { lincoln_body: 1 }, name: 'Lincoln green body' },
+  { id: 'craft_bowstring', skill: 'crafting', lvl: 10, xp: 15, station: 'loom', inputs: { flax: 1 }, output: { bowstring: 1 }, name: 'Spin bowstring' },
   { id: 'craft_vial', skill: 'crafting', lvl: 5, xp: 12, station: 'furnace', inputs: { coins: 2 }, output: { vial_water: 3 }, name: 'Blow vials' },
 );
 for (const g of GEMS) RECIPES.push({

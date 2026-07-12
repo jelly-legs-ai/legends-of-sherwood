@@ -193,16 +193,16 @@ G.net.on('cooldown', (m) => { G.cooldowns[m.ability] = m.until; });
 G.net.on('pets', (m) => { G.pets = m.pets || []; G.activePet = m.activePet ?? null; if (G.tab === 'pets') UI.renderPanel(); });
 G.net.on('petXp', (m) => { if (G.pets && G.pets[m.idx]) G.pets[m.idx].xp = m.xp; if (G.tab === 'pets') UI.renderPanel(); });
 G.net.on('petLevel', (m) => UI.toast(`🐾 Your ${String(m.id).replace(/_/g, ' ')} reached level ${m.level}!`));
-G.net.on(MSG.SELF, (m) => { if (m.prayersOn) { G.prayersOn = new Set(m.prayersOn); if (G.tab === 'prayer') UI.renderPanel(); } });
+G.net.on(MSG.SELF, (m) => { if (m.prayersOn) { G.prayersOn = new Set(m.prayersOn); if (G.tab === 'prayer') UI.renderPanel(); UI.renderAbilities(); } });
 G.net.on('node', (m) => { const k = m.x + ',' + m.y; if (m.off) G.depletedNodes.add(k); else G.depletedNodes.delete(k); });
 G.net.on(MSG.INTERFACE, (m) => {
   switch (m.iface) {
     case 'bank': UI.openBank(m.bank); break;
     case 'dungeon': UI.openDungeon(m.best); break;
     case 'house': G.houseFurniture = m.furniture || {}; UI.openHouse(G.houseFurniture); break;
-    case 'obelisk': G.tab = 'craft'; UI.renderPanel(); UI.toast('The obelisk hums — Summoning recipes are in the Crafting tab.'); break;
-    case 'bench': G.tab = 'craft'; UI.renderPanel(); UI.toast('Restoration recipes are in the Crafting tab (Archaeology).'); break;
-    case 'station': G.tab = 'craft'; UI.renderPanel(); UI.toast(`You stand at the ${m.station}. Crafting tab is open.`); break;
+    case 'obelisk': UI.openStation('obelisk', '🗿 Summoning Obelisk'); break;
+    case 'bench': UI.openStation('bench', '🏺 Restoration Bench'); break;
+    case 'station': UI.openStation(m.station); break;
   }
 });
 G.net.on('__close', () => { UI.toast('Connection lost — refresh to rejoin.'); });
@@ -216,7 +216,7 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { UI.closeWin(); UI.hideDialogue(); G.selSpell = null; }
   if (e.key === 'm' || e.key === 'M') G.net.send({ t: 'mount' });
   const n = parseInt(e.key);
-  if (n >= 1 && n <= 9 && G.abilityKeys[n - 1]) G.net.send({ t: MSG.ABILITY, id: G.abilityKeys[n - 1] });
+  if (n >= 1 && n <= 9) UI.triggerHotbar(n - 1);
 });
 window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
 setInterval(() => {

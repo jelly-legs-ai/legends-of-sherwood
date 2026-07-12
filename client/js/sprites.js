@@ -561,6 +561,29 @@ export function nodeSprite(type, off = false) {
         px(g, 44, 46, 6, 3, '#4c4c56');
         break;
       }
+      case 'loom': {
+        // upright wooden frame with warp threads and a woven band
+        px(g, 18, 36, 4, 30, '#6e522f'); px(g, 42, 36, 4, 30, '#6e522f');
+        px(g, 16, 34, 32, 4, '#8a6a3c'); px(g, 16, 62, 32, 4, '#5a442c');
+        g.strokeStyle = '#e8dcc0'; g.lineWidth = 1;
+        for (let i = 0; i < 7; i++) { g.beginPath(); g.moveTo(23 + i * 3, 38); g.lineTo(23 + i * 3, 62); g.stroke(); }
+        px(g, 22, 50, 21, 6, '#a34a3a'); px(g, 22, 50, 21, 2, '#c86a52');
+        px(g, 20, 44, 24, 3, '#8a6a3c');
+        break;
+      }
+      case 'tanning_rack': {
+        // A-frame rack with a stretched hide laced at the corners
+        g.strokeStyle = '#6e522f'; g.lineWidth = 4; g.lineCap = 'round';
+        g.beginPath(); g.moveTo(18, 66); g.lineTo(30, 34); g.moveTo(46, 66); g.lineTo(34, 34); g.stroke();
+        g.beginPath(); g.moveTo(28, 36); g.lineTo(36, 36); g.stroke();
+        g.fillStyle = '#c49a62';
+        g.beginPath(); g.moveTo(24, 42); g.quadraticCurveTo(32, 39, 40, 42); g.lineTo(42, 58); g.quadraticCurveTo(32, 62, 22, 58); g.closePath(); g.fill();
+        g.strokeStyle = '#8a6a3c'; g.lineWidth = 1; g.stroke();
+        g.fillStyle = '#a87f4c'; g.beginPath(); g.ellipse(32, 50, 6, 4.4, 0.2, 0, 7); g.fill();
+        g.strokeStyle = '#4a3a1c';
+        for (const [ax, ay, bx2, by2] of [[24, 42, 21, 39], [40, 42, 43, 39], [22, 58, 19, 61], [42, 58, 45, 61]]) { g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx2, by2); g.stroke(); }
+        break;
+      }
       case 'furnace': {
         px(g, 16, 34, 32, 34, '#4a4038'); px(g, 18, 36, 28, 30, '#7a6a5c');
         px(g, 18, 36, 28, 4, '#948274'); px(g, 20, 30, 8, 8, '#5c5048');

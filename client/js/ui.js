@@ -3,12 +3,13 @@
 
 import { SKILLS, XP_TABLE, MSG, MILESTONE_LEVELS, MILESTONE_SHILLINGS, levelForXp } from '/shared/constants.js';
 import { ITEMS } from '/shared/data/items.js';
-import { RECIPES, SPELLS, PRAYERS, ABILITIES, DUNGEON, FURNITURE } from '/shared/data/skills.js';
+import { RECIPES, SPELLS, PRAYERS, ABILITIES, DUNGEON, FURNITURE, NODES } from '/shared/data/skills.js';
 import { QUESTS } from '/shared/data/quests.js';
-import { itemIcon } from './sprites.js';
+import { itemIcon, nodeSprite } from './sprites.js';
 import { worldMapCanvas } from './renderer.js';
 import { TOWNS } from '/shared/data/world.js';
 import { REGIONS, WILDERNESS_Y, WORLD } from '/shared/constants.js';
+import { drawFxSprite, drawMediaIcon } from './media.js';
 
 const $ = (s) => document.querySelector(s);
 let G = null; // game state ref
@@ -43,6 +44,7 @@ export function initUI(game) {
 // ---------------- side panel ----------------
 export function renderPanel() {
   if (!G || !G.me) return;
+  hideTooltip();                       // panel swaps orphan hover tooltips
   const p = $('#panel');
   switch (G.tab || 'inv') {
     case 'inv': return renderInv(p);
@@ -51,7 +53,6 @@ export function renderPanel() {
     case 'quests': return renderQuests(p);
     case 'prayer': return renderPrayers(p);
     case 'magic': return renderMagic(p);
-    case 'craft': return renderCraft(p);
     case 'pets': return renderPets(p);
   }
 }
@@ -79,10 +80,22 @@ function renderInv(p) {
       // left-click: perform the item's primary action; right-click: full menu
       d.onclick = (e) => { e.stopPropagation(); invPrimary(s, i, e); };
       d.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); invMenu(e, s, i); };
+      // consumables drag onto the hotbar
+      const def = ITEMS[s.id] || {};
+      if (def.food || def.potion || def.bones || def.tome) {
+        d.draggable = true;
+        d.ondragstart = (e) => e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'item', id: s.id }));
+      }
     }
     grid.appendChild(d);
   });
   p.appendChild(grid);
+  // tool-in-hand crafting (knife work, potions, cleaning herbs…)
+  const hc = document.createElement('button');
+  hc.className = 'wood-btn handcraft';
+  hc.textContent = '🔨 Handcraft';
+  hc.onclick = () => openStation(null);
+  p.appendChild(hc);
 }
 // One-click primary action per item category (bank/shop contexts still apply).
 function invPrimary(s, i, e) {
@@ -118,7 +131,7 @@ function renderEquip(p) {
   p.innerHTML = '';
   const grid = document.createElement('div');
   grid.className = 'equip-grid';
-  const slots = [null, 'head', null, 'cape', 'torso', 'neck', 'weapon', 'legs', 'shield', 'hands', 'feet', 'ammo'];
+  const slots = [null, 'head', null, 'cape', 'torso', 'neck', 'weapon', 'legs', 'shield', 'hands', 'feet', 'ammo', 'aura', null, 'mount'];
   for (const sl of slots) {
     const d = document.createElement('div');
     if (!sl) { d.style.visibility = 'hidden'; grid.appendChild(d); continue; }
@@ -150,62 +163,240 @@ function renderEquip(p) {
   }
   p.appendChild(styleRow);
 }
+// Each skill is a tile fronted by a representative item icon; clicking a tile
+// opens that skill's full guide (unlocks, nodes, recipes, quests).
+const SKILL_REP = {
+  attack: 'steel_sword', strength: 'steel_waraxe', defence: 'steel_shield', constitution: 'cooked_trout',
+  ranged: 'yew_bow', magic: 'druid_staff', prayer: 'bones', summoning: 'wolf_pup_pouch',
+  mining: 'steel_pickaxe', fishing: 'raw_trout', woodcutting: 'steel_hatchet', farming: 'potato_seed',
+  hunter: 'box_trap', archaeology: 'trowel', smithing: 'steel_bar', cooking: 'bread',
+  crafting: 'needle', firemaking: 'tinderbox', fletching: 'headless_arrows', runecrafting: 'cosmic_rune',
+  herblore: 'attack_potion', construction: 'hammer', agility: 'leather_boots', thieving: 'coins',
+  dungeoneering: 'dungeon_key',
+};
 function renderSkills(p) {
   p.innerHTML = '';
+  const grid = document.createElement('div');
+  grid.className = 'skill-tiles';
   let total = 0;
   for (const sk of SKILLS) {
     const xp = G.xp[sk] || 0;
     const lvl = levelForXp(xp);
     total += lvl;
-    const row = document.createElement('div');
-    row.className = 'skill-row';
     const cur = XP_TABLE[lvl], next = XP_TABLE[Math.min(99, lvl + 1)];
     const pct = lvl >= 99 ? 100 : Math.floor(100 * (xp - cur) / Math.max(1, next - cur));
-    row.innerHTML = `<div style="flex:1"><div style="display:flex;justify-content:space-between"><span>${sk[0].toUpperCase() + sk.slice(1)}</span><span class="lv">${lvl}</span></div><div class="bar"><i style="width:${pct}%"></i></div></div>`;
-    row.onmouseenter = (e) => {
+    const t = document.createElement('div');
+    t.className = 'skill-tile' + (lvl >= 99 ? ' maxed' : '');
+    t.appendChild(iconCanvas(SKILL_REP[sk] || 'coins'));
+    const nm = document.createElement('div'); nm.className = 'sk-name'; nm.textContent = sk[0].toUpperCase() + sk.slice(1);
+    const lv = document.createElement('div'); lv.className = 'sk-lv'; lv.textContent = lvl;
+    const bar = document.createElement('div'); bar.className = 'sk-bar'; bar.innerHTML = `<i style="width:${pct}%"></i>`;
+    t.append(nm, lv, bar);
+    t.onclick = () => openSkillGuide(sk);
+    t.onmouseenter = (e) => {
       const paid = (G.milestones[sk] || []);
       const nextMile = MILESTONE_LEVELS.find(m => !paid.includes(m) && m > lvl);
-      tooltip(e, `<b>${sk}</b> — level ${lvl}<br>XP: ${fmt(xp)} / next lvl: ${lvl >= 99 ? 'MAX' : fmt(next - xp)}<br>` +
-        `Milestones paid: ${paid.join(', ') || 'none'}<br>` +
-        (nextMile ? `Next milestone: lvl ${nextMile} → <b>${MILESTONE_SHILLINGS[nextMile]} $SHL</b>` : 'All milestones earned!') +
-        (lvl < 99 ? `<br>Level 99 pays <b>${MILESTONE_SHILLINGS[99]} $SHL</b>` : ''));
+      tooltip(e, `<b>${sk[0].toUpperCase() + sk.slice(1)}</b> — level ${lvl}<br>XP: ${fmt(xp)}${lvl < 99 ? ` (${fmt(next - xp)} to next)` : ' — MAX'}<br>` +
+        (nextMile ? `Next milestone: lvl ${nextMile} → <b>${MILESTONE_SHILLINGS[nextMile]} $SHL</b><br>` : '') +
+        `<i>Click for the ${sk} guide</i>`);
     };
-    row.onmouseleave = hideTooltip;
-    p.appendChild(row);
+    t.onmouseleave = hideTooltip;
+    grid.appendChild(t);
   }
+  p.appendChild(grid);
   const tot = document.createElement('div');
   tot.style.cssText = 'margin-top:6px;text-align:center;color:#ffd75e';
   tot.textContent = `Total level: ${total}`;
   p.appendChild(tot);
 }
+
+// ---------------- skill guide ----------------
+// Everything a skill unlocks, on one data-driven timeline: gear, gathering
+// nodes, recipes (with their stations), spells/prayers/abilities and quests.
+function openSkillGuide(sk) {
+  const lvl = levelForXp(G.xp[sk] || 0);
+  const rows = [];
+  for (const it of Object.values(ITEMS))
+    if (it.req && it.req[sk]) rows.push({ lvl: it.req[sk], icon: () => iconCanvas(it.id), label: it.name, kind: 'Wear/Wield' });
+  for (const r of RECIPES)
+    if (r.skill === sk) rows.push({ lvl: r.lvl, icon: () => iconCanvas(Object.keys(r.output || {})[0] || 'coins'), label: `${r.name || r.id}${r.station ? ` — at the ${r.station.replace(/_/g, ' ')}` : r.tool ? ` — with a ${r.tool}` : ''}`, kind: 'Make' });
+  for (const [nid, n] of Object.entries(NODES))
+    if (n.skill === sk) rows.push({ lvl: n.lvl || 1, icon: () => n.yield ? iconCanvas(n.yield) : nodeThumb(nid), label: `${n.name || nid.replace(/_/g, ' ')}${n.tool ? ` (needs ${n.tool.replace(/_/g, ' ')})` : ''}`, kind: 'Gather' });
+  if (sk === 'magic') for (const [id, s] of Object.entries(SPELLS)) rows.push({ lvl: s.lvl, icon: () => spellIconCanvas(id), label: s.name, kind: 'Cast' });
+  if (sk === 'prayer') for (const [id, pr] of Object.entries(PRAYERS)) rows.push({ lvl: pr.lvl, icon: () => prayerIconCanvas(id), label: pr.name, kind: 'Pray' });
+  for (const [id, ab] of Object.entries(ABILITIES))
+    if (ab.skill === sk) rows.push({ lvl: ab.lvl, icon: null, label: `${ab.name} (hotbar ability)`, kind: 'Ability' });
+  for (const [qid, q] of Object.entries(QUESTS)) {
+    for (const st of q.steps) if (st.type === 'skill' && st.skill === sk) rows.push({ lvl: st.level, icon: null, label: `Quest: ${q.name}`, kind: 'Quest' });
+  }
+  rows.sort((a, b) => a.lvl - b.lvl);
+  openWin(`📖 ${sk[0].toUpperCase() + sk.slice(1)} guide — level ${lvl}`, (body) => {
+    const head = document.createElement('div');
+    head.className = 'guide-head';
+    const paid = (G.milestones[sk] || []);
+    const nextMile = MILESTONE_LEVELS.find(m => !paid.includes(m) && m > lvl);
+    head.innerHTML = `XP <b>${fmt(G.xp[sk] || 0)}</b>${lvl < 99 ? ` — ${fmt(XP_TABLE[lvl + 1] - (G.xp[sk] || 0))} to level ${lvl + 1}` : ' — <b>MASTERED</b>'}` +
+      (nextMile ? ` &nbsp;·&nbsp; next $SHL milestone at <b>lvl ${nextMile}</b> (+${MILESTONE_SHILLINGS[nextMile]})` : '');
+    body.appendChild(head);
+    if (!rows.length) { body.insertAdjacentHTML('beforeend', '<i>This skill learns by doing — no listed unlocks.</i>'); return; }
+    const list = document.createElement('div');
+    list.className = 'guide-list';
+    for (const r of rows) {
+      const d = document.createElement('div');
+      d.className = 'guide-row' + (lvl >= r.lvl ? ' got' : ' need');
+      const ic = document.createElement('div'); ic.className = 'g-ic';
+      if (r.icon) ic.appendChild(r.icon());
+      d.appendChild(ic);
+      d.insertAdjacentHTML('beforeend', `<span class="g-lvl">${r.lvl}</span><span class="g-kind">${r.kind}</span><span class="g-label">${r.label}</span>`);
+      list.appendChild(d);
+    }
+    body.appendChild(list);
+  });
+}
+function nodeThumb(type) {
+  const c = document.createElement('canvas');
+  c.width = 32; c.height = 32;
+  try { c.getContext('2d').drawImage(nodeSprite(type), 0, 0, 64, 64, 0, -6, 32, 32); } catch { }
+  return c;
+}
+// Quest journal: EVERY quest in the game, colour-coded — red not started,
+// yellow in progress, green complete. Click one for its full requirements.
 function renderQuests(p) {
-  p.innerHTML = '';
-  const entries = Object.entries(G.quests);
-  if (!entries.length) p.innerHTML = '<i>No quests yet — look for ❗ above folk of Sherwood.</i>';
-  for (const [qid, st] of entries) {
-    const q = QUESTS[qid];
-    if (!q) continue;
+  p.innerHTML = '<div class="craft-cat">Quest journal</div>';
+  const order = Object.entries(QUESTS).sort((a, b) => (a[1].level || 1) - (b[1].level || 1));
+  for (const [qid, q] of order) {
+    const st = G.quests[qid];
+    const status = st?.done ? 'done' : st ? 'active' : 'locked';
     const d = document.createElement('div');
-    d.className = 'quest-item' + (st.done ? ' done' : '');
-    const step = q.steps[st.step];
-    d.innerHTML = `<div class="qname">${q.name}</div>` +
-      (st.done ? '<div class="hint">Complete ✓</div>'
-        : `<div class="hint">${step?.hint || ''} ${step?.count > 1 ? `(${st.n || 0}/${step.count})` : ''}</div>`);
+    d.className = `quest-item q-${status}`;
+    const step = st && !st.done ? q.steps[st.step] : null;
+    d.innerHTML = `<div class="qname">${status === 'done' ? '✔ ' : status === 'active' ? '➤ ' : ''}${q.name}</div>` +
+      (status === 'done' ? ''
+        : status === 'active' ? `<div class="hint">${step?.hint || ''} ${step?.count > 1 ? `(${st.n || 0}/${step.count})` : ''}</div>`
+          : `<div class="hint">Speak to ${prettyNpc(q.giver)} — recommended level ${q.level || 1}</div>`);
+    d.onclick = () => openQuestInfo(qid);
     p.appendChild(d);
   }
 }
+function prettyNpc(id) { return String(id || 'someone').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
+function openQuestInfo(qid) {
+  const q = QUESTS[qid];
+  const st = G.quests[qid];
+  openWin(`📜 ${q.name}`, (body) => {
+    const status = st?.done ? '<span style="color:#7fd05f">Complete ✔</span>' : st ? '<span style="color:#ffd75e">In progress</span>' : '<span style="color:#ff8a7a">Not started</span>';
+    body.insertAdjacentHTML('beforeend', `<div class="guide-head">${status} &nbsp;·&nbsp; Started with <b>${prettyNpc(q.giver)}</b> &nbsp;·&nbsp; recommended level <b>${q.level || 1}</b></div>`);
+    // requirements distilled from the quest's own steps
+    const reqs = [];
+    for (const s of q.steps) {
+      if (s.type === 'skill') reqs.push(`${s.skill} level ${s.level}`);
+      if (s.type === 'dungeon') reqs.push(`clear dungeon floor ${s.floor}`);
+    }
+    if (q.requires) for (const pre of [].concat(q.requires)) reqs.push(`quest: ${QUESTS[pre]?.name || pre}`);
+    if (reqs.length) body.insertAdjacentHTML('beforeend', `<div class="craft-cat">Requirements</div><div class="q-reqs">${reqs.map(r => `• ${r}`).join('<br>')}</div>`);
+    // journey
+    body.insertAdjacentHTML('beforeend', '<div class="craft-cat">The journey</div>');
+    const list = document.createElement('div');
+    list.className = 'guide-list';
+    q.steps.forEach((s, i) => {
+      const passed = st && (st.done || i < st.step);
+      const current = st && !st.done && i === st.step;
+      const d = document.createElement('div');
+      d.className = 'guide-row' + (passed ? ' got' : current ? ' now' : ' need');
+      d.innerHTML = `<span class="g-lvl">${passed ? '✔' : i + 1}</span><span class="g-label">${current || passed || !st ? (s.hint || s.type) : '…'}</span>`;
+      list.appendChild(d);
+    });
+    body.appendChild(list);
+    // rewards
+    if (q.rewards) {
+      body.insertAdjacentHTML('beforeend', '<div class="craft-cat">Rewards</div>');
+      const row = document.createElement('div');
+      row.className = 'q-rewards';
+      if (q.rewards.shillings) row.insertAdjacentHTML('beforeend', `<span class="tok">✦ ${q.rewards.shillings} $SHL</span> `);
+      if (q.rewards.coins) row.insertAdjacentHTML('beforeend', `<span>${fmt(q.rewards.coins)} coins</span> `);
+      for (const [id, qty] of Object.entries(q.rewards.items || {})) {
+        const chip = document.createElement('span'); chip.className = 'q-chip';
+        chip.appendChild(iconCanvas(id));
+        chip.insertAdjacentHTML('beforeend', `${qty > 1 ? qty + '× ' : ''}${ITEMS[id]?.name || id}`);
+        row.appendChild(chip);
+      }
+      for (const [skl, amt] of Object.entries(q.rewards.xp || {})) row.insertAdjacentHTML('beforeend', `<span class="lvl">+${fmt(amt)} ${skl} xp</span> `);
+      body.appendChild(row);
+    }
+  });
+}
+// ---------------- spell / prayer icon art ----------------
+// Spell icons are lifted straight from each spell's own projectile FX sheet;
+// prayers use the stat-badge cells of the skills icon pack.
+const _spellIcons = new Map();
+export function spellIconCanvas(id) {
+  let c = _spellIcons.get(id);
+  if (c) return c;
+  c = document.createElement('canvas');
+  c.width = 32; c.height = 32;
+  const g = c.getContext('2d');
+  const s = SPELLS[id];
+  g.fillStyle = '#100d16'; g.beginPath(); g.arc(16, 16, 15, 0, 7); g.fill();
+  let ok = true;
+  if (s.teleport) {
+    ok = drawFxSprite(g, 'twisted_6', 0.45, 16, 16, 28);
+    g.fillStyle = '#ffd75e'; g.font = 'bold 13px Georgia'; g.textAlign = 'center';
+    g.fillText('➤', 16, 21);
+  } else if (s.heal) {
+    g.strokeStyle = '#6fc04a'; g.lineWidth = 5; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(16, 8); g.lineTo(16, 24); g.moveTo(8, 16); g.lineTo(24, 16); g.stroke();
+    g.strokeStyle = '#b8f09a'; g.lineWidth = 2; g.stroke();
+  } else {
+    const spec = s.proj?.startsWith('sheet:') ? s.proj.slice(6) : null;
+    if (spec) ok = drawFxSprite(g, spec, spec.startsWith('twisted') ? 0.35 : 0.4, 16, 16, spec.startsWith('twisted') ? 30 : 26);
+    else { // legacy orb spells: coloured glow
+      const col = { air: '#cfe8f8', earth: '#b08a4c', water: '#6ab0e0', fire: '#ffb02a', nature: '#7fd05f', holy: '#fff3b0' }[s.proj] || '#ffb02a';
+      g.shadowColor = col; g.shadowBlur = 8; g.fillStyle = col;
+      g.beginPath(); g.arc(16, 16, 8, 0, 7); g.fill(); g.shadowBlur = 0;
+      g.fillStyle = '#ffffffaa'; g.beginPath(); g.arc(13, 13, 3, 0, 7); g.fill();
+    }
+  }
+  g.strokeStyle = '#0d0a05'; g.lineWidth = 1.5; g.beginPath(); g.arc(16, 16, 14.6, 0, 7); g.stroke();
+  if (ok) _spellIcons.set(id, c);
+  return c;
+}
+const PRAYER_CELL = {
+  thick_skin: [5, 3], rock_skin: [8, 4], clarity: [4, 5], improved_reflexes: [5, 5],
+  sharp_eye: [7, 3], hawk_eye: [8, 3], eagle_eye: [3, 4],
+  mystic_will: [6, 0], mystic_lore: [7, 0], mystic_might: [8, 0],
+  burst_strength: [4, 6], superhuman_strength: [4, 7],
+  rapid_heal: [2, 6], protect_magic: [0, 1], protect_missiles: [8, 1], protect_melee: [1, 1],
+  piety: [2, 7], rigour: [3, 7], augury: [5, 7],
+};
+const _prayerIcons = new Map();
+export function prayerIconCanvas(id) {
+  let c = _prayerIcons.get(id);
+  if (c) return c;
+  c = document.createElement('canvas');
+  c.width = 32; c.height = 32;
+  const g = c.getContext('2d');
+  g.fillStyle = '#1a1408'; g.beginPath(); g.arc(16, 16, 15, 0, 7); g.fill();
+  const cell = PRAYER_CELL[id] || [0, 3];
+  const ok = drawMediaIcon(g, ['icons_skills', cell[0], cell[1]], 2, 2, 28);
+  g.strokeStyle = '#6b5322'; g.lineWidth = 1.5; g.beginPath(); g.arc(16, 16, 14.6, 0, 7); g.stroke();
+  if (ok) _prayerIcons.set(id, c);
+  return c;
+}
+
 function renderPrayers(p) {
   p.innerHTML = `<div class="craft-cat">Prayer points: ${G.self?.pray ?? 0}</div>`;
   const grid = document.createElement('div');
-  grid.className = 'pray-grid';
+  grid.className = 'icon-grid';
   const plvl = levelForXp(G.xp.prayer || 0);
   for (const [id, pr] of Object.entries(PRAYERS)) {
     const b = document.createElement('button');
-    b.className = 'pray-btn' + (G.prayersOn.has(id) ? ' on' : '');
+    b.className = 'icon-btn' + (G.prayersOn.has(id) ? ' on' : '');
     b.disabled = plvl < pr.lvl;
-    b.innerHTML = `${pr.name}<br><small>lvl ${pr.lvl}</small>`;
+    b.appendChild(prayerIconCanvas(id));
+    b.insertAdjacentHTML('beforeend', `<span class="ib-name">${pr.name}</span><span class="ib-lvl">${pr.lvl}</span>`);
+    b.draggable = !b.disabled;
+    b.ondragstart = (e) => e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'prayer', id }));
     b.onclick = () => G.net.send({ t: MSG.PRAYER, id });
-    b.onmouseenter = (e) => tooltip(e, `<b>${pr.name}</b> (prayer ${pr.lvl})<br>${pr.boost ? Object.entries(pr.boost).map(([k, v]) => `+${Math.round(v * 100)}% ${k}`).join(', ') : ''}${pr.protect ? 'Protects from ' + pr.protect : ''}${pr.regen ? 'Speeds healing' : ''}<br>Drain: ${pr.drain}/tick`);
+    b.onmouseenter = (e) => tooltip(e, `<b>${pr.name}</b> (prayer ${pr.lvl})<br>${pr.boost ? Object.entries(pr.boost).map(([k, v]) => `+${Math.round(v * 100)}% ${k}`).join(', ') : ''}${pr.protect ? 'Protects from ' + pr.protect : ''}${pr.regen ? 'Speeds healing' : ''}<br>Drain: ${pr.drain}/tick — drag to hotbar`);
     b.onmouseleave = hideTooltip;
     grid.appendChild(b);
   }
@@ -214,54 +405,61 @@ function renderPrayers(p) {
 function renderMagic(p) {
   p.innerHTML = `<div class="craft-cat">Spellbook ${G.selSpell ? '— casting: ' + SPELLS[G.selSpell].name : ''}</div>`;
   const grid = document.createElement('div');
-  grid.className = 'spell-grid';
+  grid.className = 'icon-grid';
   const mlvl = levelForXp(G.xp.magic || 0);
   for (const [id, s] of Object.entries(SPELLS)) {
     const b = document.createElement('button');
-    b.className = 'spell-btn' + (G.selSpell === id ? ' sel' : '');
+    b.className = 'icon-btn' + (G.selSpell === id ? ' on' : '');
     b.disabled = mlvl < s.lvl;
-    b.innerHTML = `${s.name}<br><small>lvl ${s.lvl}</small>`;
+    b.appendChild(spellIconCanvas(id));
+    b.insertAdjacentHTML('beforeend', `<span class="ib-name">${s.name}</span><span class="ib-lvl">${s.lvl}</span>`);
+    b.draggable = !b.disabled;
+    b.ondragstart = (e) => e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'spell', id }));
     b.onclick = () => {
       if (s.teleport || s.heal) G.net.send({ t: MSG.CAST, spell: id });
       else { G.selSpell = G.selSpell === id ? null : id; renderPanel(); toast(G.selSpell ? `Click a target to cast ${s.name}.` : 'Spell deselected.'); }
     };
-    b.onmouseenter = (e) => tooltip(e, `<b>${s.name}</b> (magic ${s.lvl})<br>${s.dmg ? 'Damage spell — base ' + s.dmg : s.teleport ? 'Teleport to ' + s.teleport : 'Heals 20% LP'}<br>Runes: ${Object.entries(s.runes).map(([r, q]) => q + ' ' + r.replace('_rune', '')).join(', ')}`);
+    b.onmouseenter = (e) => tooltip(e, `<b>${s.name}</b> (magic ${s.lvl})<br>${s.dmg ? 'Damage spell — base ' + s.dmg : s.teleport ? 'Teleport to ' + s.teleport : 'Heals 20% LP'}<br>Runes: ${Object.entries(s.runes).map(([r, q]) => q + ' ' + r.replace('_rune', '')).join(', ')}<br><i>drag to hotbar</i>`);
     b.onmouseleave = hideTooltip;
     grid.appendChild(b);
   }
   p.appendChild(grid);
 }
-function renderCraft(p) {
-  p.innerHTML = '';
-  const bySkill = {};
-  for (const r of RECIPES) (bySkill[r.skill] = bySkill[r.skill] || []).push(r);
-  for (const [sk, list] of Object.entries(bySkill)) {
-    const lvl = levelForXp(G.xp[sk] || 0);
-    const cat = document.createElement('div');
-    cat.className = 'craft-cat';
-    cat.textContent = sk[0].toUpperCase() + sk.slice(1) + ` (lvl ${lvl})`;
-    p.appendChild(cat);
-    let shown = 0;
-    for (const r of list) {
-      const locked = lvl < r.lvl;
-      if (locked && shown > 14) continue;
-      const row = document.createElement('div');
-      row.className = 'craft-row' + (locked ? ' locked' : '');
-      row.innerHTML = `<span class="nm">${r.name} <small style="color:#8d7a4b">lvl ${r.lvl}${r.station ? ' @' + r.station : ''}</small></span>`;
-      if (!locked) {
-        for (const n of [1, 5]) {
-          const b = document.createElement('button');
-          b.textContent = '×' + n;
-          b.onclick = () => G.net.send({ t: MSG.MAKE, recipe: r.id, count: n });
-          row.appendChild(b);
+// Crafting lives at the WORKSTATIONS now: walk to a furnace/anvil/range/etc and
+// its own window opens. Only tool-in-hand recipes (knife work, herblore) are
+// craftable anywhere, via the Handcraft button on the inventory panel.
+export function openStation(station, title) {
+  const list = RECIPES.filter(r => (station ? r.station === station : !r.station));
+  openWin(title || `🔨 ${String(station || 'Handcraft').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`, (body) => {
+    if (!station) body.insertAdjacentHTML('beforeend', '<div class="guide-head">Simple work you can do anywhere with the right tool in your pack. Smelting, smithing, cooking and the rest need their workstations.</div>');
+    const bySkill = {};
+    for (const r of list) (bySkill[r.skill] = bySkill[r.skill] || []).push(r);
+    for (const [sk, rs] of Object.entries(bySkill)) {
+      const lvl = levelForXp(G.xp[sk] || 0);
+      body.insertAdjacentHTML('beforeend', `<div class="craft-cat">${sk[0].toUpperCase() + sk.slice(1)} (lvl ${lvl})</div>`);
+      for (const r of rs.sort((a, b) => a.lvl - b.lvl)) {
+        const locked = lvl < r.lvl;
+        const row = document.createElement('div');
+        row.className = 'craft-row' + (locked ? ' locked' : '');
+        const ic = document.createElement('span'); ic.className = 'craft-ic';
+        ic.appendChild(iconCanvas(Object.keys(r.output || {})[0] || 'coins'));
+        row.appendChild(ic);
+        row.insertAdjacentHTML('beforeend', `<span class="nm">${r.name} <small style="color:#8d7a4b">lvl ${r.lvl}${r.tool ? ' · ' + r.tool : ''}</small></span>`);
+        if (!locked) {
+          for (const n of [1, 5, 28]) {
+            const b = document.createElement('button');
+            b.textContent = '×' + n;
+            b.onclick = () => G.net.send({ t: MSG.MAKE, recipe: r.id, count: n });
+            row.appendChild(b);
+          }
         }
+        row.onmouseenter = (e) => tooltip(e, `<b>${r.name}</b> — ${r.skill} ${r.lvl}, ${r.xp}xp<br>Needs: ${Object.entries(r.inputs).map(([id, q]) => (q || '') + ' ' + (ITEMS[id]?.name || id)).join(', ')}${r.tool ? ' + ' + r.tool : ''}`);
+        row.onmouseleave = hideTooltip;
+        body.appendChild(row);
       }
-      row.onmouseenter = (e) => tooltip(e, `<b>${r.name}</b> — ${r.skill} ${r.lvl}, ${r.xp}xp<br>Needs: ${Object.entries(r.inputs).map(([id, q]) => (q || '') + ' ' + (ITEMS[id]?.name || id)).join(', ')}${r.tool ? ' + ' + r.tool : ''}${r.station ? '<br>At: ' + r.station : ''}`);
-      row.onmouseleave = hideTooltip;
-      p.appendChild(row);
-      shown++;
     }
-  }
+    if (!list.length) body.insertAdjacentHTML('beforeend', '<i>Nothing to make here.</i>');
+  });
 }
 
 // ---------------- pets ----------------
@@ -275,7 +473,7 @@ function renderPets(p) {
   p.innerHTML = '';
   const head = document.createElement('div');
   head.className = 'craft-cat';
-  head.textContent = `Pet roster (${(G.pets || []).length}/12)`;
+  head.textContent = `Pet roster (${(G.pets || []).length}/24) — one companion at your side at a time`;
   p.appendChild(head);
   if (!(G.pets || []).length) {
     const i = document.createElement('div');
@@ -332,31 +530,92 @@ export function confirmClaimPet(s, i) {
   opts.append(yes, no);
 }
 
-// ---------------- ability bar ----------------
+// ---------------- hotbar ----------------
+// Nine slots on keys 1-9. Abilities fill free slots by default; spells,
+// prayers and consumables can be dragged in from their panels. Right-click
+// clears a slot. Layout persists per character.
+function hotbarKey() { return 'los-hotbar-' + (G.myName || ''); }
+function loadHotbar() {
+  try { G.hotbar = JSON.parse(localStorage.getItem(hotbarKey())) || []; } catch { G.hotbar = []; }
+  if (!Array.isArray(G.hotbar)) G.hotbar = [];
+  G.hotbar.length = 9;
+}
+function saveHotbar() { try { localStorage.setItem(hotbarKey(), JSON.stringify(G.hotbar)); } catch { } }
 export function renderAbilities() {
+  if (!G.hotbar) loadHotbar();
+  // default-fill empty slots with unlocked abilities (never displacing customs)
+  const placed = new Set(G.hotbar.filter(Boolean).map(h => h.type + ':' + h.id));
+  let cursor = 0;
+  for (const [id, ab] of Object.entries(ABILITIES)) {
+    if (levelForXp(G.xp[ab.skill] || 0) < ab.lvl) continue;
+    if (placed.has('ability:' + id)) continue;
+    while (cursor < 9 && G.hotbar[cursor]) cursor++;
+    if (cursor >= 9) break;
+    G.hotbar[cursor] = { type: 'ability', id };
+    placed.add('ability:' + id);
+  }
   const bar = $('#ability-bar');
   bar.innerHTML = '';
-  let key = 1;
-  G.abilityKeys = [];
-  for (const [id, ab] of Object.entries(ABILITIES)) {
-    const lvl = levelForXp(G.xp[ab.skill] || 0);
-    if (lvl < ab.lvl) continue;
-    if (key > 9) break;
+  for (let i = 0; i < 9; i++) {
+    const h = G.hotbar[i];
     const b = document.createElement('button');
-    b.className = 'ab-btn';
-    b.dataset.ab = id;
-    b.innerHTML = `<span class="key">${key}</span>${ab.name.split(' ')[0]}<div class="cd"></div>`;
-    b.onclick = () => G.net.send({ t: MSG.ABILITY, id });
-    b.onmouseenter = (e) => tooltip(e, `<b>${ab.name}</b> (${ab.skill} ${ab.lvl})<br>${ab.desc}<br>Cooldown ${ab.cd / 1000}s — key [${key}]`);
-    b.onmouseleave = hideTooltip;
+    b.className = 'ab-btn' + (h ? '' : ' empty');
+    b.innerHTML = `<span class="key">${i + 1}</span><div class="cd"></div>`;
+    if (h) {
+      if (h.type === 'ability') { b.dataset.ab = h.id; b.insertAdjacentHTML('afterbegin', `<span class="ab-nm">${(ABILITIES[h.id]?.name || h.id).split(' ')[0]}</span>`); }
+      else if (h.type === 'spell') b.insertAdjacentElement('afterbegin', spellIconCanvas(h.id));
+      else if (h.type === 'prayer') b.insertAdjacentElement('afterbegin', prayerIconCanvas(h.id));
+      else if (h.type === 'item') b.insertAdjacentElement('afterbegin', iconCanvas(h.id));
+      if (h.type === 'prayer' && G.prayersOn.has(h.id)) b.classList.add('on');
+      if (h.type === 'spell' && G.selSpell === h.id) b.classList.add('on');
+      b.onmouseenter = (e) => tooltip(e, hotbarTip(h, i));
+      b.onmouseleave = hideTooltip;
+      b.onclick = () => triggerHotbar(i);
+      b.oncontextmenu = (e) => { e.preventDefault(); G.hotbar[i] = null; saveHotbar(); renderAbilities(); };
+    }
+    b.ondragover = (e) => e.preventDefault();
+    b.ondrop = (e) => {
+      e.preventDefault();
+      try {
+        const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+        if (data && data.type && data.id) { G.hotbar[i] = { type: data.type, id: data.id }; saveHotbar(); renderAbilities(); }
+      } catch { }
+    };
     bar.appendChild(b);
-    G.abilityKeys.push(id);
-    key++;
+  }
+}
+function hotbarTip(h, i) {
+  const key = `key [${i + 1}] — right-click to clear`;
+  if (h.type === 'ability') { const ab = ABILITIES[h.id]; return `<b>${ab.name}</b> (${ab.skill} ${ab.lvl})<br>${ab.desc}<br>Cooldown ${ab.cd / 1000}s — ${key}`; }
+  if (h.type === 'spell') return `<b>${SPELLS[h.id]?.name}</b> — cast — ${key}`;
+  if (h.type === 'prayer') return `<b>${PRAYERS[h.id]?.name}</b> — toggle — ${key}`;
+  return `<b>${ITEMS[h.id]?.name || h.id}</b> — use one from your pack — ${key}`;
+}
+export function triggerHotbar(i) {
+  const h = G.hotbar?.[i];
+  if (!h) return;
+  if (h.type === 'ability') return G.net.send({ t: MSG.ABILITY, id: h.id });
+  if (h.type === 'prayer') return G.net.send({ t: MSG.PRAYER, id: h.id });
+  if (h.type === 'spell') {
+    const s = SPELLS[h.id];
+    if (s.teleport || s.heal) return G.net.send({ t: MSG.CAST, spell: h.id });
+    G.selSpell = G.selSpell === h.id ? null : h.id;
+    renderAbilities();
+    return toast(G.selSpell ? `Click a target to cast ${s.name}.` : 'Spell deselected.');
+  }
+  if (h.type === 'item') {
+    const idx = G.inv.findIndex(s => s && s.id === h.id);
+    if (idx < 0) return toast(`No ${ITEMS[h.id]?.name || h.id} in your pack.`);
+    const def = ITEMS[h.id] || {};
+    if (def.food || def.potion) return G.net.send({ t: MSG.EAT, slot: idx });
+    if (def.bones) return G.net.send({ t: MSG.BURY, slot: idx });
+    if (def.tome) return G.net.send({ t: MSG.USE_ITEM, slot: idx });
+    return G.net.send({ t: MSG.USE_ITEM, slot: idx });
   }
 }
 export function tickCooldowns() {
   const now = Date.now();
-  for (const b of document.querySelectorAll('.ab-btn')) {
+  for (const b of document.querySelectorAll('.ab-btn[data-ab]')) {
     const until = G.cooldowns[b.dataset.ab] || 0;
     if (until > now) { b.classList.add('oncd'); b.querySelector('.cd').textContent = Math.ceil((until - now) / 1000); }
     else b.classList.remove('oncd');
