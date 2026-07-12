@@ -1,7 +1,7 @@
 // Player entity: skills/xp/milestones, inventory, equipment, bank, quests,
 // serialization. All mutation happens here so the rules live in one place.
 
-import { SKILLS, XP_TABLE, levelForXp, MAX_LEVEL, MILESTONE_LEVELS, MILESTONE_SHILLINGS, combatLevel, MSG, PLANE, FX } from '../../shared/constants.js';
+import { SKILLS, XP_TABLE, levelForXp, MAX_LEVEL, MILESTONE_LEVELS, MILESTONE_SHILLINGS, combatLevel, MSG, PLANE, FX, COMBAT } from '../../shared/constants.js';
 import { ITEMS } from '../../shared/data/items.js';
 import { PRAYERS, ABILITIES, RELICS } from '../../shared/data/skills.js';
 import { QUESTS } from '../../shared/data/quests.js';
@@ -15,7 +15,7 @@ export class Player {
     this.kind = 'player';
     this.name = name;
     this.plane = PLANE.OVERWORLD;
-    this.x = 252.5; this.y = 332.5;
+    this.x = COMBAT.PLAYER_RESPAWN.x + 0.5; this.y = COMBAT.PLAYER_RESPAWN.y + 0.5;
     this.dir = 2; this.anim = 'idle'; this.animSeq = 0;
     this.sex = look.sex === 'female' ? 'female' : 'male';
     this.skin = look.skin || 'light';
@@ -38,6 +38,9 @@ export class Player {
     this.relics = {};
     this.dungeonBest = 0;
     this.task = null;                             // taskboard {id, n}
+    this.pets = [];                               // claimed roster [{id, xp}] — untradable
+    this.activePet = null;                        // roster index of the active pet
+    this.activePetEnt = null;                     // live pet entity id (not persisted)
     this.abilityCds = {};
     this.effects = {};                            // shield/berserk timers
     this.style = 'balanced';
@@ -270,6 +273,7 @@ export class Player {
       bank: this.bank, quests: this.quests, kills: this.kills, milestonesPaid: this.milestonesPaid,
       pouch: this.pouch, farm: this.farm, house: this.house, relics: this.relics, dungeonBest: this.dungeonBest,
       task: this.task, x: this.x, y: this.y, hp: this.hp, style: this.style,
+      pets: this.pets, activePet: this.activePet,
     };
   }
   load(s) {
@@ -279,6 +283,7 @@ export class Player {
       quests: s.quests ?? {}, kills: s.kills ?? {}, milestonesPaid: s.milestonesPaid ?? {},
       pouch: s.pouch ?? 0, farm: s.farm ?? {}, house: s.house ?? { furniture: {} }, relics: s.relics ?? {},
       dungeonBest: s.dungeonBest ?? 0, task: s.task ?? null, hp: s.hp, style: s.style ?? 'balanced',
+      pets: Array.isArray(s.pets) ? s.pets : [], activePet: s.activePet ?? null,
     });
     if (typeof s.x === 'number' && typeof s.y === 'number') { this.x = s.x; this.y = s.y; }
     this.plane = PLANE.OVERWORLD; // always rejoin the overworld

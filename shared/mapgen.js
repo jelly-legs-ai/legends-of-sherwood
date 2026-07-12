@@ -26,8 +26,10 @@ function vnoise(x, y, scale, s = 0) {
 }
 function fbm(x, y, s = 0) { return vnoise(x, y, 48, s) * 0.55 + vnoise(x, y, 16, s + 7) * 0.3 + vnoise(x, y, 6, s + 13) * 0.15; }
 
-// ---- rivers & roads ----------------------------------------------------------
-const RIVER = [[430, 338], [380, 352], [300, 362], [240, 360], [150, 360], [28, 368]];
+// ---- rivers & roads (authored on the 576 grid, scaled to the live world) ------
+const K = WORLD.SCALE || 1;
+const S = (n) => Math.round(n * K);
+const RIVER = [[430, 338], [380, 352], [300, 362], [240, 360], [150, 360], [28, 368]].map(p => [S(p[0]), S(p[1])]);
 const ROADS = [
   [[252, 332], [330, 332]],
   [[330, 316], [330, 240], [300, 150]],
@@ -35,7 +37,7 @@ const ROADS = [
   [[252, 340], [252, 440], [270, 470]],
   [[344, 336], [420, 420]],
   [[346, 330], [440, 300]],
-];
+].map(line => line.map(p => [S(p[0]), S(p[1])]));
 function distToPolyline(px, py, line) {
   let best = 1e9;
   for (let i = 0; i < line.length - 1; i++) {
@@ -52,17 +54,17 @@ function distToPolyline(px, py, line) {
 
 // ---- regions -------------------------------------------------------------------
 export function regionAt(x, y) {
-  if (y < 96) return 'WILDLANDS';
+  if (y < S(96)) return 'WILDLANDS';
   if (dist(x, y, TOWNS.frosthollow.cx, TOWNS.frosthollow.cy) < TOWNS.frosthollow.r + 2) return 'FROSTHOLLOW';
-  if (y < 200) return 'NORTHMOOR';
+  if (y < S(200)) return 'NORTHMOOR';
   if (dist(x, y, TOWNS.nottingham.cx, TOWNS.nottingham.cy) < TOWNS.nottingham.r + 2) return 'NOTTINGHAM';
   if (dist(x, y, TOWNS.loxley.cx, TOWNS.loxley.cy) < TOWNS.loxley.r + 2) return 'LOXLEY';
   if (dist(x, y, TOWNS.bay.cx, TOWNS.bay.cy) < TOWNS.bay.r + 2) return 'BAY';
-  if (x > 430 && y > 140 && y < 390) return 'PEAKS';
-  if (x > 370 && y > 395) return 'FENWOLD';
-  if (y > 440 && x > 170 && x <= 370) return 'ELDERGLADE';
-  if (dist(x, y, 290, 308) < 72) return 'SHERWOOD';
-  if (x < 110 && y > 380) return 'BAY';
+  if (x > S(430) && y > S(140) && y < S(390)) return 'PEAKS';
+  if (x > S(370) && y > S(395)) return 'FENWOLD';
+  if (y > S(440) && x > S(170) && x <= S(370)) return 'ELDERGLADE';
+  if (dist(x, y, S(290), S(308)) < S(72)) return 'SHERWOOD';
+  if (x < S(110) && y > S(380)) return 'BAY';
   return 'MEADOWS';
 }
 function dist(x1, y1, x2, y2) { const dx = x1 - x2, dy = y1 - y2; return Math.sqrt(dx * dx + dy * dy); }
@@ -99,8 +101,8 @@ function townTile(x, y) {
 export function tileAt(x, y) {
   if (x < 0 || y < 0 || x >= W || y >= H) return TILE.OCEAN;
   // coast: west + south ocean with noisy shoreline
-  const coastW = 18 + fbm(0, y, 3) * 8, coastS = 558 - fbm(x, 0, 4) * 8;
-  if (x < coastW - 4 || y > coastS + 4) return TILE.OCEAN;
+  const coastW = S(18) + fbm(0, y, 3) * 12, coastS = H - S(18) - fbm(x, 0, 4) * 12;
+  if (x < coastW - 6 || y > coastS + 6) return TILE.OCEAN;
 
   const tt = townTile(x, y);
   if (tt >= 0) return tt;
@@ -121,13 +123,13 @@ export function tileAt(x, y) {
   switch (reg) {
     case 'WILDLANDS': return n < 0.35 ? TILE.ICE : TILE.SNOW;
     case 'NORTHMOOR': {
-      const coldness = 1 - (y - 96) / 104; // 1 at y=96 -> 0 at y=200
+      const coldness = 1 - (y - S(96)) / S(104); // 1 at the Wild Lands edge -> 0 southward
       if (n < coldness * 0.75) return TILE.SNOW;
       return TILE.TUNDRA;
     }
     case 'FROSTHOLLOW': {
       // frozen lake east of town
-      if (x > 312 && x < 324 && y > 124 && y < 136) return TILE.WATER;
+      if (x > S(312) && x < S(324) && y > S(124) && y < S(136)) return TILE.WATER;
       return TILE.SNOW;
     }
     case 'PEAKS': {
@@ -143,6 +145,40 @@ export function tileAt(x, y) {
       if (n > 0.64) return TILE.FOREST;
       return n2 > 0.5 ? TILE.MEADOW : TILE.GRASS;
   }
+}
+
+// ---- elevation ------------------------------------------------------------------
+// Undulating ground: 0 at sea level along the coasts, gentle hills inland,
+// serious elevation in the Grey Peaks and the frozen north. Quantized to
+// integer block levels; low-frequency so slopes stay gentle and walkable.
+const ELEV = {
+  WILDLANDS: [3, 3], NORTHMOOR: [2, 3], FROSTHOLLOW: [3, 1], PEAKS: [3, 5],
+  SHERWOOD: [1, 2], NOTTINGHAM: [1, 0], LOXLEY: [1, 1], MEADOWS: [0, 2],
+  BAY: [0, 1], FENWOLD: [0, 1], ELDERGLADE: [1, 2],
+};
+export const MAX_ELEV = 8;
+
+export function heightAt(x, y) {
+  if (x < 0 || y < 0 || x >= W || y >= H) return 0;
+  const t = worldTile(x, y);
+  if (t === TILE.OCEAN || t === TILE.SAND) return 0;
+  const reg = regionAt(x, y);
+  // towns sit on a levelled terrace
+  for (const key in TOWNS) {
+    const tw = TOWNS[key];
+    if (dist(x, y, tw.cx, tw.cy) < tw.r + 6) return ELEV[reg] ? ELEV[reg][0] : 1;
+  }
+  const [base, amp] = ELEV[reg] || [0, 1];
+  // low-frequency field keeps gradients ~<=1 per tile
+  const n = vnoise(x, y, 26, 77) * 0.7 + vnoise(x, y, 9, 78) * 0.3;
+  let h = base + n * amp;
+  // shoreline falls smoothly to sea level
+  const coastW = S(18) + 12, coastS = H - S(18) - 12;
+  const shore = Math.min(1, Math.max(0, Math.min(x - coastW, coastS - y) / 26 + 0.4));
+  h *= Math.max(0, shore);
+  // rivers cut a shallow channel; roads ride the land as-is
+  if (t === TILE.RIVER || t === TILE.WATER_SWAMP || t === TILE.WATER || t === TILE.BRIDGE) h = Math.max(0, h - 0.8);
+  return Math.max(0, Math.min(MAX_ELEV, Math.round(h)));
 }
 
 // ---- scattered gather nodes --------------------------------------------------------

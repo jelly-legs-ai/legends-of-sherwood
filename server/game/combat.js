@@ -6,6 +6,16 @@ import { MOBS } from '../../shared/data/mobs.js';
 import { ITEMS } from '../../shared/data/items.js';
 import { SPELLS, ABILITIES } from '../../shared/data/skills.js';
 import { ANCHORS } from '../../shared/data/world.js';
+import { PET_POWER, petLevel } from '../../shared/data/pets.js';
+
+// Active pet record + entity for a player (if the pet is alive nearby)
+function activePet(world, p) {
+  if (p.kind !== 'player' || p.activePet === null || !p.activePetEnt) return null;
+  const ent = world.entities.get(p.activePetEnt);
+  const rec = p.pets?.[p.activePet];
+  if (!ent || !rec || Math.hypot(ent.x - p.x, ent.y - p.y) > 12) return null;
+  return { ent, rec, lvl: petLevel(rec.xp) };
+}
 
 function roll(attRoll, defRoll) { return Math.random() < COMBAT.ACCURACY(attRoll, defRoll); }
 
@@ -21,7 +31,7 @@ export function playerDefRoll(p) {
   return COMBAT.ROLL(p.level('defence') * p.prayerBoost('defence'), b.def);
 }
 
-function grantCombatXp(p, style, dmg) {
+function grantCombatXp(p, style, dmg, world) {
   const per = 4 * dmg;
   if (style === 'melee') {
     if (p.style === 'accurate') p.addXp('attack', per);
@@ -30,7 +40,12 @@ function grantCombatXp(p, style, dmg) {
     else { p.addXp('attack', per / 3); p.addXp('strength', per / 3); p.addXp('defence', per / 3); }
   } else if (style === 'ranged') p.addXp('ranged', per);
   else if (style === 'magic') p.addXp('magic', per);
-  p.addXp('constitution', dmg * 1.33);
+  p.addXp('constitution', dmg * 0.133);
+  // an active pet levels by being present while its owner fights
+  if (world) {
+    const pet = activePet(world, p);
+    if (pet) world.petGainXp(p, pet.rec, dmg * 2);
+  }
 }
 
 const RANGE = { melee: 1.7, ranged: 8, magic: 9 };
@@ -58,7 +73,11 @@ export function tickCombat(world, p, now) {
   if (style === 'ranged') {
     const ammo = p.equip.ammo;
     const w = ITEMS[p.equip.weapon?.id];
-    if (w?.usesAmmo && (!ammo || ammo.qty < 1)) { world.send(p, { t: MSG.MSGBOX, m: 'Out of arrows!' }); p.target = null; return; }
+    if (w?.usesAmmo && (!ammo || ammo.qty < 1)) { world.send(p, { t: MSG.MSGBOX, m: 'Out of ammunition!' }); p.target = null; return; }
+    if (w?.ammoKind && ammo && ITEMS[ammo.id]?.ammoKind !== w.ammoKind) {
+      world.send(p, { t: MSG.MSGBOX, m: `A ${w.name} fires ${w.ammoKind}s — equip the right ammunition.` });
+      p.target = null; return;
+    }
     if (w?.usesAmmo) { ammo.qty--; if (ammo.qty <= 0) delete p.equip.ammo; p.invDirty(); }
     p.anim = 'shoot'; p.animSeq++;
     world.fx(p.plane, p.x, p.y, FX.ARROW, { tx: t.x, ty: t.y, from: p.id, to: t.id });
@@ -142,7 +161,7 @@ export function resolveHit(world, p, t, style, spell) {
   }
   world.broadcastNear(p.plane, t.x, t.y, { t: MSG.HIT, id: t.id, dmg, src: p.id, crit: dmg > rolls.max * 0.85 });
   if (dmg > 0) {
-    grantCombatXp(p, style, dmg);
+    grantCombatXp(p, style, dmg, world);
     if (t.kind === 'player') applyPlayerDamage(world, t, dmg, p);
     else world.applyMobDamage(t, dmg, p);
   }
@@ -174,6 +193,19 @@ export function mobAttack(world, m, t, now) {
 }
 
 export function applyPlayerDamage(world, p, dmg, source) {
+  // a guarding pet softens (defense/utility) or outright blocks the blow
+  const pet = activePet(world, p);
+  if (pet && dmg > 0) {
+    if (Math.random() < PET_POWER.blockChance(pet.ent.cls, pet.lvl)) {
+      world.fx(p.plane, p.x, p.y, FX.BLOCK, { id: pet.ent.id });
+      world.send(p, { t: MSG.MSGBOX, kind: 'loot', m: `${pet.ent.name} blocks the blow!` });
+      world.petGainXp(p, pet.rec, 6);
+      dmg = 0;
+    } else {
+      const red = PET_POWER.damageReduction(pet.ent.cls, pet.lvl);
+      if (red > 0) { dmg = Math.max(0, Math.round(dmg * (1 - red))); world.petGainXp(p, pet.rec, 1); }
+    }
+  }
   p.hp -= dmg;
   if (p.hp > 0) {
     // auto-retaliate
@@ -241,7 +273,7 @@ export function useAbility(world, p, abilityId) {
         const rolls = playerAttackRolls(p);
         const dmg = Math.ceil((1 + Math.random() * Math.max(4, rolls.max)) * ab.mult);
         world.broadcastNear(p.plane, e.x, e.y, { t: MSG.HIT, id: e.id, dmg, src: p.id });
-        grantCombatXp(p, rolls.style, dmg);
+        grantCombatXp(p, rolls.style, dmg, world);
         world.applyMobDamage(e, dmg, p);
         if (++hits >= 6) break;
       }

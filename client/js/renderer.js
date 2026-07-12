@@ -2,7 +2,7 @@
 // LPC characters, procedural critters/nodes, day-night tint, northern snow.
 
 import { WORLD, TILE, PLANE, WILDERNESS_Y } from '/shared/constants.js';
-import { tileAtPlane, computeWorld, dungeonFloor, regionAt } from '/shared/mapgen.js';
+import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV } from '/shared/mapgen.js';
 import { REGIONS } from '/shared/constants.js';
 import { HOUSE } from '/shared/data/world.js';
 import { composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS, itemIcon, proc } from './sprites.js';
@@ -26,6 +26,62 @@ const TILE_COLOR = {
 };
 const WALLS = new Set([TILE.WALL, TILE.WALL_WOOD]);
 const WATERS = new Set([TILE.OCEAN, TILE.WATER, TILE.RIVER, TILE.WATER_SWAMP]);
+
+// ---- textured terrain (free isometric block pack in client/assets/terrain) -----
+// Atlas is an 11x11 grid of 32x32 blocks (diamond top + earthen side skirt),
+// drawn at 2x. Tiles the pack lacks are tinted variants via canvas filters.
+export const ESTEP = 32;           // screen px per elevation level (one block)
+const terrainAtlas = new Image();
+terrainAtlas.src = 'assets/terrain/nature.png';
+let atlasReady = false;
+terrainAtlas.onload = () => { atlasReady = true; chunkCache.clear(); };
+const TILE_TEX = {
+  [TILE.GRASS]: { v: [22, 23, 24] },
+  [TILE.MEADOW]: { v: [37, 38, 39] },
+  [TILE.FOREST]: { v: [40, 24, 40] },
+  [TILE.DEEPFOREST]: { v: [40], f: 'brightness(0.82)' },
+  [TILE.DIRT]: { v: [17, 18], f: 'brightness(1.08)' },
+  [TILE.ROAD]: { v: [17, 18], f: 'sepia(0.3) brightness(1.18)' },
+  [TILE.FARM]: { v: [19, 20] },
+  [TILE.CAVE]: { v: [6], f: 'brightness(0.55)' },
+  [TILE.LAVA_ROCK]: { v: [6], f: 'brightness(0.45)' },
+  [TILE.FLOOR_WOOD]: { v: [14, 15] },
+  [TILE.BRIDGE]: { v: [15] },
+  [TILE.FLOOR_STONE]: { v: [63] },
+  [TILE.ROCK]: { v: [63], f: 'brightness(0.85)' },
+  [TILE.SCREE]: { v: [61, 62] },
+  [TILE.SAND]: { v: [6, 7], f: 'sepia(0.65) saturate(1.35) brightness(1.4)' },
+  [TILE.ARENA]: { v: [6, 7], f: 'sepia(0.65) saturate(1.35) brightness(1.45)' },
+  [TILE.SNOW]: { v: [22, 23], f: 'saturate(0.06) brightness(1.6)' },
+  [TILE.TUNDRA]: { v: [22, 24], f: 'saturate(0.5) brightness(1.02)' },
+  [TILE.SWAMP]: { v: [22, 24], f: 'hue-rotate(25deg) saturate(0.6) brightness(0.8)' },
+  [TILE.JUNGLE]: { v: [22, 23], f: 'saturate(1.3) brightness(0.8)' },
+  [TILE.OCEAN]: { v: [93, 95, 96] },
+  [TILE.WATER]: { v: [99, 100, 101] },
+  [TILE.RIVER]: { v: [99, 100, 101] },
+  [TILE.WATER_SWAMP]: { v: [99, 100], f: 'hue-rotate(55deg) saturate(0.55) brightness(0.85)' },
+  [TILE.ICE]: { v: [110, 111, 112] },
+};
+const texCache = new Map(); // "t:variantIdx[:dark]" -> 64x64 canvas
+function tileTexture(t, pick, dark = 0) {
+  const spec = TILE_TEX[t];
+  if (!spec || !atlasReady) return null;
+  const idx = spec.v[pick % spec.v.length];
+  const key = t + ':' + idx + ':' + dark;
+  let c = texCache.get(key);
+  if (!c) {
+    c = document.createElement('canvas');
+    c.width = 64; c.height = 64;
+    const g = c.getContext('2d');
+    g.imageSmoothingEnabled = false;
+    if (spec.f) g.filter = spec.f;
+    g.drawImage(terrainAtlas, (idx % 11) * 32, ((idx / 11) | 0) * 32, 32, 32, 0, 0, 64, 64);
+    g.filter = 'none';
+    if (dark) { g.globalCompositeOperation = 'source-atop'; g.fillStyle = `rgba(10,8,20,${Math.min(0.5, dark * 0.16)})`; g.fillRect(0, 0, 64, 64); g.globalCompositeOperation = 'source-over'; }
+    texCache.set(key, c);
+  }
+  return c;
+}
 
 function hashXY(x, y) { let h = (x * 73856093) ^ (y * 19349663); h = (h ^ (h >> 13)) * 0x5bd1e995; return ((h ^ (h >> 15)) >>> 0) / 4294967296; }
 
@@ -53,38 +109,49 @@ function mixColor(h1, h2, t) {
 
 // ---- chunk cache -------------------------------------------------------------
 const CH = 16;
-const chunkCache = new Map(); // "plane:cx,cy" -> canvas
+const chunkCache = new Map(); // "plane:cx,cy" -> {canvas, top}
+function chunkElev(plane, x, y) { return plane === PLANE.OVERWORLD ? heightAt(x, y) : 0; }
 function chunkCanvas(plane, cx, cy) {
   const key = plane + ':' + cx + ',' + cy;
   let c = chunkCache.get(key);
   if (c) return c;
-  if (chunkCache.size > 140) { const first = chunkCache.keys().next().value; chunkCache.delete(first); }
-  c = document.createElement('canvas');
-  c.width = CH * TW; c.height = CH * TH + 96;
-  const g = c.getContext('2d');
-  const ox = CH * TW / 2, oy = 48;
+  if (chunkCache.size > 90) { const first = chunkCache.keys().next().value; chunkCache.delete(first); }
+  // canvas height depends on the tallest elevation in this chunk (flatland
+  // chunks stay small; only mountain chunks pay for tall stacks)
+  let maxH = 0;
+  if (plane === PLANE.OVERWORLD)
+    for (let j = 0; j < CH; j++) for (let i = 0; i < CH; i++) maxH = Math.max(maxH, heightAt(cx * CH + i, cy * CH + j));
+  const top = 48 + maxH * ESTEP;
+  const canvas = document.createElement('canvas');
+  canvas.width = CH * TW; canvas.height = CH * TH + top + 64;
+  const g = canvas.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  const ox = CH * TW / 2, oy = top;
   for (let j = 0; j < CH; j++) for (let i = 0; i < CH; i++) {
     const x = cx * CH + i, y = cy * CH + j;
     const t = tileAtPlane(plane, x, y);
-    // Diamond centred on the LOGICAL tile centre (x+0.5, y+0.5) so terrain,
-    // entities and mouse picking all share one grid.
-    const [lx, ly] = [(i - j) * TW / 2 + ox, (i + j) * TH / 2 + oy + TH / 2];
-    const col = TILE_COLOR[t] || ['#f0f', '#a0a'];
+    const h = chunkElev(plane, x, y);
+    // Diamond centred on the LOGICAL tile centre, lifted by elevation.
+    const lx = (i - j) * TW / 2 + ox;
+    const ly = (i + j) * TH / 2 + oy + TH / 2 - h * ESTEP;
     const shade = hashXY(x, y);
-    // smooth-noise blend — no per-tile checkerboard, terrain reads as one surface
-    g.fillStyle = mixColor(col[0], col[1], smoothNoise(x, y));
-    g.beginPath();
-    g.moveTo(lx, ly - TH / 2 - 0.5); g.lineTo(lx + TW / 2 + 0.5, ly); g.lineTo(lx, ly + TH / 2 + 0.5); g.lineTo(lx - TW / 2 - 0.5, ly);
-    g.closePath(); g.fill();
-    // sparse organic detail (flowers, grass blades, snow glints) — no grid pattern
-    if (!WALLS.has(t)) {
-      if ((t === TILE.GRASS || t === TILE.MEADOW || t === TILE.FOREST) && shade > 0.86) {
-        g.fillStyle = t === TILE.MEADOW && shade > 0.94 ? '#e8d44c' : t === TILE.MEADOW && shade > 0.9 ? '#d97fb8' : '#00000014';
-        const ox2 = (hashXY(y, x) - 0.5) * 30, oy2 = (shade - 0.9) * 60;
-        g.fillRect(lx + ox2, ly + oy2 - 2, 2, 3);
+    // exposed cliff column: fill down to the tallest lower neighbour in front
+    const hFront = Math.min(chunkElev(plane, x + 1, y), chunkElev(plane, x, y + 1), chunkElev(plane, x + 1, y + 1));
+    const drop = Math.max(0, h - Math.max(0, hFront));
+    const tex = tileTexture(t, (shade * 8) | 0);
+    if (tex && !WALLS.has(t)) {
+      for (let k = drop; k >= 1; k--) {
+        const fill = tileTexture(TILE.DIRT, ((shade * 8) | 0) + k, k);
+        if (fill) g.drawImage(fill, lx - TW / 2, ly - TH / 2 + k * ESTEP);
       }
-      if (t === TILE.SNOW && shade > 0.88) { g.fillStyle = '#ffffffcc'; g.fillRect(lx + (hashXY(y, x) - 0.5) * 26, ly, 2, 2); }
-      if (t === TILE.FARM) { g.fillStyle = '#00000018'; for (let r = -1; r <= 1; r++) g.fillRect(lx - 16, ly + r * 6 - 1, 32, 2); }
+      g.drawImage(tex, lx - TW / 2, ly - TH / 2);
+    } else if (!WALLS.has(t)) {
+      // fallback flat diamond while the atlas streams in
+      const col = TILE_COLOR[t] || ['#f0f', '#a0a'];
+      g.fillStyle = mixColor(col[0], col[1], smoothNoise(x, y));
+      g.beginPath();
+      g.moveTo(lx, ly - TH / 2 - 0.5); g.lineTo(lx + TW / 2 + 0.5, ly); g.lineTo(lx, ly + TH / 2 + 0.5); g.lineTo(lx - TW / 2 - 0.5, ly);
+      g.closePath(); g.fill();
     }
     // dungeon rock: flat dark tile (no tall prism, so corridors stay readable)
     if (t === TILE.WALL && plane >= PLANE.DUNGEON_BASE) {
@@ -95,9 +162,9 @@ function chunkCanvas(plane, cx, cy) {
       if (shade > 0.7) { g.fillStyle = '#00000022'; g.fillRect(lx - 6, ly - 2, 4, 2); }
       continue;
     }
-    // walls: prism
+    // building walls: prism on top of the (flattened) terrain
     if (WALLS.has(t)) {
-      const wh = 34; // wall height in px
+      const wh = 34;
       const topCol = t === TILE.WALL ? '#8d8878' : '#8a6a3c';
       const sideL = t === TILE.WALL ? '#565248' : '#4c381e';
       const sideR = t === TILE.WALL ? '#6e6a5e' : '#5e462a';
@@ -108,8 +175,8 @@ function chunkCanvas(plane, cx, cy) {
       g.fillStyle = topCol;
       g.beginPath(); g.moveTo(lx, ly - TH / 2 - wh); g.lineTo(lx + TW / 2, ly - wh); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx - TW / 2, ly - wh); g.closePath(); g.fill();
     }
-    if (WATERS.has(t)) { g.fillStyle = '#ffffff10'; g.fillRect(lx - 10, ly - 3, 8, 1); g.fillRect(lx + 2, ly + 4, 8, 1); }
   }
+  c = { canvas, top };
   chunkCache.set(key, c);
   return c;
 }
@@ -129,14 +196,30 @@ export class Renderer {
     this.canvas.height = window.innerHeight;
     this.ctx.imageSmoothingEnabled = false;
   }
+  // Smooth (bilinear) elevation so entities glide up slopes instead of popping.
+  elevAt(x, y) {
+    const x0 = Math.floor(x - 0.5), y0 = Math.floor(y - 0.5);
+    const tx = x - 0.5 - x0, ty = y - 0.5 - y0;
+    const a = heightAt(x0, y0), b = heightAt(x0 + 1, y0), c = heightAt(x0, y0 + 1), d = heightAt(x0 + 1, y0 + 1);
+    return (a + (b - a) * tx) * (1 - ty) + (c + (d - c) * tx) * ty;
+  }
   screenOf(plane, x, y) {
     const [wx, wy] = toScreen(x, y);
     const [cx, cy] = toScreen(this.cam.x, this.cam.y);
-    return [wx - cx + this.canvas.width / 2, wy - cy + this.canvas.height / 2];
+    const e = plane === PLANE.OVERWORLD && this._elevOn ? this.elevAt(x, y) * ESTEP : 0;
+    return [wx - cx + this.canvas.width / 2, wy - cy + this.canvas.height / 2 - e + (this._camE || 0)];
   }
   tileFromScreen(sx, sy) {
     const [cx, cy] = toScreen(this.cam.x, this.cam.y);
-    return toTile(sx - this.canvas.width / 2 + cx, sy - this.canvas.height / 2 + cy);
+    const bx = sx - this.canvas.width / 2 + cx;
+    const by = sy - this.canvas.height / 2 + cy - (this._camE || 0);
+    if (!this._elevOn) return toTile(bx, by);
+    // front-most elevated tile whose lifted diamond covers this pixel
+    for (let h = MAX_ELEV; h >= 1; h--) {
+      const [tx, ty] = toTile(bx, by + h * ESTEP);
+      if (heightAt(Math.floor(tx), Math.floor(ty)) === h) return [tx, ty];
+    }
+    return toTile(bx, by);
   }
 
   draw(state) {
@@ -153,19 +236,23 @@ export class Renderer {
     this.cam.x += (me.rx - this.cam.x) * k;
     this.cam.y += (me.ry - this.cam.y) * k;
     const plane = me.plane;
+    // camera rides the terrain: keep the player vertically centred on slopes
+    this._elevOn = plane === PLANE.OVERWORLD;
+    this._camE = this._elevOn ? this.elevAt(this.cam.x, this.cam.y) * ESTEP : 0;
 
     // ---- terrain chunks ----
     const [camSX, camSY] = toScreen(this.cam.x, this.cam.y);
-    const originX = W / 2 - camSX, originY = H / 2 - camSY;
+    const originX = W / 2 - camSX, originY = H / 2 - camSY + this._camE;
     const corners = [[0, 0], [W, 0], [0, H], [W, H]].map(([sx, sy]) => toTile(sx - originX, sy - originY));
-    const minX = Math.min(...corners.map(c => c[0])) - 3, maxX = Math.max(...corners.map(c => c[0])) + 3;
-    const minY = Math.min(...corners.map(c => c[1])) - 3, maxY = Math.max(...corners.map(c => c[1])) + 6;
+    const elevPad = this._elevOn ? MAX_ELEV * 2 : 0; // elevated tiles from "below" the view poke upward
+    const minX = Math.min(...corners.map(c => c[0])) - 3, maxX = Math.max(...corners.map(c => c[0])) + 3 + elevPad;
+    const minY = Math.min(...corners.map(c => c[1])) - 3, maxY = Math.max(...corners.map(c => c[1])) + 6 + elevPad;
     const c0x = Math.floor(minX / CH), c1x = Math.floor(maxX / CH);
     const c0y = Math.floor(minY / CH), c1y = Math.floor(maxY / CH);
     for (let cy = c0y; cy <= c1y; cy++) for (let cx = c0x; cx <= c1x; cx++) {
       const cc = chunkCanvas(plane, cx, cy);
       const [bx, by] = toScreen(cx * CH, cy * CH);
-      ctx.drawImage(cc, originX + bx - CH * TW / 2, originY + by - 48);
+      ctx.drawImage(cc.canvas, originX + bx - CH * TW / 2, originY + by - cc.top);
     }
 
     // ---- collect drawables (entities + nodes + farming), depth sort ----
@@ -177,8 +264,9 @@ export class Renderer {
     // static nodes in view
     if (plane === PLANE.OVERWORLD) {
       const { nodes } = computeWorld();
-      for (let ty = Math.max(0, minY | 0); ty <= Math.min(575, maxY | 0); ty++)
-        for (let tx = Math.max(0, minX | 0); tx <= Math.min(575, maxX | 0); tx++) {
+      const lim = WORLD.W - 1;
+      for (let ty = Math.max(0, minY | 0); ty <= Math.min(lim, maxY | 0); ty++)
+        for (let tx = Math.max(0, minX | 0); tx <= Math.min(lim, maxX | 0); tx++) {
           const type = nodes.get(tx + ',' + ty);
           if (type) drawables.push({ d: tx + ty + 0.5, node: { type, x: tx, y: ty, off: depletedNodes.has(tx + ',' + ty) } });
         }
@@ -285,18 +373,24 @@ export class Renderer {
     ctx.fillStyle = '#00000038';
     ctx.beginPath(); ctx.ellipse(sx, sy + 4, 13 * scale, 5 * scale, 0, 0, 7); ctx.fill();
 
-    const animInfo = ANIMS[e.anim] || ANIMS.idle;
+    let anim = e.anim;
+    let animInfo = ANIMS[anim] || ANIMS.idle;
     let frame = 0;
-    if (e.anim === 'walk') frame = Math.floor(now / animInfo.ms) % animInfo.frames;
-    else if (e.anim === 'idle') frame = Math.floor((now + e.id * 217) / animInfo.ms) % animInfo.frames; // desynced breathing
+    if (anim === 'walk') frame = Math.floor(now / animInfo.ms) % animInfo.frames;
     else if (animInfo.once) {
       const el = now - (e.animStart || now);
       frame = Math.min(animInfo.frames - 1, Math.floor(el / animInfo.ms));
+      // Attack/cast swings return to idle once finished instead of freezing on
+      // the last frame until the next swing (death keeps its final pose).
+      if (anim !== 'hurt' && el > animInfo.frames * animInfo.ms + 60) {
+        anim = 'idle'; animInfo = ANIMS.idle; frame = 0;
+      }
     }
+    if (anim === 'idle') frame = Math.floor((now + e.id * 217) / animInfo.ms) % animInfo.frames; // desynced breathing
 
     if (e.critter) {
       const dead = e.hp <= 0;
-      const spr = critterSprite(e.critter, e.anim === 'walk' ? frame : 0, dead);
+      const spr = critterSprite(e.critter, anim === 'walk' ? frame : 0, dead);
       const S = 64 * scale;
       const flip = e.dir === 1; // left-facing critters mirror
       ctx.save();
@@ -304,13 +398,13 @@ export class Renderer {
       ctx.drawImage(spr, sx - S / 2, sy - S + 14 * scale, S, S);
       ctx.restore();
       // attack lunge flash
-      if ((e.anim === 'slash' || e.anim === 'shoot' || e.anim === 'spellcast') && frame < 3) {
+      if ((anim === 'slash' || anim === 'shoot' || anim === 'spellcast') && frame < 3) {
         ctx.fillStyle = '#ffffff22'; ctx.beginPath(); ctx.arc(sx, sy - 20 * scale, 16 * scale, 0, 7); ctx.fill();
       }
     } else if (e.vis) {
       const comp = composite(e.vis);
-      drawChar(ctx, comp, e.anim, e.dir, frame, sx, sy, scale);
-      drawOversize(ctx, comp, e.vis, e.anim, e.dir, frame, sx, sy, scale);
+      drawChar(ctx, comp, anim, e.dir, frame, sx, sy, scale);
+      drawOversize(ctx, comp, e.vis, anim, e.dir, frame, sx, sy, scale);
     } else {
       ctx.fillStyle = '#888'; ctx.fillRect(sx - 8, sy - 30, 16, 30);
     }
@@ -331,6 +425,8 @@ export class Renderer {
       this.nameplate(ctx, sx, topY - 4, e.name + (e.quest ? ' ❗' : ''), e.quest ? '#ffe27a' : '#bcd9f0');
     } else if (e.k === 'familiar') {
       this.nameplate(ctx, sx, topY - 4, e.name, '#9fe0cf');
+    } else if (e.k === 'pet') {
+      this.nameplate(ctx, sx, topY + 14, `🐾 ${e.name} Lv.${e.lvl || 1}`, '#8ae0b0');
     }
     // chat bubble
     if (e.bubble && now < e.bubbleUntil) {
@@ -443,7 +539,7 @@ export function drawMinimap(canvas, me, entities) {
 let _worldMapBase = null;
 export function worldMapCanvas() {
   if (_worldMapBase) return _worldMapBase;
-  const S = 576;
+  const S = WORLD.W;
   const base = document.createElement('canvas');
   base.width = S; base.height = S;
   const bg = base.getContext('2d');

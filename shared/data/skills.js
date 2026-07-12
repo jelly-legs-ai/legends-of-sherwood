@@ -104,7 +104,7 @@ import { METALS } from './items.js';
 const FORGE = [
   ['dagger', 0, 1, 30], ['sword', 2, 1, 50], ['spear', 3, 1, 55], ['helm', 4, 1, 45],
   ['boots', 1, 1, 35], ['gauntlets', 1, 1, 35], ['platelegs', 6, 2, 75], ['platebody', 8, 3, 110],
-  ['shield', 5, 2, 70], ['pickaxe', 2, 1, 50], ['hatchet', 2, 1, 50],
+  ['shield', 5, 2, 70], ['pickaxe', 2, 1, 50], ['hatchet', 2, 1, 50], ['mace', 2, 2, 60],
 ];
 for (const m of METALS) {
   for (const [what, dl, bars, xp] of FORGE) {
@@ -117,7 +117,22 @@ for (const m of METALS) {
     id: `forge_${m.id}_arrows`, skill: 'smithing', lvl: Math.min(99, m.lvl + 1), xp: 35 * (1 + m.lvl / 12) | 0,
     station: 'anvil', inputs: { [`${m.id}_bar`]: 1, headless_arrows: 30 }, output: { [`${m.id}_arrow`]: 30 }, name: `${m.name} arrows`,
   });
+  RECIPES.push({
+    id: `forge_${m.id}_bolts`, skill: 'smithing', lvl: Math.min(99, m.lvl + 2), xp: 40 * (1 + m.lvl / 12) | 0,
+    station: 'anvil', inputs: { [`${m.id}_bar`]: 1, arrow_shafts: 20 }, output: { [`${m.id}_bolts`]: 25 }, name: `${m.name} bolts`,
+  });
+  if (m.lvl >= 20) RECIPES.push({
+    id: `forge_${m.id}_waraxe`, skill: 'smithing', lvl: Math.min(99, m.lvl + 6), xp: 130 * (1 + m.lvl / 12) | 0,
+    station: 'anvil', inputs: { [`${m.id}_bar`]: 3 }, output: { [`${m.id}_waraxe`]: 1 }, name: `${m.name} waraxe`,
+  });
 }
+// Crossbows: fletch the stock, then smith the metal limbs onto it
+RECIPES.push(
+  { id: 'fletch_crossbow_stock', skill: 'fletching', lvl: 30, xp: 90, station: null, tool: 'knife', inputs: { willow_logs: 1 }, output: { crossbow_stock: 1 }, name: 'Crossbow stock' },
+  { id: 'forge_crossbow', skill: 'smithing', lvl: 25, xp: 120, station: 'anvil', inputs: { crossbow_stock: 1, iron_bar: 2 }, output: { crossbow: 1 }, name: 'Crossbow' },
+  { id: 'forge_arbalest', skill: 'smithing', lvl: 52, xp: 260, station: 'anvil', inputs: { crossbow_stock: 1, damasked_bar: 2 }, output: { arbalest: 1 }, name: 'Arbalest' },
+  { id: 'forge_siege_arbalest', skill: 'smithing', lvl: 77, xp: 520, station: 'anvil', inputs: { crossbow_stock: 2, silversteel_bar: 3 }, output: { siege_arbalest: 1 }, name: 'Siege arbalest' },
+);
 // Cooking (fire or range; burn chance handled server-side)
 import { FISH } from './items.js';
 for (const f of FISH) RECIPES.push({

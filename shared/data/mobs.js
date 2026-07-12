@@ -30,7 +30,7 @@ mob('outlaw', { name: 'Outlaw', lvl: 22, life: 52, atk: 13, def: 11, style: 'mel
   drops: [['bones', 1, 1], ['coins', [8, 28], 0.9], ['bronze_sword', 1, 0.05], ['grimy_yarrow', 1, 0.2], ['spirit_shard', [2, 6], 0.3]] });
 mob('sheriffs_guard', { name: "Sheriff's guard", lvl: 28, life: 66, atk: 16, def: 16, style: 'melee', aggro: true,
   vis: { skin: 'light', torso: ['chainmail', 'steel'], legs: ['plate', 'iron'], head: ['mail', 'iron'], weapon: ['spear', 'iron'] },
-  drops: [['bones', 1, 1], ['coins', [12, 40], 0.95], ['iron_spear', 1, 0.04], ['iron_platebody', 1, 0.02], ['bread', 1, 0.2], ['amber_charm', 1, 0.1]] });
+  drops: [['bones', 1, 1], ['coins', [12, 40], 0.95], ['iron_spear', 1, 0.04], ['crossbow', 1, 0.015], ['iron_bolts', [5, 15], 0.2], ['iron_platebody', 1, 0.02], ['bread', 1, 0.2], ['amber_charm', 1, 0.1]] });
 mob('poacher', { name: 'Poacher', lvl: 25, life: 58, atk: 14, def: 12, style: 'ranged',
   vis: { skin: 'brown', hair: ['buzzcut', 'black'], torso: ['leather', 'forest'], legs: ['pants', 'charcoal'], weapon: ['bow', 'medium'] },
   drops: [['bones', 1, 1], ['coins', [10, 30], 0.9], ['bronze_arrow', [5, 15], 0.5], ['rabbit_fur', 1, 0.4], ['ash_bow', 1, 0.03]] });
@@ -78,7 +78,7 @@ mob('revenant_knight', { name: 'Revenant knight', lvl: 78, life: 300, atk: 52, d
   drops: [['ancient_bones', 1, 1], ['coins', [80, 240], 0.95], ['silversteel_sword', 1, 0.01], ['silversteel_platebody', 1, 0.006], ['kings_elixir', 1, 0.05], ['crimson_charm', 1, 0.3]] });
 mob('wight_archer', { name: 'Wight archer', lvl: 74, life: 260, atk: 48, def: 42, style: 'ranged', aggro: true, shil: 3,
   vis: { skin: 'black', hair: ['plain', 'gray'], torso: ['leather', 'black'], head: ['hood', 'black'], weapon: ['great', 'medium'] },
-  drops: [['ancient_bones', 1, 1], ['silversteel_arrow', [8, 24], 0.5], ['elm_warbow', 1, 0.01], ['coins', [60, 200], 0.9]] });
+  drops: [['ancient_bones', 1, 1], ['silversteel_arrow', [8, 24], 0.5], ['arbalest', 1, 0.008], ['silversteel_bolts', [6, 18], 0.3], ['elm_warbow', 1, 0.01], ['coins', [60, 200], 0.9]] });
 mob('frost_revenant', { name: 'Frost revenant', lvl: 84, life: 360, atk: 58, def: 52, style: 'magic', aggro: true, shil: 4,
   vis: { skin: 'black', torso: ['robe', 'white'], head: ['hood', 'white'], weapon: ['staff', 'gold'] },
   drops: [['ancient_bones', 1, 1], ['blood_rune', [2, 8], 0.5], ['cosmic_rune', [3, 10], 0.5], ['archdruid_staff', 1, 0.005], ['coins', [90, 260], 0.9]] });
@@ -89,6 +89,34 @@ mob('abyssal_crawler', { name: 'Abyssal crawler', lvl: 20, life: 60, atk: 14, de
 mob('depth_keeper', { name: 'Depth keeper', lvl: 40, life: 130, atk: 28, def: 26, style: 'magic', aggro: true, dungeon: true,
   vis: { skin: 'olive', torso: ['robe', 'blue'], head: ['hood', 'blue'], weapon: ['staff', 'medium'] },
   drops: [['coins', [30, 80], 0.8], ['cosmic_rune', [2, 6], 0.4], ['dungeon_key', 1, 0.25]] });
+
+// ---- Beast-folk (LPC monster heads on humanoid bodies — fully animated) --------
+mob('goblin', { name: 'Goblin scavenger', lvl: 6, life: 16, atk: 3, def: 3, style: 'melee', aggro: true,
+  vis: { skin: 'green', monster: 'goblin', torso: ['longsleeve', 'brown'], legs: ['pants', 'charcoal'], weapon: ['sword', 'copper'] },
+  drops: [['bones', 1, 1], ['coins', [2, 8], 0.85], ['copper_dagger', 1, 0.05], ['grimy_nettle', 1, 0.2], ['spirit_shard', [1, 3], 0.2]] });
+mob('goblin_archer', { name: 'Goblin skirmisher', lvl: 10, life: 24, atk: 6, def: 5, style: 'ranged', aggro: true,
+  vis: { skin: 'dark_green', monster: 'goblin', torso: ['leather', 'brown'], legs: ['pants', 'brown'], weapon: ['bow', 'normal'] },
+  drops: [['bones', 1, 1], ['coins', [4, 12], 0.85], ['copper_arrow', [3, 10], 0.5], ['feathers', [2, 8], 0.4]] });
+mob('goblin_raider', { name: 'Goblin raider', lvl: 15, life: 36, atk: 9, def: 8, style: 'melee', aggro: true,
+  vis: { skin: 'green', monster: 'goblin', torso: ['chainmail', 'iron'], legs: ['pants', 'black'], weapon: ['axe', 'iron'] },
+  drops: [['bones', 1, 1], ['coins', [6, 18], 0.9], ['iron_hatchet', 1, 0.04], ['bronze_bar', 1, 0.12], ['verdant_charm', 1, 0.1]] });
+mob('lizardfolk', { name: 'Lizardfolk hunter', lvl: 36, life: 92, atk: 21, def: 18, style: 'melee', aggro: true,
+  vis: { skin: 'bright_green', monster: 'lizard', torso: ['leather', 'forest'], legs: ['pants', 'forest'], weapon: ['spear', 'bronze'] },
+  drops: [['bones', 1, 1], ['coins', [14, 40], 0.9], ['bronze_spear', 1, 0.04], ['grimy_comfrey', 1, 0.3], ['cobalt_charm', 1, 0.12], ['raw_pike', 1, 0.25]] });
+mob('lizardfolk_shaman', { name: 'Lizardfolk shaman', lvl: 48, life: 120, atk: 28, def: 22, style: 'magic', aggro: true,
+  vis: { skin: 'dark_green', monster: 'lizard', torso: ['robe', 'forest'], legs: ['pants', 'forest'], weapon: ['staff', 'gnarled'] },
+  drops: [['bones', 1, 1], ['water_rune', [3, 9], 0.6], ['nature_rune', [2, 6], 0.5], ['grimy_wolfsbane', 1, 0.3], ['crimson_charm', 1, 0.12]] });
+mob('orc_raider', { name: 'Orc raider', lvl: 62, life: 200, atk: 40, def: 34, style: 'melee', aggro: true,
+  vis: { skin: 'dark_green', monster: 'orc', torso: ['chainmail', 'steel'], legs: ['plate', 'iron'], weapon: ['axe', 'steel'] },
+  drops: [['big_bones', 1, 1], ['coins', [40, 110], 0.9], ['steel_hatchet', 1, 0.03], ['steel_mace', 1, 0.025], ['steel_bar', 1, 0.15], ['crimson_charm', 1, 0.18]] });
+mob('orc_warlord', { name: 'Orc warlord', lvl: 74, life: 280, atk: 50, def: 44, style: 'melee', aggro: true, shil: 2,
+  vis: { skin: 'dark_green', monster: 'orc', torso: ['plate', 'iron'], legs: ['plate', 'iron'], head: ['greathelm', 'iron'], weapon: ['sword', 'silversteel'] },
+  drops: [['big_bones', 1, 1], ['coins', [70, 190], 0.95], ['silversteel_sword', 1, 0.008], ['silversteel_waraxe', 1, 0.006], ['damasked_platebody', 1, 0.02], ['kings_elixir', 1, 0.06]] });
+mob('minotaur', { name: 'Minotaur', lvl: 66, life: 320, atk: 46, def: 40, style: 'melee', aggro: true, shil: 2, scale: 1.35,
+  vis: { skin: 'fur_brown', monster: 'minotaur', legs: ['pants', 'brown'], weapon: ['axe', 'steel'] },
+  drops: [['big_bones', 1, 1], ['coins', [60, 160], 0.95], ['steel_platebody', 1, 0.03], ['steel_waraxe', 1, 0.03], ['big_bones', 1, 0.5], ['crimson_charm', [1, 2], 0.25]] });
+mob('brown_bear', { name: 'Brown bear', lvl: 30, life: 90, atk: 18, def: 16, critter: 'bear', style: 'melee', aggro: true,
+  drops: [['big_bones', 1, 1], ['raw_venison', 1, 0.5], ['wolf_pelt', 1, 0.2], ['verdant_charm', 1, 0.15]] });
 
 // Event creature: the Golden Stag (flees, never fights; all damagers share the blessing)
 mob('golden_stag', { name: 'The Golden Stag', lvl: 30, life: 400, atk: 0, def: 25, critter: 'stag', style: 'melee', speed: 3.0, shil: 0,

@@ -73,7 +73,7 @@ npc('colosseum_marshal', {
 npc('fletcher_ansel', {
   name: 'Fletcher Ansel', x: 336, y: 334, tutor: 'fletching',
   vis: { skin: 'light', hair: ['plain', 'chestnut_fallback'], torso: ['leather', 'forest'], legs: ['pants', 'brown'], weapon: ['bow', 'normal'] },
-  shop: [['knife', 8], ['feathers', 2], ['bowstring', 35], ['shortbow', 25], ['ash_bow', 90], ['copper_arrow', 2], ['bronze_arrow', 4], ['iron_arrow', 8], ['quiver', 40]],
+  shop: [['knife', 8], ['feathers', 2], ['bowstring', 35], ['shortbow', 25], ['ash_bow', 90], ['copper_arrow', 2], ['bronze_arrow', 4], ['iron_arrow', 8], ['iron_bolts', 10], ['crossbow_stock', 60], ['quiver', 40]],
   lines: ['A straight arrow is an honest answer to a crooked law.'],
 });
 npc('apothecary_edith', {
@@ -179,6 +179,11 @@ npc('trader_ulf', {
   shop: [['steel_hatchet', 260], ['steel_pickaxe', 260], ['hearty_stew', 150], ['box_trap', 12]],
   lines: ['Furs, steel, stew — everything a frozen soul needs.'],
 });
+
+// Positions were authored on the 576 grid — remap to the scaled world,
+// keeping NPCs inside buildings glued to their building.
+import { remapPoint } from './world.js';
+for (const n of Object.values(NPCS)) { const [nx, ny] = remapPoint(n.x, n.y); n.x = nx; n.y = ny; }
 
 // Fix fallback hair colors that don't exist in our copied palette
 for (const n of Object.values(NPCS)) {

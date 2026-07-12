@@ -2,7 +2,7 @@
 // every skill interaction, dialogue/quests/shops, bank, GE, duels, dungeons,
 // housing, events, chat.
 
-import { MSG, PLANE, FX, SHILLING, WILDERNESS_Y, COLOSSEUM, XP_TABLE } from '../../shared/constants.js';
+import { MSG, PLANE, FX, SHILLING, WILDERNESS_Y, COLOSSEUM, XP_TABLE, WORLD, COMBAT } from '../../shared/constants.js';
 import { ITEMS } from '../../shared/data/items.js';
 import { NODES, RECIPES, SPELLS, PRAYERS, ABILITIES, FAMILIARS, DUNGEON, FURNITURE } from '../../shared/data/skills.js';
 import { MOBS } from '../../shared/data/mobs.js';
@@ -55,7 +55,11 @@ export function handleMessage(world, ws, msg) {
     case MSG.HOUSE: return onHouse(world, p, msg);
     case MSG.CHAT: return onChat(world, p, msg);
     case MSG.EMOTE: p.anim = 'spellcast'; p.animSeq++; return;
-    case 'devgrant': if (process.argv.includes('--dev')) { world.ledger.mint(p.name, msg.amt | 0, 'dev'); world.send(p, { t: MSG.TOKEN, bal: world.ledger.balance(p.name), delta: msg.amt | 0, reason: 'dev grant' }); } return;
+    case 'pet': return onPet(world, p, msg);
+    case 'devgrant': if (process.argv.includes('--dev')) {
+      if (msg.item && ITEMS[msg.item]) p.addItem(String(msg.item), Math.max(1, msg.qty | 0));
+      if (msg.amt) { world.ledger.mint(p.name, msg.amt | 0, 'dev'); world.send(p, { t: MSG.TOKEN, bal: world.ledger.balance(p.name), delta: msg.amt | 0, reason: 'dev grant' }); }
+    } return;
   }
 }
 
@@ -66,6 +70,7 @@ export function onDisconnect(world, ws) {
   world.players.delete(p.name);
   world.sockets.delete(p.id);
   if (p.familiar) { const f = world.entities.get(p.familiar); if (f) world.removeEntity(f); }
+  if (p.activePetEnt) { const pe = world.entities.get(p.activePetEnt); if (pe) world.removeEntity(pe); p.activePetEnt = null; }
   world.removeEntity(p);
   // durably persist this player's final state immediately, then flush ledger/meta
   world.persistPlayer(p).then(() => world.ledger.save()).catch(e => console.error('logout save', e.message));
@@ -85,7 +90,7 @@ function onHello(world, ws, msg) {
   }
   const isNew = !world.saved[name];
   const p = new Player(world, name, world.saved[name], { sex: msg.sex, skin: msg.skin, hair: msg.hair });
-  if (isBlocked(p.plane, p.x | 0, p.y | 0)) { p.x = 252.5; p.y = 332.5; }
+  if (isBlocked(p.plane, p.x | 0, p.y | 0)) { p.x = COMBAT.PLAYER_RESPAWN.x + 0.5; p.y = COMBAT.PLAYER_RESPAWN.y + 0.5; }
   world.addEntity(p);
   world.players.set(name, p);
   world.sockets.set(p.id, ws);
@@ -109,8 +114,11 @@ function sendWelcome(world, p) {
     xp: p.xp, inv: p.inv, equip: p.equip, quests: p.quests, style: p.style,
     bal: world.ledger.balance(p.name), pouch: p.pouch, sex: p.sex, skin: p.skin, hair: p.hair,
     milestones: p.milestonesPaid, dungeonBest: p.dungeonBest, house: p.house, task: p.task,
+    pets: p.pets, activePet: p.activePet,
     x: p.x, y: p.y, plane: p.plane,
   });
+  // respawn the active pet on (re)connect
+  if (p.activePet !== null && p.pets[p.activePet] && !p.activePetEnt) world.spawnPet(p, p.activePet);
 }
 
 // ---------------- movement ----------------
@@ -123,7 +131,7 @@ function onMove(world, p, msg) {
     p.pendingAction = null;
     return;
   }
-  const tx = Math.max(0, Math.min(575, msg.x | 0)), ty = Math.max(0, Math.min(575, msg.y | 0));
+  const tx = Math.max(0, Math.min(WORLD.W - 1, msg.x | 0)), ty = Math.max(0, Math.min(WORLD.H - 1, msg.y | 0));
   p.run = !!msg.run;
   p.vel = null;
   p.pendingAction = null;
@@ -893,6 +901,37 @@ function exitDungeon(world, p) {
   p.path = null; p.target = null;
   world.gridMove(p);
   world.fx(p.plane, p.x, p.y, FX.TELEPORT, { id: p.id });
+}
+
+// ---------------- pets ----------------
+import { PETS } from '../../shared/data/pets.js';
+function onPet(world, p, msg) {
+  if (msg.claim !== undefined) {
+    // claiming converts the tradable item into a bound roster pet (permanent)
+    const s = p.inv[msg.claim | 0];
+    const petId = s && ITEMS[s.id]?.pet;
+    if (!petId || !PETS[petId]) return;
+    if (p.pets.length >= 12) return world.send(p, { t: MSG.MSGBOX, m: 'Your pet roster is full (12).' });
+    p.removeItem(s.id, 1);
+    p.pets.push({ id: petId, xp: 0 });
+    world.send(p, { t: 'pets', pets: p.pets, activePet: p.activePet });
+    world.send(p, { t: MSG.MSGBOX, kind: 'milestone', m: `${PETS[petId].name} is now bound to you — a companion for life.` });
+    world.persistPlayer(p).catch(() => {});
+    return;
+  }
+  if (msg.activate !== undefined) {
+    const idx = msg.activate | 0;
+    if (!p.pets[idx]) return;
+    if (p.activePetEnt) { const old = world.entities.get(p.activePetEnt); if (old) world.removeEntity(old); p.activePetEnt = null; }
+    world.spawnPet(p, idx);
+    world.send(p, { t: 'pets', pets: p.pets, activePet: p.activePet });
+    return;
+  }
+  if (msg.dismiss) {
+    if (p.activePetEnt) { const old = world.entities.get(p.activePetEnt); if (old) world.removeEntity(old); }
+    p.activePetEnt = null; p.activePet = null;
+    world.send(p, { t: 'pets', pets: p.pets, activePet: null });
+  }
 }
 
 // ---------------- summoning ----------------

@@ -60,8 +60,13 @@ export function composite(vis) {
   if (wep?.bg) layers.push(wep.bg);
   if (vis.behind) layers.push(gearFile('behind/quiver', sex, 'brown'));
   layers.push(pick(manifest.bodies, sex, vis.skin || 'light') || pick(manifest.bodies, sex, 'light'));
-  layers.push(pick(manifest.heads, sex, vis.skin || 'light') || pick(manifest.heads, sex, 'light'));
-  if (vis.hair && !vis.head) layers.push(pick(manifest.hair, vis.hair[0], sex, vis.hair[1]));
+  if (vis.monster) { // beast-folk: goblin/orc/minotaur/lizard/wolf heads
+    const mh = manifest.monsters?.[vis.monster];
+    layers.push(mh?.[vis.skin] || (mh && Object.values(mh).find(Boolean)));
+  } else {
+    layers.push(pick(manifest.heads, sex, vis.skin || 'light') || pick(manifest.heads, sex, 'light'));
+  }
+  if (vis.hair && !vis.head && !vis.monster) layers.push(pick(manifest.hair, vis.hair[0], sex, vis.hair[1]));
   if (vis.beard) layers.push(manifest.beard[vis.beard]);
   if (vis.feet) layers.push(gearFile('feet/' + vis.feet[0], sex, vis.feet[1]));
   if (vis.legs) layers.push(gearFile('legs/' + vis.legs[0], sex, vis.legs[1]));
@@ -169,9 +174,10 @@ function px(g, x, y, w, h, col) { g.fillStyle = col; g.fillRect(x | 0, y | 0, w,
 // Creatures face RIGHT (renderer mirrors left-facers). Each has a body colour,
 // a lighter top highlight, a darker shade, and an outline for a clean silhouette.
 const CRITTER_STYLE = {
-  rat: { kind: 'quad', body: '#8a8072', hi: '#a89c8c', sh: '#645b50', size: 0.62, ears: 'round', tail: 'thin', snout: 'point' },
+  rat: { kind: 'quad', body: '#8a8072', hi: '#a89c8c', sh: '#645b50', size: 0.45, ears: 'round', tail: 'thin', snout: 'point' },
   rabbit: { kind: 'quad', body: '#b59a77', hi: '#e0cdb0', sh: '#8a7255', size: 0.55, ears: 'tall', tail: 'puff', snout: 'short', hop: true },
-  boar: { kind: 'quad', body: '#5c4633', hi: '#7a5f45', sh: '#3e2f22', size: 0.92, ears: 'round', tail: 'thin', snout: 'boar', tusks: true, mane: true },
+  boar: { kind: 'quad', body: '#4e3a28', hi: '#6b5238', sh: '#31241a', size: 1.0, ears: 'round', tail: 'curl', snout: 'boar', tusks: true, mane: true, hump: true, headLow: true },
+  bear: { kind: 'quad', body: '#6b4a2e', hi: '#8a6540', sh: '#47301d', size: 1.15, ears: 'round', snout: 'short', hump: true },
   wolf: { kind: 'quad', body: '#767a82', hi: '#9a9da5', sh: '#4e5158', size: 0.92, ears: 'point', tail: 'bush', snout: 'long' },
   icewolf: { kind: 'quad', body: '#c4d6e4', hi: '#eef6fb', sh: '#8fa8bc', size: 0.98, ears: 'point', tail: 'bush', snout: 'long', glow: '#bfe0ff' },
   panther: { kind: 'quad', body: '#26282f', hi: '#3c3f4a', sh: '#141519', size: 0.95, ears: 'round', tail: 'long', snout: 'short', sleek: true },
@@ -185,6 +191,23 @@ const CRITTER_STYLE = {
   giant: { kind: 'brute', body: '#8fa8bc', hi: '#b8cbd9', sh: '#5e7284', size: 1.35, frost: true },
   sprite: { kind: 'wisp', body: '#9fd8ef', hi: '#e6f8ff', size: 0.6, glow: '#bfefff' },
   spider: { kind: 'spider', body: '#332838', hi: '#54425c', sh: '#1c141f', size: 0.82 },
+  // ---- pets (small, characterful, animated like all critters) ----
+  hedgehog: { kind: 'quad', body: '#8a7358', hi: '#b59a77', sh: '#5e4c38', size: 0.42, ears: 'round', snout: 'point', spikes: true },
+  squirrel: { kind: 'quad', body: '#b0662e', hi: '#d8935a', sh: '#7a441e', size: 0.4, ears: 'tall', tail: 'bush', snout: 'short' },
+  wolfpup: { kind: 'quad', body: '#8a8d95', hi: '#b5b8c0', sh: '#5e6168', size: 0.5, ears: 'point', tail: 'bush', snout: 'short' },
+  badger: { kind: 'quad', body: '#4a4a50', hi: '#e8e8ec', sh: '#2e2e33', size: 0.55, ears: 'round', snout: 'point', stripes: true },
+  falcon: { kind: 'bird', body: '#6e5230', hi: '#c8a26a', sh: '#4a3620', size: 0.6 },
+  ferret: { kind: 'quad', body: '#c9b490', hi: '#ece0c8', sh: '#96835e', size: 0.42, ears: 'round', tail: 'long', snout: 'point', long: true },
+  tortoise: { kind: 'quad', body: '#7a8a50', hi: '#a0b070', sh: '#525e34', size: 0.6, snout: 'short', shell: true },
+  lynx: { kind: 'quad', body: '#c9a166', hi: '#e8cfa0', sh: '#96744a', size: 0.62, ears: 'point', tail: 'thin', snout: 'short', tufts: true },
+  magpie: { kind: 'bird', body: '#26262e', hi: '#e8e8f0', sh: '#16161c', size: 0.55 },
+  bearcub: { kind: 'quad', body: '#6b4a2e', hi: '#8a6540', sh: '#47301d', size: 0.62, ears: 'round', snout: 'short', hump: true },
+  direwolfpup: { kind: 'quad', body: '#4a4d55', hi: '#767a82', sh: '#2e3036', size: 0.58, ears: 'point', tail: 'bush', snout: 'long', glow: '#8ab4ff' },
+  imp: { kind: 'brute', body: '#a04038', hi: '#c86050', sh: '#702a24', size: 0.55, horns: true },
+  golemling: { kind: 'brute', body: '#8a8474', hi: '#a8a294', sh: '#5e5a4e', size: 0.6, cracks: true },
+  gryphon: { kind: 'bird', body: '#c9a23c', hi: '#f0d27a', sh: '#96742a', size: 0.85, glow: '#ffe08a' },
+  fae: { kind: 'wisp', body: '#e8a0d8', hi: '#fce0f8', size: 0.55, glow: '#ffc0f0' },
+  whelp: { kind: 'quad', body: '#a03828', hi: '#d86040', sh: '#6e2418', size: 0.6, ears: 'point', tail: 'long', snout: 'long', wings: true, glow: '#ff8a50' },
 };
 const OUTLINE = '#1b1712';
 
@@ -240,13 +263,25 @@ function drawQuad(g, st, s, swing, bob, type) {
   else if (st.tail === 'long') { g.strokeStyle = OUTLINE; g.lineWidth = 4 * s; g.beginPath(); g.moveTo(cx - bw + 2, cy); g.quadraticCurveTo(cx - bw - 8, cy - 4, cx - bw - 10, cy - 10 + swing * 2); g.stroke(); g.strokeStyle = st.body; g.lineWidth = 2.4 * s; g.stroke(); }
   else if (st.tail === 'puff') { oval(g, cx - bw - 1, cy + 1, 3 * s, 3 * s, '#f4efe4', OUTLINE); }
   else if (st.tail === 'thin') { g.strokeStyle = st.sh; g.lineWidth = 1.6; g.beginPath(); g.moveTo(cx - bw + 2, cy); g.quadraticCurveTo(cx - bw - 7, cy - 3, cx - bw - 9, cy + 3); g.stroke(); }
+  else if (st.tail === 'curl') { g.strokeStyle = st.sh; g.lineWidth = 1.8; g.beginPath(); g.arc(cx - bw - 2, cy - 3, 3, 0.6, 4.6); g.stroke(); }
+  // wings (dragon whelps) flap behind the body
+  if (st.wings) {
+    const flap = swing * 4;
+    g.fillStyle = st.sh;
+    g.beginPath(); g.moveTo(cx - 2, cy - bh); g.quadraticCurveTo(cx - 14, cy - bh - 10 - flap, cx - 18, cy - bh + 2 - flap); g.quadraticCurveTo(cx - 8, cy - bh + 2, cx - 2, cy - bh + 3); g.fill();
+    g.strokeStyle = OUTLINE; g.lineWidth = 1; g.stroke();
+  }
   // body
   oval(g, cx, cy, bw, bh, st.body, OUTLINE);
+  if (st.hump) { oval(g, cx - bw * 0.25, cy - bh * 0.66, bw * 0.62, bh * 0.66, st.body, OUTLINE); oval(g, cx - bw * 0.3, cy - bh * 0.8, bw * 0.4, bh * 0.35, st.hi); }
+  if (st.spikes) { g.fillStyle = st.sh; for (let i = -3; i <= 3; i++) { g.beginPath(); g.moveTo(cx + i * 2.6, cy - bh + 1); g.lineTo(cx + i * 2.6 + 1, cy - bh - 5); g.lineTo(cx + i * 2.6 + 2.6, cy - bh + 1); g.fill(); } }
+  if (st.shell) { oval(g, cx - bw * 0.1, cy - bh * 0.55, bw * 0.78, bh * 0.85, st.sh, OUTLINE); g.strokeStyle = st.hi; g.lineWidth = 1; g.beginPath(); g.moveTo(cx - bw * 0.5, cy - bh * 0.5); g.lineTo(cx + bw * 0.4, cy - bh * 0.5); g.moveTo(cx - bw * 0.3, cy - bh * 0.95); g.lineTo(cx - bw * 0.3, cy - bh * 0.1); g.moveTo(cx + bw * 0.15, cy - bh * 0.95); g.lineTo(cx + bw * 0.15, cy - bh * 0.1); g.stroke(); }
+  if (st.stripes) { g.fillStyle = st.hi; oval(g, cx, cy - bh * 0.5, bw * 0.7, bh * 0.22, st.hi); }
   oval(g, cx - 1, cy - bh * 0.4, bw * 0.82, bh * 0.5, st.hi);       // top highlight
   oval(g, cx, cy + bh * 0.55, bw * 0.7, bh * 0.28, st.sh);          // underside shade
-  if (st.mane) { g.fillStyle = st.sh; for (let i = -2; i <= 2; i++) { g.beginPath(); g.moveTo(cx + i * 3, cy - bh); g.lineTo(cx + i * 3 - 1, cy - bh - 4); g.lineTo(cx + i * 3 + 2, cy - bh); g.fill(); } }
-  // head
-  const hx = cx + bw + 2 * s, hy = cy - bh * 0.4;
+  if (st.mane) { g.fillStyle = st.sh; for (let i = -3; i <= 2; i++) { g.beginPath(); g.moveTo(cx + i * 3, cy - bh - (st.hump ? bh * 0.5 : 0)); g.lineTo(cx + i * 3 - 1, cy - bh - 5 - (st.hump ? bh * 0.5 : 0)); g.lineTo(cx + i * 3 + 2, cy - bh - (st.hump ? bh * 0.5 : 0)); g.fill(); } }
+  // head (boars/bears carry it low, merged into the shoulders)
+  const hx = cx + bw + 2 * s, hy = cy - bh * (st.headLow ? 0.05 : 0.4);
   const hr = 5.5 * s;
   oval(g, hx, hy, hr, hr * 0.95, st.body, OUTLINE);
   oval(g, hx - hr * 0.3, hy - hr * 0.3, hr * 0.55, hr * 0.5, st.hi);
@@ -357,9 +392,11 @@ function drawBrute(g, st, s, swing, bob) {
   // brow + mouth
   g.strokeStyle = st.sh; g.lineWidth = 2; g.beginPath(); g.moveTo(cx - 6, top + 3); g.lineTo(cx + 6, top + 3); g.stroke();
   g.strokeStyle = '#2a1a1a'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(cx - 4, top + 10); g.lineTo(cx + 4, top + 10); g.stroke();
-  // tusks / frost
+  // tusks / frost / horns / cracked stone
   px(g, cx - 3, top + 9, 1.5, 3, '#f4ecd8'); px(g, cx + 2, top + 9, 1.5, 3, '#f4ecd8');
   if (st.frost) { g.shadowColor = '#bfe0ff'; g.shadowBlur = 8; oval(g, cx, 38, 11 * s, 10 * s, 'rgba(200,230,255,0.10)'); g.shadowBlur = 0; }
+  if (st.horns) { g.fillStyle = '#3a2018'; for (const dx of [-5, 3]) { g.beginPath(); g.moveTo(cx + dx, top + 1); g.lineTo(cx + dx - 1, top - 6); g.lineTo(cx + dx + 3, top + 1); g.fill(); } }
+  if (st.cracks) { g.strokeStyle = st.sh; g.lineWidth = 1; g.beginPath(); g.moveTo(cx - 4, 32); g.lineTo(cx - 1, 38); g.lineTo(cx - 5, 44); g.moveTo(cx + 5, 34); g.lineTo(cx + 2, 40); g.stroke(); }
 }
 
 function drawWisp(g, st, frame) {

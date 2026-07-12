@@ -10,6 +10,7 @@ import { NPCS } from '../../shared/data/npcs.js';
 import { NODES } from '../../shared/data/skills.js';
 import { ITEMS } from '../../shared/data/items.js';
 import { SPAWNS, BOSS_SPAWNS, EVENTS, ANCHORS, ARENA } from '../../shared/data/world.js';
+import { PETS, PET_DROPS, PET_ODDS, PET_POWER, petLevel } from '../../shared/data/pets.js';
 import { Ledger } from './economy.js';
 import { tickCombat, mobAttack } from './combat.js';
 import { createStore } from './store.js';
@@ -142,6 +143,19 @@ export class World {
       this.dropShillings(mob.plane, mob.x, mob.y, amt, killer.id);
       this.announce(`✦ ${killer.name} struck lucky — a $Shilling drop from ${def.name}!`);
     }
+    // Pet drops: [superRare, ultraRare] pool per mob; bosses roll far better odds.
+    const petPool = PET_DROPS[mob.type];
+    if (petPool) {
+      const superOdds = def.boss ? PET_ODDS.bossSuper : PET_ODDS.superRare;
+      const ultraOdds = def.boss ? PET_ODDS.bossUltra : PET_ODDS.ultraRare;
+      let dropped = null;
+      if (petPool[1] && Math.random() < ultraOdds) dropped = petPool[1];
+      else if (petPool[0] && Math.random() < superOdds) dropped = petPool[0];
+      if (dropped) {
+        this.dropItem(mob.plane, mob.x, mob.y, `pet_${dropped}`, 1, killer.id);
+        this.announce(`🐾 ${killer.name} found a ${PETS[dropped].name} pet — ${petPool[1] === dropped ? 'an ULTRA RARE' : 'a super rare'} companion from ${def.name}!`);
+      }
+    }
     if (def.boss) this.payBossBounty(mob, def);
     if (mob.type === 'golden_stag') {
       for (const [pid, dmg] of mob.damagers) {
@@ -221,6 +235,7 @@ export class World {
       else if (e.kind === 'mob') this.tickMob(e, now, dt);
       else if (e.kind === 'npc') this.tickNpc(e, now, dt);
       else if (e.kind === 'familiar') this.tickFamiliar(e, now, dt);
+      else if (e.kind === 'pet') this.tickPet(e, now, dt);
       else if (e.kind === 'item' || e.kind === 'shil') {
         if (now - e.t0 > GROUND.OWNER_MS + GROUND.SHARED_MS) this.removeEntity(e);
       }
@@ -357,6 +372,83 @@ export class World {
     }
   }
 
+  // ---------------- player pets ----------------
+  spawnPet(owner, rosterIdx) {
+    const rec = owner.pets[rosterIdx];
+    if (!rec) return null;
+    const def = PETS[rec.id];
+    const pet = this.addEntity({
+      kind: 'pet', type: rec.id, name: def.name, critter: def.critter, cls: def.cls,
+      owner: owner.id, rosterIdx, plane: owner.plane, x: owner.x + 1, y: owner.y,
+      dir: 2, anim: 'idle', animSeq: 0, hp: 1, maxHp: 1, lastAttack: 0, lastUtility: 0,
+    });
+    owner.activePetEnt = pet.id;
+    owner.activePet = rosterIdx;
+    return pet;
+  }
+  tickPet(pt, now, dt) {
+    const owner = this.entities.get(pt.owner);
+    if (!owner || owner.activePetEnt !== pt.id) { this.removeEntity(pt); return; }
+    if (owner.plane !== pt.plane) { // follow through teleports
+      pt.plane = owner.plane; pt.x = owner.x + 1; pt.y = owner.y; this.gridMove(pt);
+    }
+    const rec = owner.pets[pt.rosterIdx];
+    if (!rec) { this.removeEntity(pt); owner.activePetEnt = null; return; }
+    const L = petLevel(rec.xp);
+    const d = Math.hypot(owner.x - pt.x, owner.y - pt.y);
+    const tgt = owner.target ? this.entities.get(owner.target) : null;
+    const canAttack = pt.cls === 'offense' || pt.cls === 'utility';
+    if (canAttack && tgt && tgt.kind === 'mob' && tgt.hp > 0 && Math.hypot(tgt.x - pt.x, tgt.y - pt.y) < 10) {
+      const dd = Math.hypot(tgt.x - pt.x, tgt.y - pt.y);
+      if (dd > 1.4) this.moveEntity(pt, tgt.x, tgt.y, 4.5, dt), pt.anim = 'walk';
+      else if (now - pt.lastAttack > PET_POWER.attackSpeedMs(pt.cls)) {
+        pt.lastAttack = now;
+        pt.anim = 'slash'; pt.animSeq++;
+        const dmg = 1 + (Math.random() * PET_POWER.attackDamage(pt.cls, L) | 0);
+        this.applyMobDamage(tgt, dmg, owner);
+        this.broadcastNear(pt.plane, pt.x, pt.y, { t: MSG.HIT, id: tgt.id, dmg, src: pt.id });
+        this.petGainXp(owner, rec, dmg * 2);
+      }
+    } else if (d > 2.2) { this.moveEntity(pt, owner.x, owner.y, 5.5, dt); pt.anim = 'walk'; }
+    else pt.anim = 'idle';
+    // utility pets: feed a hurt owner from their pack, retrieve their drops
+    if (pt.cls === 'utility' && now - pt.lastUtility > 8000) {
+      if (owner.hp < owner.maxHp * 0.6) {
+        const foodIdx = owner.inv.findIndex(s => s && ITEMS[s.id]?.food);
+        if (foodIdx >= 0) {
+          const heal = ITEMS[owner.inv[foodIdx].id].heal || 2;
+          owner.removeItem(owner.inv[foodIdx].id, 1);
+          owner.hp = Math.min(owner.maxHp, owner.hp + heal);
+          this.fx(owner.plane, owner.x, owner.y, FX.HEAL, { id: owner.id });
+          this.send(owner, { t: MSG.MSGBOX, m: `${pt.name} fetches food from your pack.` });
+          pt.lastUtility = now;
+          this.petGainXp(owner, rec, 20);
+        }
+      } else {
+        for (const e of this.near(pt.plane, pt.x, pt.y, 5)) {
+          if (e.kind !== 'item' || e.owner !== owner.id) continue;
+          if (!owner.addItem(e.item, e.qty)) break;
+          this.removeEntity(e);
+          this.send(owner, { t: MSG.MSGBOX, m: `${pt.name} retrieves your ${ITEMS[e.item]?.name || e.item}.` });
+          pt.lastUtility = now;
+          this.petGainXp(owner, rec, 8);
+          break;
+        }
+      }
+    }
+  }
+  petGainXp(owner, rec, amount) {
+    const before = petLevel(rec.xp);
+    rec.xp += Math.round(amount);
+    const after = petLevel(rec.xp);
+    if (after > before) {
+      this.send(owner, { t: 'petLevel', id: rec.id, level: after });
+      this.fx(owner.plane, owner.x, owner.y, FX.LEVELUP, { id: owner.activePetEnt });
+      if (after === 150) this.announce(`🐾 ${owner.name}'s ${PETS[rec.id].name} reached the maximum level 150!`);
+    }
+    this.send(owner, { t: 'petXp', idx: owner.activePet, xp: rec.xp });
+  }
+
   tickFamiliar(f, now, dt) {
     const owner = this.entities.get(f.owner);
     if (!owner || now > f.expires || owner.plane !== f.plane) { this.removeEntity(f); if (owner) owner.familiar = null; return; }
@@ -453,6 +545,11 @@ export class World {
     else if (e.kind === 'familiar') Object.assign(d, { type: e.type, name: e.name, critter: e.critter, hp: e.hp, mhp: e.maxHp });
     else if (e.kind === 'evbox') Object.assign(d, { ev: e.ev, name: 'Convoy strongbox' });
     else if (e.kind === 'fire') Object.assign(d, { fire: 1 });
+    else if (e.kind === 'pet') {
+      const owner = this.entities.get(e.owner);
+      const rec = owner?.pets?.[e.rosterIdx];
+      Object.assign(d, { type: e.type, name: e.name, critter: e.critter, pet: 1, lvl: rec ? petLevel(rec.xp) : 1, cls: e.cls });
+    }
     return d;
   }
   streamSnapshots() {

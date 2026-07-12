@@ -5,3 +5,7 @@ node_modules/
 *.log
 .DS_Store
 .env
+
+# Raw asset source packs (100k+ files) — the game ships only what tools copy into client/assets
+/model assets/
+/Animated Chests/

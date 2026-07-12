@@ -6,7 +6,7 @@ import { ITEMS } from '/shared/data/items.js';
 import { SPELLS } from '/shared/data/skills.js';
 import { Net } from './net.js';
 import { loadManifest, composite, drawChar } from './sprites.js';
-import { Renderer, drawMinimap } from './renderer.js';
+import { Renderer, drawMinimap, MM_RANGE } from './renderer.js';
 import { Fx } from './fx.js';
 import * as UI from './ui.js';
 
@@ -74,10 +74,22 @@ G.net.on(MSG.WELCOME, (m) => {
   G.xp = m.xp; G.inv = m.inv; G.equip = m.equip; G.quests = m.quests;
   G.bal = m.bal; G.milestones = m.milestones || {}; G.style = m.style;
   G.houseFurniture = (m.house && m.house.furniture) || {};
+  G.pets = m.pets || []; G.activePet = m.activePet ?? null;
   $('#login').classList.add('hidden');
   $('#hud').classList.remove('hidden');
   UI.initUI(G);
   $('#map-btn').onclick = () => UI.openWorldMap();
+  // click the minimap to walk there (it shows MM_RANGE tiles in each direction)
+  $('#minimap').onclick = (e) => {
+    if (!G.me || !G.self) return;
+    const r = e.target.getBoundingClientRect();
+    const sc = e.target.width / (2 * MM_RANGE + 1);
+    const dx = (e.clientX - r.left) * (e.target.width / r.width) / sc - MM_RANGE;
+    const dy = (e.clientY - r.top) * (e.target.height / r.height) / sc - MM_RANGE;
+    const tx = Math.round(G.self.x + dx), ty = Math.round(G.self.y + dy);
+    G.net.send({ t: MSG.MOVE, x: tx, y: ty, run: true });
+    UI.toast('Heading there…');
+  };
   UI.renderAbilities();
   UI.chatLine(`<span class="sys">Welcome to Sherwood, ${m.name}. Robin Hood awaits in Loxley — look for the ❗</span>`);
   UI.updateOrbs();
@@ -173,6 +185,9 @@ G.net.on('duelInvite', (m) => UI.duelInvite(m));
 G.net.on('duelStart', (m) => UI.toast(`⚔ Duel vs ${m.vs} — ${m.stake} $SHL staked. Fight begins in 3…`));
 G.net.on('ge', (m) => UI.openGE(m));
 G.net.on('cooldown', (m) => { G.cooldowns[m.ability] = m.until; });
+G.net.on('pets', (m) => { G.pets = m.pets || []; G.activePet = m.activePet ?? null; if (G.tab === 'pets') UI.renderPanel(); });
+G.net.on('petXp', (m) => { if (G.pets && G.pets[m.idx]) G.pets[m.idx].xp = m.xp; if (G.tab === 'pets') UI.renderPanel(); });
+G.net.on('petLevel', (m) => UI.toast(`🐾 Your ${String(m.id).replace(/_/g, ' ')} reached level ${m.level}!`));
 G.net.on(MSG.SELF, (m) => { if (m.prayersOn) { G.prayersOn = new Set(m.prayersOn); if (G.tab === 'prayer') UI.renderPanel(); } });
 G.net.on('node', (m) => { const k = m.x + ',' + m.y; if (m.off) G.depletedNodes.add(k); else G.depletedNodes.delete(k); });
 G.net.on(MSG.INTERFACE, (m) => {

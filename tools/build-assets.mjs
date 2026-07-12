@@ -9,7 +9,8 @@ const SRC = path.join(process.argv[2] || '../lpc-repo', 'spritesheets');
 const OUT = path.resolve('client/assets/lpc');
 fs.mkdirSync(OUT, { recursive: true });
 
-const SKINS = ['light', 'olive', 'taupe', 'brown', 'black'];
+const SKINS = ['light', 'olive', 'taupe', 'brown', 'black', 'green', 'dark_green', 'bright_green', 'fur_brown', 'bronze'];
+const MONSTERS = ['goblin', 'orc', 'minotaur', 'lizard', 'wolf'];
 const HAIRC = ['black', 'dark_brown', 'light_brown', 'blonde', 'ginger', 'gray'];
 const HAIRS = ['plain', 'bangs', 'bedhead', 'braid', 'buzzcut', 'curly_long'];
 const METALS = ['copper', 'bronze', 'iron', 'steel', 'brass', 'silver', 'gold'];
@@ -50,6 +51,17 @@ for (const sex of SEXES) {
   }
 }
 for (const c of HAIRC) manifest.beard[c] = emit(`beard_${c}`, [`beards/beard/basic/${c}.png`]);
+
+// Monster heads (goblin/orc/minotaur/lizard/wolf) — swap in for the human head
+manifest.monsters = {};
+for (const m of MONSTERS) {
+  manifest.monsters[m] = {};
+  for (const s of SKINS) {
+    manifest.monsters[m][s] = emit(`monsterhead_${m}_${s}`, [
+      `head/heads/${m}/male/${s}.png`, `head/heads/${m}/adult/${s}.png`, `head/heads/${m}/female/${s}.png`,
+    ]);
+  }
+}
 
 // Gear layers: key = "<slotSheet>", per sex, per color, with fallbacks across cuts
 const ALIAS = { forest: ['forest_green'], green: ['forest_green'], charcoal: ['dark_gray'], walnut: ['dark_brown'], tan: ['brown'], white: ['light_gray'] };
@@ -127,6 +139,19 @@ for (const anim of ['thrust', 'walk']) {
   }
   manifest.weapons.spear.perAnim[anim] = a;
 }
+// Crossbow, mace and waraxe (single-finish sheets: universal + oversize slash)
+manifest.weapons.crossbow = { grid: 64, fg: {}, bg: {} };
+manifest.weapons.crossbow.fg.wood = emit('wep_crossbow_fg', ['weapon/ranged/crossbow/foreground/crossbow.png']);
+manifest.weapons.crossbow.bg.wood = emit('wep_crossbow_bg', ['weapon/ranged/crossbow/background/crossbow.png']);
+for (const [key, base] of [['mace', 'weapon/blunt/mace'], ['waraxe', 'weapon/blunt/waraxe']]) {
+  const w = { grid: 64, fg: {}, bg: {}, perAnim: { slash: { fg: {}, bg: {} } } };
+  w.fg.steel = emit(`wep_${key}_fg`, [`${base}/${key}.png`]);
+  w.bg.steel = emit(`wep_${key}_bg`, [`${base}/universal_behind/${key}.png`, `${base}/behind/${key}.png`]);
+  w.perAnim.slash.fg.steel = emit(`wep_${key}_slash_fg`, [`${base}/attack_slash/${key}.png`]);
+  w.perAnim.slash.bg.steel = emit(`wep_${key}_slash_bg`, [`${base}/attack_slash/behind/${key}.png`]);
+  manifest.weapons[key] = w;
+}
+
 // Real tool sprites: axe and pickaxe (per-sex universal + oversize smash used for slash)
 for (const tool of ['axe', 'pickaxe']) {
   const w = { sexed: {}, perAnim: { slash: { fg: {}, bg: {} } } };

@@ -114,6 +114,46 @@ export function itemIcon(id) {
       g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
       g.fillStyle = pal[2]; g.beginPath(); g.moveTo(10.4, -5); g.quadraticCurveTo(11, -12, 3, -12.6); g.lineTo(3, -11); g.quadraticCurveTo(9, -10.6, 10.4, -5); g.fill();
     });
+  } else if (name.includes('crossbow') || name.includes('arbalest')) {
+    if (name === 'crossbow_stock') {
+      diag(g, () => { shaft(g, -12, 10); g.fillStyle = '#8a6234'; g.fillRect(-3, -13, 6, 8); g.strokeStyle = INK; g.strokeRect(-3, -13, 6, 8); });
+    } else {
+      diag(g, () => {
+        shaft(g, -6, 12); // stock
+        g.strokeStyle = INK; g.lineWidth = 3.4; g.beginPath(); g.moveTo(-9, -7); g.quadraticCurveTo(0, -13, 9, -7); g.stroke();
+        g.strokeStyle = name.includes('siege') ? METAL_PAL.silversteel[0] : METAL_PAL.iron[0]; g.lineWidth = 2;
+        g.beginPath(); g.moveTo(-9, -7); g.quadraticCurveTo(0, -13, 9, -7); g.stroke();
+        g.strokeStyle = '#e8ddc0'; g.lineWidth = 0.9; g.beginPath(); g.moveTo(-9, -7); g.lineTo(9, -7); g.stroke();
+        g.fillStyle = METAL_PAL.iron[1]; g.fillRect(-1.4, -9, 2.8, 4);
+      });
+    }
+  } else if (name.includes('_bolts')) {
+    for (const o of [-3, 1, 5]) {
+      g.save(); g.translate(15 + o, 16); g.rotate(Math.PI / 4);
+      g.strokeStyle = '#8a6234'; g.lineWidth = 2; g.beginPath(); g.moveTo(0, 7); g.lineTo(0, -6); g.stroke();
+      g.fillStyle = pal[0]; g.beginPath(); g.moveTo(0, -9); g.lineTo(2.4, -4.6); g.lineTo(-2.4, -4.6); g.closePath(); g.fill();
+      g.strokeStyle = INK; g.lineWidth = 0.7; g.stroke();
+      g.restore();
+    }
+  } else if (name.includes('_mace')) {
+    diag(g, () => {
+      shaft(g, -6, 13);
+      g.fillStyle = pal[0]; g.beginPath(); g.arc(0, -11, 5.4, 0, 7); g.fill();
+      g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
+      g.fillStyle = pal[2];
+      for (let a = 0; a < 8; a++) { const ang = a * Math.PI / 4; g.beginPath(); g.moveTo(Math.cos(ang) * 5, -11 + Math.sin(ang) * 5); g.lineTo(Math.cos(ang) * 8.4, -11 + Math.sin(ang) * 8.4); g.lineTo(Math.cos(ang + 0.5) * 5, -11 + Math.sin(ang + 0.5) * 5); g.fill(); }
+      px(g, -2, -13, 2, 2, pal[2]);
+    });
+  } else if (name.includes('waraxe')) {
+    diag(g, () => {
+      shaft(g, -13, 13);
+      for (const m2 of [-1, 1]) {
+        g.fillStyle = pal[0];
+        g.beginPath(); g.moveTo(m2 * 1.4, -13); g.quadraticCurveTo(m2 * 11, -14, m2 * 11, -5); g.quadraticCurveTo(m2 * 6, -7, m2 * 1.4, -5); g.closePath(); g.fill();
+        g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
+      }
+      px(g, -1.4, -15, 2.8, 3, pal[1]);
+    });
   } else if (/bow$/.test(name)) {
     diag(g, () => {
       g.strokeStyle = INK; g.lineWidth = 3.6; g.beginPath(); g.arc(-3, 0, 13, -Math.PI / 2.15, Math.PI / 2.15); g.stroke();
@@ -460,6 +500,14 @@ export function itemIcon(id) {
     else if (name === 'grail_fragment') { g.beginPath(); g.moveTo(9, 8); g.quadraticCurveTo(16, 14, 23, 8); g.lineTo(20, 18); g.lineTo(12, 18); g.closePath(); g.fill(); g.shadowBlur = 0; g.strokeStyle = INK; g.stroke(); px(g, 14, 18, 4, 6, '#d8bc6a'); }
     else if (name === 'frostgiant_heart') { g.beginPath(); g.moveTo(16, 25); g.quadraticCurveTo(6, 17, 9, 10); g.quadraticCurveTo(12, 6, 16, 11); g.quadraticCurveTo(20, 6, 23, 10); g.quadraticCurveTo(26, 17, 16, 25); g.fill(); g.shadowBlur = 0; g.strokeStyle = INK; g.stroke(); }
     else { g.beginPath(); g.arc(16, 15, 8, 0, 7); g.fill(); g.shadowBlur = 0; g.strokeStyle = INK; g.stroke(); g.fillStyle = '#8a6d2c'; g.beginPath(); g.arc(16, 15, 3, 0, 7); g.fill(); }
+  } else if (def.pet) {
+    // paw print in a warm medallion — the mark of a companion
+    g.fillStyle = '#8a6d4c'; g.beginPath(); g.arc(16, 16, 11, 0, 7); g.fill();
+    g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
+    g.fillStyle = '#f4e6c0';
+    g.beginPath(); g.ellipse(16, 19, 4.4, 3.6, 0, 0, 7); g.fill();
+    for (const [ox, oy] of [[-5, -1], [-1.8, -3.4], [1.8, -3.4], [5, -1]]) { g.beginPath(); g.arc(16 + ox, 16 + oy, 1.9, 0, 7); g.fill(); }
+    g.strokeStyle = '#c8a038'; g.lineWidth = 1.4; g.beginPath(); g.arc(16, 16, 12.6, 0, 7); g.stroke();
   } else if (def.tool) {
     diag(g, () => { shaft(g, -10, 12); g.fillStyle = METAL_PAL.iron[0]; g.fillRect(-5, -13, 10, 5); g.strokeStyle = INK; g.strokeRect(-5, -13, 10, 5); });
   } else if (def.food) {

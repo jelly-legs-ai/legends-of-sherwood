@@ -8,7 +8,7 @@ import { QUESTS } from '/shared/data/quests.js';
 import { itemIcon } from './sprites.js';
 import { worldMapCanvas } from './renderer.js';
 import { TOWNS } from '/shared/data/world.js';
-import { REGIONS, WILDERNESS_Y } from '/shared/constants.js';
+import { REGIONS, WILDERNESS_Y, WORLD } from '/shared/constants.js';
 
 const $ = (s) => document.querySelector(s);
 let G = null; // game state ref
@@ -44,6 +44,7 @@ export function renderPanel() {
     case 'prayer': return renderPrayers(p);
     case 'magic': return renderMagic(p);
     case 'craft': return renderCraft(p);
+    case 'pets': return renderPets(p);
   }
 }
 
@@ -67,16 +68,32 @@ function renderInv(p) {
       if (s.qty > 1) { const q = document.createElement('span'); q.className = 'qty'; q.textContent = fmt(s.qty); d.appendChild(q); }
       d.onmouseenter = (e) => tooltip(e, itemTip(s.id, s.qty));
       d.onmouseleave = hideTooltip;
-      d.onclick = (e) => { e.stopPropagation(); invMenu(e, s, i); };
-      d.oncontextmenu = (e) => { e.preventDefault(); invMenu(e, s, i); };
+      // left-click: perform the item's primary action; right-click: full menu
+      d.onclick = (e) => { e.stopPropagation(); invPrimary(s, i, e); };
+      d.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); invMenu(e, s, i); };
     }
     grid.appendChild(d);
   });
   p.appendChild(grid);
 }
+// One-click primary action per item category (bank/shop contexts still apply).
+function invPrimary(s, i, e) {
+  const def = ITEMS[s.id] || {};
+  if (G.bankOpen) return G.net.send({ t: MSG.BANK, deposit: i });
+  if (def.pet) return confirmClaimPet(s, i);   // warn: claiming binds it forever
+  if (def.slot) return G.net.send({ t: MSG.EQUIP, slot: i });
+  if (def.food || def.potion) return G.net.send({ t: MSG.EAT, slot: i });
+  if (def.bones) return G.net.send({ t: MSG.BURY, slot: i });
+  if (def.pouch) return G.net.send({ t: MSG.SUMMON, pouch: s.id });
+  if (s.id.endsWith('_logs') || s.id === 'logs') return G.net.send({ t: MSG.USE_ITEM, slot: i });
+  if (s.id.endsWith('_seed')) { G.selectedSeed = s.id; return toast(`You'll plant ${def.name} next.`); }
+  invMenu(e, s, i); // no obvious primary — show the menu
+}
+
 function invMenu(e, s, i) {
   const def = ITEMS[s.id] || {};
   const opts = [];
+  if (def.pet) opts.push(['🐾 Claim (binds forever)', () => confirmClaimPet(s, i)]);
   if (def.slot) opts.push(['Wear / Wield', () => G.net.send({ t: MSG.EQUIP, slot: i })]);
   if (def.food) opts.push(['Eat', () => G.net.send({ t: MSG.EAT, slot: i })]);
   if (def.potion) opts.push(['Drink', () => G.net.send({ t: MSG.EAT, slot: i })]);
@@ -237,6 +254,74 @@ function renderCraft(p) {
       shown++;
     }
   }
+}
+
+// ---------------- pets ----------------
+import { PETS, PET_XP, petLevel, PET_MAX_LEVEL, PET_POWER } from '/shared/data/pets.js';
+const CLS_INFO = {
+  defense: ['🛡 Defense', 'Guards you: reduces damage taken and can block hits outright. Never attacks.'],
+  offense: ['⚔ Offense', 'Fights beside you: attacks your target. Never blocks.'],
+  utility: ['🎒 Utility', 'Fetches food when you are hurt, retrieves your drops, and both blocks and attacks (weaker).'],
+};
+function renderPets(p) {
+  p.innerHTML = '';
+  const head = document.createElement('div');
+  head.className = 'craft-cat';
+  head.textContent = `Pet roster (${(G.pets || []).length}/12)`;
+  p.appendChild(head);
+  if (!(G.pets || []).length) {
+    const i = document.createElement('div');
+    i.style.cssText = 'color:#b3a06d;font-size:12px;line-height:1.5';
+    i.innerHTML = 'No pets yet. Pets drop as <b>super-rare</b> and <b>ultra-rare</b> finds from creatures across Sherwood — the mightiest come from bosses. Pet items can be traded on the Grand Exchange until claimed.';
+    p.appendChild(i);
+    return;
+  }
+  G.pets.forEach((rec, idx) => {
+    const def = PETS[rec.id];
+    if (!def) return;
+    const lvl = petLevel(rec.xp);
+    const cur = PET_XP[lvl], next = PET_XP[Math.min(PET_MAX_LEVEL, lvl + 1)];
+    const pct = lvl >= PET_MAX_LEVEL ? 100 : Math.floor(100 * (rec.xp - cur) / Math.max(1, next - cur));
+    const active = G.activePet === idx;
+    const row = document.createElement('div');
+    row.className = 'quest-item';
+    row.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+      <span class="qname">${active ? '● ' : ''}${def.name} <small style="color:#8ae0b0">Lv.${lvl}${lvl >= PET_MAX_LEVEL ? ' MAX' : ''}</small></span>
+      <span style="font-size:11px;color:#b3a06d">${CLS_INFO[def.cls][0]}</span></div>
+      <div class="bar" style="margin-top:3px"><i style="width:${pct}%"></i></div>`;
+    const btns = document.createElement('div');
+    btns.style.marginTop = '5px';
+    const b = document.createElement('button');
+    b.className = 'pray-btn' + (active ? ' on' : '');
+    b.textContent = active ? 'Dismiss' : 'Summon';
+    b.onclick = () => G.net.send(active ? { t: 'pet', dismiss: 1 } : { t: 'pet', activate: idx });
+    btns.appendChild(b);
+    row.appendChild(btns);
+    row.onmouseenter = (e) => tooltip(e, `<b>${def.name}</b> — Tier ${def.tier} ${CLS_INFO[def.cls][0]}<br>${CLS_INFO[def.cls][1]}<br>` +
+      (def.cls !== 'defense' ? `Hit: ~${PET_POWER.attackDamage(def.cls, lvl).toFixed(0)} ` : '') +
+      (def.cls !== 'offense' ? `Guard: -${Math.round(PET_POWER.damageReduction(def.cls, lvl) * 100)}% dmg, ${Math.round(PET_POWER.blockChance(def.cls, lvl) * 100)}% block` : '') +
+      `<br>Levels up while active as you fight (max ${PET_MAX_LEVEL}).`);
+    row.onmouseleave = hideTooltip;
+    p.appendChild(row);
+  });
+}
+// First-claim warning: claiming binds the pet forever (it becomes untradable).
+export function confirmClaimPet(s, i) {
+  const petId = ITEMS[s.id]?.pet;
+  const def = PETS[petId];
+  if (!def) return;
+  $('#dialogue').classList.remove('hidden');
+  $('#dlg-name').textContent = `Claim ${def.name}?`;
+  $('#dlg-line').textContent = `This ${CLS_INFO[def.cls][0]} pet is currently a tradable item. Claiming it binds it to you PERMANENTLY — it becomes untradable and can never be sold on the Grand Exchange. Claim it as your companion?`;
+  const opts = $('#dlg-opts');
+  opts.innerHTML = '';
+  const yes = document.createElement('button');
+  yes.textContent = '🐾 Claim forever';
+  yes.onclick = () => { hideDialogue(); G.net.send({ t: 'pet', claim: i }); G.tab = 'pets'; document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x.dataset.tab === 'pets')); };
+  const no = document.createElement('button');
+  no.textContent = 'Keep it tradable';
+  no.onclick = hideDialogue;
+  opts.append(yes, no);
 }
 
 // ---------------- ability bar ----------------
@@ -432,13 +517,14 @@ export function openWorldMap() {
     c.width = 520; c.height = 520;
     c.style.cssText = 'width:520px;height:520px;border:2px solid #55431c;border-radius:6px;image-rendering:auto';
     const g = c.getContext('2d');
-    const sc = 520 / 576;
-    g.drawImage(worldMapCanvas(), 0, 0, 576, 576, 0, 0, 520, 520);
+    const sc = 520 / WORLD.W;
+    const lsc = sc * (WORLD.SCALE || 1); // labels are authored on the 576 grid
+    g.drawImage(worldMapCanvas(), 0, 0, WORLD.W, WORLD.W, 0, 0, 520, 520);
     // region names
     g.font = 'italic 13px Georgia'; g.textAlign = 'center';
     for (const [name, x, y] of REGION_LABELS) {
-      g.fillStyle = '#00000090'; g.fillText(name, x * sc + 1, y * sc + 1);
-      g.fillStyle = '#f4e9c8'; g.fillText(name, x * sc, y * sc);
+      g.fillStyle = '#00000090'; g.fillText(name, x * lsc + 1, y * lsc + 1);
+      g.fillStyle = '#f4e9c8'; g.fillText(name, x * lsc, y * lsc);
     }
     // towns
     g.font = 'bold 12px Georgia';

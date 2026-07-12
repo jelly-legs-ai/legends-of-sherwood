@@ -1,7 +1,10 @@
 // Authored world layout: region shapes are analytic rules in mapgen.js; this
 // file pins down towns, buildings, stations, altars, patches, shortcuts,
-// boss lairs, portals and mob spawn zones. Coordinates are tiles (576x576).
-// North = low y (it gets colder as y shrinks); the Wild Lands (y<96) are PvP.
+// boss lairs, portals and mob spawn zones.
+// NOTE: coordinates below are authored on the original 576x576 grid and are
+// scaled by WORLD.SCALE (1.5 -> 864x864) at the bottom of this file.
+// North = low y (it gets colder as y shrinks); the Wild Lands are PvP.
+import { WORLD } from '../constants.js';
 
 export const TOWNS = {
   loxley: {
@@ -97,31 +100,54 @@ export const SHORTCUTS = [
 ];
 
 // Mob spawn zones: { mob, x, y, r, n } — n concurrent spawns in radius r.
+// Zones are ordered by region and tuned so each region's mobs sit inside its
+// intended level band (see REGIONS in constants.js).
 export const SPAWNS = [
-  // Loxley / Meadows / Bay
-  { mob: 'rat', x: 262, y: 344, r: 8, n: 6 }, { mob: 'rabbit', x: 205, y: 335, r: 14, n: 8 },
-  { mob: 'boar', x: 180, y: 300, r: 16, n: 6 }, { mob: 'bandit', x: 140, y: 340, r: 16, n: 6 },
-  { mob: 'bandit', x: 100, y: 380, r: 14, n: 5 }, { mob: 'gull_harpy', x: 70, y: 450, r: 16, n: 6 },
-  { mob: 'smuggler', x: 84, y: 470, r: 14, n: 5 }, { mob: 'rat', x: 240, y: 320, r: 6, n: 3 },
-  // Sherwood
-  { mob: 'sherwood_wolf', x: 280, y: 280, r: 18, n: 7 }, { mob: 'outlaw', x: 300, y: 300, r: 20, n: 8 },
-  { mob: 'poacher', x: 260, y: 300, r: 16, n: 6 }, { mob: 'sheriffs_guard', x: 340, y: 310, r: 14, n: 6 },
-  { mob: 'elder_treant_sapling', x: 258, y: 268, r: 10, n: 4 },
-  // Fenwold
-  { mob: 'marsh_leech', x: 430, y: 440, r: 20, n: 8 }, { mob: 'bog_wraith', x: 460, y: 460, r: 18, n: 6 },
-  { mob: 'fen_serpent', x: 490, y: 480, r: 18, n: 5 },
-  // Elderglade
-  { mob: 'wildwood_panther', x: 260, y: 490, r: 20, n: 6 }, { mob: 'druid_shade', x: 240, y: 470, r: 16, n: 5 },
-  { mob: 'vine_horror', x: 300, y: 500, r: 18, n: 5 },
-  // Peaks
-  { mob: 'mountain_goat', x: 450, y: 320, r: 20, n: 7 }, { mob: 'eyrie_hawk', x: 480, y: 280, r: 18, n: 5 },
-  { mob: 'crag_troll', x: 500, y: 250, r: 18, n: 5 },
-  // Northmoor
-  { mob: 'moor_brigand', x: 340, y: 160, r: 20, n: 6 }, { mob: 'ice_wolf', x: 260, y: 140, r: 20, n: 6 },
-  { mob: 'frost_sprite', x: 300, y: 170, r: 16, n: 5 },
-  // Wild Lands (PvP)
-  { mob: 'revenant_knight', x: 300, y: 50, r: 24, n: 6 }, { mob: 'wight_archer', x: 240, y: 60, r: 20, n: 5 },
-  { mob: 'frost_revenant', x: 360, y: 40, r: 20, n: 4 },
+  // Loxley outskirts / Barnsdale Meadows / Bay (levels 1-20)
+  { mob: 'rat', x: 262, y: 344, r: 8, n: 6 }, { mob: 'rat', x: 240, y: 320, r: 6, n: 4 },
+  { mob: 'rat', x: 270, y: 360, r: 10, n: 5 },
+  { mob: 'rabbit', x: 205, y: 335, r: 14, n: 8 }, { mob: 'rabbit', x: 175, y: 360, r: 14, n: 6 },
+  { mob: 'goblin', x: 222, y: 300, r: 12, n: 6 }, { mob: 'goblin', x: 195, y: 385, r: 14, n: 6 },
+  { mob: 'boar', x: 180, y: 300, r: 16, n: 6 }, { mob: 'boar', x: 150, y: 270, r: 16, n: 6 },
+  { mob: 'bandit', x: 140, y: 340, r: 16, n: 6 }, { mob: 'bandit', x: 100, y: 380, r: 14, n: 5 },
+  { mob: 'goblin_archer', x: 120, y: 300, r: 14, n: 5 }, { mob: 'bandit', x: 165, y: 420, r: 14, n: 5 },
+  { mob: 'gull_harpy', x: 70, y: 450, r: 16, n: 6 }, { mob: 'gull_harpy', x: 45, y: 490, r: 14, n: 5 },
+  { mob: 'smuggler', x: 84, y: 470, r: 14, n: 5 }, { mob: 'smuggler', x: 60, y: 510, r: 14, n: 5 },
+  { mob: 'boar', x: 120, y: 440, r: 14, n: 5 },
+  // Sherwood Forest (levels 10-40)
+  { mob: 'sherwood_wolf', x: 280, y: 280, r: 18, n: 7 }, { mob: 'sherwood_wolf', x: 310, y: 262, r: 16, n: 6 },
+  { mob: 'outlaw', x: 300, y: 300, r: 20, n: 8 }, { mob: 'outlaw', x: 262, y: 322, r: 12, n: 5 },
+  { mob: 'poacher', x: 260, y: 300, r: 16, n: 6 }, { mob: 'poacher', x: 322, y: 288, r: 14, n: 5 },
+  { mob: 'goblin_raider', x: 246, y: 282, r: 14, n: 6 }, { mob: 'brown_bear', x: 292, y: 252, r: 16, n: 4 },
+  { mob: 'sheriffs_guard', x: 340, y: 310, r: 14, n: 6 }, { mob: 'sheriffs_guard', x: 352, y: 336, r: 12, n: 5 },
+  { mob: 'elder_treant_sapling', x: 258, y: 268, r: 10, n: 4 }, { mob: 'brown_bear', x: 330, y: 270, r: 14, n: 4 },
+  // Fenwold swamp (levels 25-50)
+  { mob: 'marsh_leech', x: 430, y: 440, r: 20, n: 8 }, { mob: 'marsh_leech', x: 405, y: 470, r: 16, n: 6 },
+  { mob: 'lizardfolk', x: 445, y: 415, r: 16, n: 6 }, { mob: 'lizardfolk', x: 478, y: 445, r: 16, n: 6 },
+  { mob: 'bog_wraith', x: 460, y: 460, r: 18, n: 6 }, { mob: 'bog_wraith', x: 500, y: 430, r: 14, n: 5 },
+  { mob: 'fen_serpent', x: 490, y: 480, r: 18, n: 5 }, { mob: 'lizardfolk_shaman', x: 512, y: 466, r: 14, n: 4 },
+  { mob: 'fen_serpent', x: 440, y: 505, r: 16, n: 5 },
+  // Elderglade Wildwood (levels 35-60)
+  { mob: 'wildwood_panther', x: 260, y: 490, r: 20, n: 6 }, { mob: 'wildwood_panther', x: 300, y: 470, r: 16, n: 5 },
+  { mob: 'druid_shade', x: 240, y: 470, r: 16, n: 5 }, { mob: 'druid_shade', x: 215, y: 500, r: 14, n: 5 },
+  { mob: 'vine_horror', x: 300, y: 500, r: 18, n: 5 }, { mob: 'vine_horror', x: 330, y: 520, r: 14, n: 4 },
+  { mob: 'minotaur', x: 275, y: 522, r: 12, n: 2 },
+  // Grey Peaks (levels 40-70)
+  { mob: 'mountain_goat', x: 450, y: 320, r: 20, n: 7 }, { mob: 'mountain_goat', x: 470, y: 350, r: 16, n: 6 },
+  { mob: 'eyrie_hawk', x: 480, y: 280, r: 18, n: 5 }, { mob: 'eyrie_hawk', x: 512, y: 300, r: 16, n: 5 },
+  { mob: 'orc_raider', x: 462, y: 240, r: 16, n: 6 }, { mob: 'orc_raider', x: 495, y: 330, r: 14, n: 5 },
+  { mob: 'crag_troll', x: 500, y: 250, r: 18, n: 5 }, { mob: 'crag_troll', x: 525, y: 280, r: 14, n: 4 },
+  { mob: 'minotaur', x: 535, y: 240, r: 12, n: 2 },
+  // Northmoor (levels 55-80)
+  { mob: 'moor_brigand', x: 340, y: 160, r: 20, n: 6 }, { mob: 'moor_brigand', x: 290, y: 185, r: 16, n: 5 },
+  { mob: 'ice_wolf', x: 260, y: 140, r: 20, n: 6 }, { mob: 'ice_wolf', x: 210, y: 165, r: 16, n: 5 },
+  { mob: 'frost_sprite', x: 300, y: 170, r: 16, n: 5 }, { mob: 'frost_sprite', x: 380, y: 175, r: 14, n: 5 },
+  { mob: 'orc_warlord', x: 405, y: 155, r: 14, n: 3 }, { mob: 'orc_raider', x: 240, y: 185, r: 14, n: 5 },
+  // Wild Lands (PvP, levels 70+)
+  { mob: 'revenant_knight', x: 300, y: 50, r: 24, n: 6 }, { mob: 'revenant_knight', x: 210, y: 70, r: 18, n: 5 },
+  { mob: 'wight_archer', x: 240, y: 60, r: 20, n: 5 }, { mob: 'wight_archer', x: 350, y: 75, r: 16, n: 5 },
+  { mob: 'frost_revenant', x: 360, y: 40, r: 20, n: 4 }, { mob: 'frost_revenant', x: 150, y: 55, r: 16, n: 4 },
+  { mob: 'orc_warlord', x: 420, y: 60, r: 16, n: 4 },
 ];
 
 // Boss lairs: fixed single spawns
@@ -160,3 +186,38 @@ export const EVENTS = [
   { id: 'golden_stag', name: 'The Golden Stag', desc: 'A golden stag has been sighted — first hunters to fell it share its blessing.', x: 220, y: 290, everyMin: 31, durMin: 8 },
   { id: 'archery_contest', name: 'Nottingham Archery Contest', desc: 'Hit the butts! Most hits before the horn wins $Shillings.', x: 348, y: 336, everyMin: 45, durMin: 5 },
 ];
+
+// ---------------------------------------------------------------------------
+// Scale every authored overworld coordinate to the live world size (planes
+// like the arena, houses and dungeons keep their own small grids).
+// Points that sit inside (or within 2 tiles of) a building are moved WITH that
+// building — preserving their exact relative position — so booths, stations
+// and NPCs stay correctly placed inside scaled towns.
+const K = WORLD.SCALE || 1;
+const _origBuildings = [];
+if (K !== 1) {
+  for (const t of Object.values(TOWNS)) {
+    for (const b of t.buildings) _origBuildings.push({ ox: b.x, oy: b.y, w: b.w, h: b.h, ref: b });
+    t.cx = Math.round(t.cx * K); t.cy = Math.round(t.cy * K); t.r = Math.round(t.r * K);
+    for (const b of t.buildings) { b.x = Math.round(b.x * K); b.y = Math.round(b.y * K); }
+  }
+}
+export function remapPoint(x, y) {
+  if (K === 1) return [x, y];
+  for (const b of _origBuildings) {
+    if (x >= b.ox - 2 && x < b.ox + b.w + 2 && y >= b.oy - 2 && y < b.oy + b.h + 2)
+      return [b.ref.x + (x - b.ox), b.ref.y + (y - b.oy)];
+  }
+  return [Math.round(x * K), Math.round(y * K)];
+}
+if (K !== 1) {
+  for (const p of POIS) { const [nx, ny] = remapPoint(p[1], p[2]); p[1] = nx; p[2] = ny; }
+  for (const s of SHORTCUTS) {
+    [s[1], s[2]] = remapPoint(s[1], s[2]);
+    [s[3], s[4]] = remapPoint(s[3], s[4]);
+  }
+  for (const s of SPAWNS) { s.x = Math.round(s.x * K); s.y = Math.round(s.y * K); s.r = Math.round(s.r * K); }
+  for (const b of BOSS_SPAWNS) { b.x = Math.round(b.x * K); b.y = Math.round(b.y * K); }
+  for (const a of Object.values(ANCHORS)) { a.x = Math.round(a.x * K); a.y = Math.round(a.y * K); }
+  for (const ev of EVENTS) { ev.x = Math.round(ev.x * K); ev.y = Math.round(ev.y * K); }
+}

@@ -26,6 +26,14 @@ pswerlang, XOR, tskaufma, Inboxninja, Dr. Jamgo, LaidbackDeveloper.
 Per the CC-BY-SA/GPL terms, redistribution of these sprites (including in this
 repository) keeps the same licenses. Game code is separate and MIT-licensed.
 
+## Terrain tiles
+
+`client/assets/terrain/` contains two free isometric tile packs supplied with the
+project (`model assets/`): a 115-block pixel nature tileset (terrain blocks,
+water, boulders, foliage) used for the ground rendering and elevation stacks,
+and Raou's "Isometric Fantasy" tileset (free, work-in-progress — the author
+welcomes donations; see `client/assets/terrain/raou-README.txt`).
+
 ## Everything else
 
 - Terrain tiles, environment scenery, monsters (non-humanoid), FX, and UI are

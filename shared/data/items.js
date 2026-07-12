@@ -49,7 +49,7 @@ for (const m of METALS) {
     bonus: { def: s * 0.8 | 0 }, value: m.val * 1.8 | 0,
     vis: { layer: 'shield', sheet: 'heater', color: m.color } });
   def(`${m.id}_arrow`, { name: `${m.name} arrow`, slot: 'ammo', stack: true, req: {},
-    bonus: { rstr: s * 0.8 | 0 }, value: Math.max(1, m.val / 8 | 0), ammoTier: m.lvl });
+    bonus: { rstr: s * 0.8 | 0 }, value: Math.max(1, m.val / 8 | 0), ammoTier: m.lvl, ammoKind: 'arrow' });
   def(`${m.id}_bar`, { name: `${m.name} bar`, stack: false, value: m.val, material: true });
   def(`${m.id}_pickaxe`, { name: `${m.name} pickaxe`, slot: 'weapon', kind: 'pickaxe', style: 'melee', anim: 'slash',
     speed: 3000, req: { attack: Math.max(1, m.lvl - 4) }, tool: 'pickaxe', toolTier: m.lvl,
@@ -73,9 +73,36 @@ export const BOWS = [
 for (const b of BOWS) {
   const s = T(b.lvl);
   def(b.id, { name: b.name, slot: 'weapon', kind: 'bow', style: 'ranged', anim: 'shoot', speed: 3000,
-    twoHand: true, req: { ranged: b.lvl }, bonus: { racc: s * 1.1 | 0 }, value: b.val, usesAmmo: true,
+    twoHand: true, req: { ranged: b.lvl }, bonus: { racc: s * 1.1 | 0 }, value: b.val, usesAmmo: true, ammoKind: 'arrow',
     vis: { layer: 'weapon', type: b.type, color: b.color } });
 }
+// Crossbows: slower than bows but hit harder; they fire BOLTS, not arrows.
+export const CROSSBOWS = [
+  { id: 'crossbow', name: 'Crossbow', lvl: 20, val: 320 },
+  { id: 'arbalest', name: 'Arbalest', lvl: 50, val: 2600 },
+  { id: 'siege_arbalest', name: 'Siege arbalest', lvl: 75, val: 11000 },
+];
+for (const cb of CROSSBOWS) {
+  const s = T(cb.lvl);
+  def(cb.id, { name: cb.name, slot: 'weapon', kind: 'crossbow', style: 'ranged', anim: 'shoot', speed: 3600,
+    twoHand: true, req: { ranged: cb.lvl }, bonus: { racc: s * 1.25 | 0, rstr: s * 0.25 | 0 }, value: cb.val,
+    usesAmmo: true, ammoKind: 'bolt', vis: { layer: 'weapon', type: 'crossbow', color: 'wood' } });
+}
+def('crossbow_stock', { name: 'Crossbow stock', value: 40, material: true });
+// Maces: crushing melee — hits harder than a sword, a touch less accurate.
+// Waraxes: massive two-handed cleavers for the strongest smiths.
+for (const m of METALS) {
+  const s = T(m.lvl);
+  def(`${m.id}_mace`, { name: `${m.name} mace`, slot: 'weapon', kind: 'mace', style: 'melee', anim: 'slash',
+    speed: 2600, req: { attack: m.lvl }, bonus: { acc: s * 0.85 | 0, str: s * 1.1 | 0 }, value: m.val * 2.2 | 0,
+    vis: { layer: 'weapon', type: 'mace', color: 'steel' } });
+  def(`${m.id}_bolts`, { name: `${m.name} bolts`, slot: 'ammo', stack: true, req: {},
+    bonus: { rstr: s * 1.05 | 0 }, value: Math.max(1, m.val / 6 | 0), ammoTier: m.lvl, ammoKind: 'bolt' });
+  if (m.lvl >= 20) def(`${m.id}_waraxe`, { name: `${m.name} waraxe`, slot: 'weapon', kind: 'waraxe', style: 'melee', anim: 'slash',
+    speed: 3400, twoHand: true, req: { attack: m.lvl, strength: m.lvl }, bonus: { acc: s * 0.9 | 0, str: s * 1.45 | 0 }, value: m.val * 3.2 | 0,
+    vis: { layer: 'weapon', type: 'waraxe', color: 'steel' } });
+}
+
 export const LEATHERS = [
   { id: 'leather', name: 'Leather', lvl: 1, color: 'brown', val: 10 },
   { id: 'studded', name: 'Studded leather', lvl: 20, color: 'charcoal', val: 160 },
@@ -250,6 +277,12 @@ def('ancient_bones', { name: 'Ancient bones', value: 200, bones: true, prayerXp:
 def('spirit_shard', { name: 'Spirit shards', stack: true, value: 6 });
 export const CHARMS = ['verdant_charm', 'amber_charm', 'cobalt_charm', 'crimson_charm'];
 for (const c of CHARMS) def(c, { name: c.replace(/_/g, ' ').replace(/\b\w/g, s => s.toUpperCase()), stack: true, value: 40 });
+
+// Pets — tradable on the Grand Exchange until claimed; claiming binds them to
+// the player forever (they move into the pet roster and leave the item world).
+import { PETS } from './pets.js';
+for (const [pid, p] of Object.entries(PETS))
+  def(`pet_${pid}`, { name: `Pet: ${p.name}`, pet: pid, tradeable: true, value: 800 * p.tier * p.tier, unique: p.tier >= 5 });
 
 // Summoning pouches (usable: summons the familiar)
 for (const p of ['wolf_pup', 'hawk', 'boar', 'bear', 'stag', 'dire_wolf', 'guardian'])

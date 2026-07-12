@@ -13,6 +13,16 @@
   "head_male_brown": "head_male_brown.png",
   "body_male_black": "body_male_black.png",
   "head_male_black": "head_male_black.png",
+  "body_male_green": "body_male_green.png",
+  "head_male_green": "head_male_green.png",
+  "body_male_dark_green": "body_male_dark_green.png",
+  "head_male_dark_green": "head_male_dark_green.png",
+  "body_male_bright_green": "body_male_bright_green.png",
+  "head_male_bright_green": "head_male_bright_green.png",
+  "body_male_fur_brown": "body_male_fur_brown.png",
+  "head_male_fur_brown": "head_male_fur_brown.png",
+  "body_male_bronze": "body_male_bronze.png",
+  "head_male_bronze": "head_male_bronze.png",
   "hair_plain_male_black": "hair_plain_male_black.png",
   "hair_plain_male_dark_brown": "hair_plain_male_dark_brown.png",
   "hair_plain_male_light_brown": "hair_plain_male_light_brown.png",
@@ -59,6 +69,16 @@
   "head_female_brown": "head_female_brown.png",
   "body_female_black": "body_female_black.png",
   "head_female_black": "head_female_black.png",
+  "body_female_green": "body_female_green.png",
+  "head_female_green": "head_female_green.png",
+  "body_female_dark_green": "body_female_dark_green.png",
+  "head_female_dark_green": "head_female_dark_green.png",
+  "body_female_bright_green": "body_female_bright_green.png",
+  "head_female_bright_green": "head_female_bright_green.png",
+  "body_female_fur_brown": "body_female_fur_brown.png",
+  "head_female_fur_brown": "head_female_fur_brown.png",
+  "body_female_bronze": "body_female_bronze.png",
+  "head_female_bronze": "head_female_bronze.png",
   "hair_plain_female_black": "hair_plain_female_black.png",
   "hair_plain_female_dark_brown": "hair_plain_female_dark_brown.png",
   "hair_plain_female_light_brown": "hair_plain_female_light_brown.png",
@@ -101,6 +121,56 @@
   "beard_blonde": "beard_blonde.png",
   "beard_ginger": "beard_ginger.png",
   "beard_gray": "beard_gray.png",
+  "monsterhead_goblin_light": "monsterhead_goblin_light.png",
+  "monsterhead_goblin_olive": "monsterhead_goblin_olive.png",
+  "monsterhead_goblin_taupe": "monsterhead_goblin_taupe.png",
+  "monsterhead_goblin_brown": "monsterhead_goblin_brown.png",
+  "monsterhead_goblin_black": "monsterhead_goblin_black.png",
+  "monsterhead_goblin_green": "monsterhead_goblin_green.png",
+  "monsterhead_goblin_dark_green": "monsterhead_goblin_dark_green.png",
+  "monsterhead_goblin_bright_green": "monsterhead_goblin_bright_green.png",
+  "monsterhead_goblin_fur_brown": "monsterhead_goblin_fur_brown.png",
+  "monsterhead_goblin_bronze": "monsterhead_goblin_bronze.png",
+  "monsterhead_orc_light": "monsterhead_orc_light.png",
+  "monsterhead_orc_olive": "monsterhead_orc_olive.png",
+  "monsterhead_orc_taupe": "monsterhead_orc_taupe.png",
+  "monsterhead_orc_brown": "monsterhead_orc_brown.png",
+  "monsterhead_orc_black": "monsterhead_orc_black.png",
+  "monsterhead_orc_green": "monsterhead_orc_green.png",
+  "monsterhead_orc_dark_green": "monsterhead_orc_dark_green.png",
+  "monsterhead_orc_bright_green": "monsterhead_orc_bright_green.png",
+  "monsterhead_orc_fur_brown": "monsterhead_orc_fur_brown.png",
+  "monsterhead_orc_bronze": "monsterhead_orc_bronze.png",
+  "monsterhead_minotaur_light": "monsterhead_minotaur_light.png",
+  "monsterhead_minotaur_olive": "monsterhead_minotaur_olive.png",
+  "monsterhead_minotaur_taupe": "monsterhead_minotaur_taupe.png",
+  "monsterhead_minotaur_brown": "monsterhead_minotaur_brown.png",
+  "monsterhead_minotaur_black": "monsterhead_minotaur_black.png",
+  "monsterhead_minotaur_green": "monsterhead_minotaur_green.png",
+  "monsterhead_minotaur_dark_green": "monsterhead_minotaur_dark_green.png",
+  "monsterhead_minotaur_bright_green": "monsterhead_minotaur_bright_green.png",
+  "monsterhead_minotaur_fur_brown": "monsterhead_minotaur_fur_brown.png",
+  "monsterhead_minotaur_bronze": "monsterhead_minotaur_bronze.png",
+  "monsterhead_lizard_light": "monsterhead_lizard_light.png",
+  "monsterhead_lizard_olive": "monsterhead_lizard_olive.png",
+  "monsterhead_lizard_taupe": "monsterhead_lizard_taupe.png",
+  "monsterhead_lizard_brown": "monsterhead_lizard_brown.png",
+  "monsterhead_lizard_black": "monsterhead_lizard_black.png",
+  "monsterhead_lizard_green": "monsterhead_lizard_green.png",
+  "monsterhead_lizard_dark_green": "monsterhead_lizard_dark_green.png",
+  "monsterhead_lizard_bright_green": "monsterhead_lizard_bright_green.png",
+  "monsterhead_lizard_fur_brown": "monsterhead_lizard_fur_brown.png",
+  "monsterhead_lizard_bronze": "monsterhead_lizard_bronze.png",
+  "monsterhead_wolf_light": "monsterhead_wolf_light.png",
+  "monsterhead_wolf_olive": "monsterhead_wolf_olive.png",
+  "monsterhead_wolf_taupe": "monsterhead_wolf_taupe.png",
+  "monsterhead_wolf_brown": "monsterhead_wolf_brown.png",
+  "monsterhead_wolf_black": "monsterhead_wolf_black.png",
+  "monsterhead_wolf_green": "monsterhead_wolf_green.png",
+  "monsterhead_wolf_dark_green": "monsterhead_wolf_dark_green.png",
+  "monsterhead_wolf_bright_green": "monsterhead_wolf_bright_green.png",
+  "monsterhead_wolf_fur_brown": "monsterhead_wolf_fur_brown.png",
+  "monsterhead_wolf_bronze": "monsterhead_wolf_bronze.png",
   "gear_torso/plate_male_copper": "gear_torso_plate_male_copper.png",
   "gear_torso/plate_male_bronze": "gear_torso_plate_male_bronze.png",
   "gear_torso/plate_male_iron": "gear_torso_plate_male_iron.png",
@@ -517,6 +587,16 @@
   "wep_spear_walk_bg_silver": "wep_spear_walk_bg_silver.png",
   "wep_spear_walk_fg_gold": "wep_spear_walk_fg_gold.png",
   "wep_spear_walk_bg_gold": "wep_spear_walk_bg_gold.png",
+  "wep_crossbow_fg": "wep_crossbow_fg.png",
+  "wep_crossbow_bg": "wep_crossbow_bg.png",
+  "wep_mace_fg": "wep_mace_fg.png",
+  "wep_mace_bg": "wep_mace_bg.png",
+  "wep_mace_slash_fg": "wep_mace_slash_fg.png",
+  "wep_mace_slash_bg": "wep_mace_slash_bg.png",
+  "wep_waraxe_fg": "wep_waraxe_fg.png",
+  "wep_waraxe_bg": "wep_waraxe_bg.png",
+  "wep_waraxe_slash_fg": "wep_waraxe_slash_fg.png",
+  "wep_waraxe_slash_bg": "wep_waraxe_slash_bg.png",
   "wep_axe_uni_male": "wep_axe_uni_male.png",
   "wep_axe_uni_female": "wep_axe_uni_female.png",
   "wep_axe_slash_fg": "wep_axe_slash_fg.png",
@@ -1178,6 +1258,53 @@
     }
    }
   },
+  "crossbow": {
+   "grid": 64,
+   "fg": {
+    "wood": "wep_crossbow_fg.png"
+   },
+   "bg": {
+    "wood": "wep_crossbow_bg.png"
+   }
+  },
+  "mace": {
+   "grid": 64,
+   "fg": {
+    "steel": "wep_mace_fg.png"
+   },
+   "bg": {
+    "steel": "wep_mace_bg.png"
+   },
+   "perAnim": {
+    "slash": {
+     "fg": {
+      "steel": "wep_mace_slash_fg.png"
+     },
+     "bg": {
+      "steel": "wep_mace_slash_bg.png"
+     }
+    }
+   }
+  },
+  "waraxe": {
+   "grid": 64,
+   "fg": {
+    "steel": "wep_waraxe_fg.png"
+   },
+   "bg": {
+    "steel": "wep_waraxe_bg.png"
+   },
+   "perAnim": {
+    "slash": {
+     "fg": {
+      "steel": "wep_waraxe_slash_fg.png"
+     },
+     "bg": {
+      "steel": "wep_waraxe_slash_bg.png"
+     }
+    }
+   }
+  },
   "axe": {
    "sexed": {
     "male": "wep_axe_uni_male.png",
@@ -1217,14 +1344,24 @@
    "olive": "body_male_olive.png",
    "taupe": "body_male_taupe.png",
    "brown": "body_male_brown.png",
-   "black": "body_male_black.png"
+   "black": "body_male_black.png",
+   "green": "body_male_green.png",
+   "dark_green": "body_male_dark_green.png",
+   "bright_green": "body_male_bright_green.png",
+   "fur_brown": "body_male_fur_brown.png",
+   "bronze": "body_male_bronze.png"
   },
   "female": {
    "light": "body_female_light.png",
    "olive": "body_female_olive.png",
    "taupe": "body_female_taupe.png",
    "brown": "body_female_brown.png",
-   "black": "body_female_black.png"
+   "black": "body_female_black.png",
+   "green": "body_female_green.png",
+   "dark_green": "body_female_dark_green.png",
+   "bright_green": "body_female_bright_green.png",
+   "fur_brown": "body_female_fur_brown.png",
+   "bronze": "body_female_bronze.png"
   }
  },
  "heads": {
@@ -1233,14 +1370,24 @@
    "olive": "head_male_olive.png",
    "taupe": "head_male_taupe.png",
    "brown": "head_male_brown.png",
-   "black": "head_male_black.png"
+   "black": "head_male_black.png",
+   "green": "head_male_green.png",
+   "dark_green": "head_male_dark_green.png",
+   "bright_green": "head_male_bright_green.png",
+   "fur_brown": "head_male_fur_brown.png",
+   "bronze": "head_male_bronze.png"
   },
   "female": {
    "light": "head_female_light.png",
    "olive": "head_female_olive.png",
    "taupe": "head_female_taupe.png",
    "brown": "head_female_brown.png",
-   "black": "head_female_black.png"
+   "black": "head_female_black.png",
+   "green": "head_female_green.png",
+   "dark_green": "head_female_dark_green.png",
+   "bright_green": "head_female_bright_green.png",
+   "fur_brown": "head_female_fur_brown.png",
+   "bronze": "head_female_bronze.png"
   }
  },
  "hair": {
@@ -1364,5 +1511,67 @@
  "misc": {
   "shadow": "shadow.png",
   "arrow": "arrow_overlay.png"
+ },
+ "monsters": {
+  "goblin": {
+   "light": "monsterhead_goblin_light.png",
+   "olive": "monsterhead_goblin_olive.png",
+   "taupe": "monsterhead_goblin_taupe.png",
+   "brown": "monsterhead_goblin_brown.png",
+   "black": "monsterhead_goblin_black.png",
+   "green": "monsterhead_goblin_green.png",
+   "dark_green": "monsterhead_goblin_dark_green.png",
+   "bright_green": "monsterhead_goblin_bright_green.png",
+   "fur_brown": "monsterhead_goblin_fur_brown.png",
+   "bronze": "monsterhead_goblin_bronze.png"
+  },
+  "orc": {
+   "light": "monsterhead_orc_light.png",
+   "olive": "monsterhead_orc_olive.png",
+   "taupe": "monsterhead_orc_taupe.png",
+   "brown": "monsterhead_orc_brown.png",
+   "black": "monsterhead_orc_black.png",
+   "green": "monsterhead_orc_green.png",
+   "dark_green": "monsterhead_orc_dark_green.png",
+   "bright_green": "monsterhead_orc_bright_green.png",
+   "fur_brown": "monsterhead_orc_fur_brown.png",
+   "bronze": "monsterhead_orc_bronze.png"
+  },
+  "minotaur": {
+   "light": "monsterhead_minotaur_light.png",
+   "olive": "monsterhead_minotaur_olive.png",
+   "taupe": "monsterhead_minotaur_taupe.png",
+   "brown": "monsterhead_minotaur_brown.png",
+   "black": "monsterhead_minotaur_black.png",
+   "green": "monsterhead_minotaur_green.png",
+   "dark_green": "monsterhead_minotaur_dark_green.png",
+   "bright_green": "monsterhead_minotaur_bright_green.png",
+   "fur_brown": "monsterhead_minotaur_fur_brown.png",
+   "bronze": "monsterhead_minotaur_bronze.png"
+  },
+  "lizard": {
+   "light": "monsterhead_lizard_light.png",
+   "olive": "monsterhead_lizard_olive.png",
+   "taupe": "monsterhead_lizard_taupe.png",
+   "brown": "monsterhead_lizard_brown.png",
+   "black": "monsterhead_lizard_black.png",
+   "green": "monsterhead_lizard_green.png",
+   "dark_green": "monsterhead_lizard_dark_green.png",
+   "bright_green": "monsterhead_lizard_bright_green.png",
+   "fur_brown": "monsterhead_lizard_fur_brown.png",
+   "bronze": "monsterhead_lizard_bronze.png"
+  },
+  "wolf": {
+   "light": "monsterhead_wolf_light.png",
+   "olive": "monsterhead_wolf_olive.png",
+   "taupe": "monsterhead_wolf_taupe.png",
+   "brown": "monsterhead_wolf_brown.png",
+   "black": "monsterhead_wolf_black.png",
+   "green": "monsterhead_wolf_green.png",
+   "dark_green": "monsterhead_wolf_dark_green.png",
+   "bright_green": "monsterhead_wolf_bright_green.png",
+   "fur_brown": "monsterhead_wolf_fur_brown.png",
+   "bronze": "monsterhead_wolf_bronze.png"
+  }
  }
 }

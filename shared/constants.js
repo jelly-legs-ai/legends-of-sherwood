@@ -3,8 +3,9 @@
 export const WORLD = {
   SEED: 1189, // Year Richard the Lionheart took the throne
 };
-WORLD.W = 576;                // world width in tiles
-WORLD.H = 576;                // world height in tiles
+WORLD.W = 864;                // world width in tiles
+WORLD.H = 864;                // world height in tiles
+WORLD.SCALE = 1.5;            // authored layout coordinates are scaled by this
 WORLD.CHUNK = 16;             // chunk edge in tiles
 WORLD.TICK_MS = 100;          // 10 Hz server simulation
 WORLD.AOI_TILES = 26;         // area-of-interest radius (tiles) streamed to each client
@@ -73,7 +74,7 @@ export function combatLevel(sk) {
 export const COMBAT = {
   BASE_ATTACK_MS: 2400,        // weapon speed baseline
   RESPAWN_MS: 4000,
-  PLAYER_RESPAWN: { x: 252, y: 332 },  // Loxley village square
+  PLAYER_RESPAWN: { x: 378, y: 498 },  // Loxley village square (scaled coords)
   AGGRO_RADIUS: 5,
   MAX_HIT: (strengthLike, bonus) => Math.floor(1.3 + strengthLike / 10 + bonus / 8 + (strengthLike * bonus) / 640),
   ACCURACY: (attRoll, defRoll) => attRoll > defRoll
@@ -92,7 +93,7 @@ export const PRAYER_DRAIN_S = 1 / 6;
 export const GROUND = { OWNER_MS: 30000, SHARED_MS: 30000 }; // then despawn
 
 // ---- Wilderness / PvP -------------------------------------------------------
-export const WILDERNESS_Y = 96;   // overworld tiles with y < this are the Wild Lands (PvP on)
+export const WILDERNESS_Y = 144;  // overworld tiles with y < this are the Wild Lands (PvP on)
 export const COLOSSEUM = { MIN_WAGER: 1, MAX_WAGER: 10000 };
 
 // ---- Grand Exchange ---------------------------------------------------------
