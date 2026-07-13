@@ -61,19 +61,12 @@ button { font-family: inherit; }
 #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; color: var(--parch); }
 #hud > * { pointer-events: auto; }
 
-#orbs { position: absolute; top: 12px; left: 12px; display: flex; flex-direction: column; gap: 8px; }
-.orb {
-  width: 58px; height: 58px; border-radius: 50%; position: relative; overflow: hidden;
-  background: #100d08;
-  border: 3px solid #3d331f; outline: 1px solid #0d0a05;
-  box-shadow: 0 3px 10px #000c, inset 0 0 10px #000;
-}
-.orb::after { content: ''; position: absolute; top: 4px; left: 10px; width: 26px; height: 13px; border-radius: 50%; background: linear-gradient(#ffffff3e, #ffffff00); pointer-events: none; }
-.orb .fill { position: absolute; bottom: 0; left: 0; right: 0; height: 100%; transition: height .3s; }
-.orb.hp .fill { background: linear-gradient(#e85b5b, #7e1616); }
-.orb.pray .fill { background: linear-gradient(#74d6ea, #1f6c96); }
-.orb.energy .fill { background: linear-gradient(#ffe27a, #b8891f); }
-.orb span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 15px; text-shadow: 0 1px 2px #000, 0 0 5px #000; }
+/* Animated pixel-art HUD bars (hp / prayer / stamina) sliced from hudbars.png */
+#bars { position: absolute; top: 12px; left: 12px; display: flex; flex-direction: column; gap: 6px; }
+.statbar { position: relative; width: 132px; height: 30px; }
+.statbar canvas { display: block; width: 132px; height: 30px; image-rendering: pixelated; filter: drop-shadow(0 2px 3px #000a); }
+.statbar .lab { position: absolute; left: 10px; top: 0; height: 30px; display: flex; align-items: center; font-weight: bold; font-size: 11px; letter-spacing: .5px; color: #f4e9c8; text-shadow: 0 1px 2px #000, 0 0 4px #000; pointer-events: none; }
+.statbar .val { position: absolute; right: 12px; top: 0; height: 30px; display: flex; align-items: center; font-weight: bold; font-size: 13px; color: #fff; text-shadow: 0 1px 2px #000, 0 0 4px #000; pointer-events: none; }
 
 #token-hud {
   position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
@@ -377,8 +370,6 @@ button { font-family: inherit; }
 
 /* ---------- HUD polish ---------- */
 #topbar { backdrop-filter: blur(2px); }
-.orb { box-shadow: 0 2px 8px #000a, inset 0 0 8px #000c; }
-.orb .fill { box-shadow: inset 0 3px 6px #ffffff22; }
 #minimap { box-shadow: 0 3px 14px #000c, inset 0 0 0 2px #0d0a05; }
 #tabs button { font-size: 17px; padding: 6px 0; border-radius: 0; border: none; border-right: 1px solid #0d0a05; flex: 1; opacity: .62; }
 #tabs button.on { opacity: 1; background: linear-gradient(180deg, #4a371a, #2a1d0b); box-shadow: inset 0 -2px 0 var(--gold); }

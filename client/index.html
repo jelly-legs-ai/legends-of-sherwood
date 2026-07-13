@@ -32,10 +32,10 @@
 
 <!-- HUD -->
 <div id="hud" class="hidden">
-  <div id="orbs">
-    <div class="orb hp"><div class="fill"></div><span id="hp-txt">10</span></div>
-    <div class="orb pray"><div class="fill"></div><span id="pray-txt">1</span></div>
-    <div class="orb energy"><div class="fill"></div><span id="energy-txt">100</span></div>
+  <div id="bars">
+    <div class="statbar hp"><canvas width="132" height="30"></canvas><span class="lab">HP</span><span id="hp-txt" class="val">10</span></div>
+    <div class="statbar pray"><canvas width="132" height="30"></canvas><span class="lab">PP</span><span id="pray-txt" class="val">1</span></div>
+    <div class="statbar energy"><canvas width="132" height="30"></canvas><span class="lab">SP</span><span id="energy-txt" class="val">100</span></div>
   </div>
   <div id="token-hud" title="$LoS balance (banked / at-risk pouch)">🪙 <b id="shl">0</b><span id="pouch"></span></div>
   <div id="zone-name"></div>
@@ -45,7 +45,7 @@
 
   <div id="side">
     <div id="tabs">
-      <button data-tab="inv" class="on" title="Inventory"><img src="assets/ui/books/13.png" alt="Inventory"></button>
+      <button data-tab="inv" class="on" title="Inventory"><img src="assets/ui/rucksack.svg" alt="Inventory"></button>
       <button data-tab="equip" title="Equipment"><img src="assets/ui/books/19.png" alt="Equipment"></button>
       <button data-tab="skills" title="Skills"><img src="assets/ui/books/34.png" alt="Skills"></button>
       <button data-tab="quests" title="Quests"><img src="assets/ui/books/47.png" alt="Quests"></button>

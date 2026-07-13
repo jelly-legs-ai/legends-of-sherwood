@@ -12,6 +12,36 @@ import { REGIONS, WILDERNESS_Y, WORLD } from '/shared/constants.js';
 import { drawFxSprite, drawMediaIcon } from './media.js';
 
 const $ = (s) => document.querySelector(s);
+
+// ---- Animated pixel HUD bars (sliced from assets/ui/hudbars.png) ----
+// Each colour row runs from a full bar (col 1 @ x51) to an empty track (col 6 @
+// x291); we draw the empty track then clip the full bar to the current fraction.
+const hudBarsImg = new Image();
+hudBarsImg.src = 'assets/ui/hudbars.png';
+hudBarsImg.onload = () => { try { if (G && G.self) updateOrbs(); } catch { } };
+const BAR_ROW = { hp: 131, pray: 147, energy: 163 };   // y of each colour row on the sheet
+const BAR_CELL = { fillX: 51, trackX: 291, w: 42, h: 11 };
+function drawStatBar(canvas, frac, kind) {
+  if (!canvas) return;
+  const g = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  g.clearRect(0, 0, W, H);
+  if (!hudBarsImg.complete || !hudBarsImg.naturalWidth) return;
+  g.imageSmoothingEnabled = false;
+  const y = BAR_ROW[kind], { w, h, fillX, trackX } = BAR_CELL;
+  g.drawImage(hudBarsImg, trackX, y, w, h, 0, 0, W, H);   // empty track
+  frac = Math.max(0, Math.min(1, frac));
+  if (frac > 0) {
+    const pad = 3;                                        // leave the left cap outline intact
+    g.save();
+    g.beginPath();
+    g.rect(0, 0, pad + (W - pad * 2) * frac, H);
+    g.clip();
+    g.drawImage(hudBarsImg, fillX, y, w, h, 0, 0, W, H);  // coloured fill, clipped
+    g.restore();
+  }
+}
+
 let G = null; // game state ref
 let _devcmd = null; // lazily imported to keep the ui<->devcmd dependency acyclic
 const devcmd = async () => (_devcmd ??= await import('./devcmd.js'));
@@ -963,13 +993,12 @@ export function chatLine(html, cls = '') {
 export function updateOrbs() {
   if (!G.self) return;
   const s = G.self;
-  const hpP = Math.max(0, Math.min(100, 100 * s.hp / s.mhp));
-  document.querySelector('.orb.hp .fill').style.height = hpP + '%';
+  drawStatBar($('.statbar.hp canvas'), s.hp / s.mhp, 'hp');
   $('#hp-txt').textContent = s.hp;
   const prayMax = Math.max(1, levelForXp(G.xp.prayer || 0));
-  document.querySelector('.orb.pray .fill').style.height = Math.min(100, 100 * s.pray / prayMax) + '%';
+  drawStatBar($('.statbar.pray canvas'), s.pray / prayMax, 'pray');
   $('#pray-txt').textContent = Math.floor(s.pray);
-  document.querySelector('.orb.energy .fill').style.height = s.energy + '%';
+  drawStatBar($('.statbar.energy canvas'), s.energy / 100, 'energy');
   $('#energy-txt').textContent = s.energy;
   $('#shl').textContent = fmt(G.bal);
   $('#pouch').textContent = s.pouch > 0 ? ` +${s.pouch}⚠` : '';
