@@ -28,60 +28,346 @@ const TILE_COLOR = {
 const WALLS = new Set([TILE.WALL, TILE.WALL_WOOD]);
 const WATERS = new Set([TILE.OCEAN, TILE.WATER, TILE.RIVER, TILE.WATER_SWAMP]);
 
-// ---- textured terrain (free isometric block pack in client/assets/terrain) -----
-// Atlas is an 11x11 grid of 32x32 blocks (diamond top + earthen side skirt),
-// drawn at 2x. Tiles the pack lacks are tinted variants via canvas filters.
+// ---- HD procedural terrain materials -------------------------------------------
+// Every ground family is painted, not sampled: a 64x64 block (diamond top +
+// earthen side skirt) with hand-drawn detail per material — grass blades and
+// wildflowers, soil granules and pebbles, rock strata and cracks, sand ripples,
+// snow sparkle, plank grain, flagstone joints. Four seeded variants per family
+// break repetition; everything is generated once and cached.
 export const ESTEP = 32;           // screen px per elevation level (one block)
-const terrainAtlas = new Image();
-terrainAtlas.src = 'assets/terrain/nature.png';
-let atlasReady = false;
-terrainAtlas.onload = () => { atlasReady = true; chunkCache.clear(); };
-const TILE_TEX = {
-  [TILE.GRASS]: { v: [22, 23, 24] },
-  [TILE.MEADOW]: { v: [37, 38, 39] },
-  [TILE.FOREST]: { v: [40, 24, 40] },
-  [TILE.DEEPFOREST]: { v: [40], f: 'brightness(0.82)' },
-  [TILE.DIRT]: { v: [17, 18], f: 'brightness(1.08)' },
-  [TILE.ROAD]: { v: [17, 18], f: 'sepia(0.3) brightness(1.18)' },
-  [TILE.FARM]: { v: [19, 20] },
-  [TILE.CAVE]: { v: [6], f: 'brightness(0.55)' },
-  [TILE.LAVA_ROCK]: { v: [6], f: 'brightness(0.45)' },
-  [TILE.FLOOR_WOOD]: { v: [14, 15] },
-  [TILE.BRIDGE]: { v: [15] },
-  [TILE.FLOOR_STONE]: { v: [63] },
-  [TILE.ROCK]: { v: [63], f: 'brightness(0.85)' },
-  [TILE.SCREE]: { v: [61, 62] },
-  [TILE.SAND]: { v: [6, 7], f: 'sepia(0.65) saturate(1.35) brightness(1.4)' },
-  [TILE.ARENA]: { v: [6, 7], f: 'sepia(0.65) saturate(1.35) brightness(1.45)' },
-  [TILE.SNOW]: { v: [22, 23], f: 'saturate(0.06) brightness(1.6)' },
-  [TILE.TUNDRA]: { v: [22, 24], f: 'saturate(0.5) brightness(1.02)' },
-  [TILE.SWAMP]: { v: [22, 24], f: 'hue-rotate(25deg) saturate(0.6) brightness(0.8)' },
-  [TILE.JUNGLE]: { v: [22, 23], f: 'saturate(1.3) brightness(0.8)' },
-  [TILE.OCEAN]: { v: [93, 95, 96] },
-  [TILE.WATER]: { v: [99, 100, 101] },
-  [TILE.RIVER]: { v: [99, 100, 101] },
-  [TILE.WATER_SWAMP]: { v: [99, 100], f: 'hue-rotate(55deg) saturate(0.55) brightness(0.85)' },
-  [TILE.ICE]: { v: [110, 111, 112] },
+
+function mulberry(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function diamondPath(g, inset = 0) {
+  g.beginPath();
+  g.moveTo(32, -1 + inset); g.lineTo(65 - inset * 2, 16); g.lineTo(32, 33 - inset); g.lineTo(-1 + inset * 2, 16);
+  g.closePath();
+}
+// material palettes: top gradient pair, speck colours, skirt soil pair, painter kind
+const MATS = {
+  [TILE.GRASS]:       { top: ['#6fa348', '#67993f'], sp: ['#82b858', '#527f2f', '#8cc262'], skirt: ['#6b4f2b', '#3f2d1a'], kind: 'grass' },
+  [TILE.MEADOW]:      { top: ['#7bad4e', '#72a346'], sp: ['#8fbf5e', '#5c8f38', '#9ccb6a'], skirt: ['#6b4f2b', '#3f2d1a'], kind: 'meadow' },
+  [TILE.FOREST]:      { top: ['#547b34', '#4d722e'], sp: ['#6c9a45', '#3a5c22', '#7fae52'], skirt: ['#5c432a', '#382a18'], kind: 'litter' },
+  [TILE.DEEPFOREST]:  { top: ['#416426', '#3a5c21'], sp: ['#54803a', '#2c481a', '#5f8f40'], skirt: ['#4c3722', '#302214'], kind: 'litter' },
+  [TILE.JUNGLE]:      { top: ['#3d7032', '#38672c'], sp: ['#529347', '#28481f', '#63a854'], skirt: ['#4c3722', '#302214'], kind: 'litter' },
+  [TILE.SWAMP]:       { top: ['#5a6a49', '#4a583d'], sp: ['#6f8258', '#3c4a30', '#7d9464'], skirt: ['#453d28', '#2a2416'], kind: 'swamp' },
+  [TILE.DIRT]:        { top: ['#9d8052', '#8a6f45'], sp: ['#b09263', '#75603c', '#c2a878'], skirt: ['#6b4f2b', '#3f2d1a'], kind: 'dirt' },
+  [TILE.ROAD]:        { top: ['#b49d6d', '#a08a5c'], sp: ['#c7b183', '#8a7448', '#d4c298'], skirt: ['#6b4f2b', '#3f2d1a'], kind: 'road' },
+  [TILE.FARM]:        { top: ['#83643f', '#6d5435'], sp: ['#977850', '#5c452a', '#a8895e'], skirt: ['#5c432a', '#382a18'], kind: 'farm' },
+  [TILE.SAND]:        { top: ['#ddc684', '#cbb26e'], sp: ['#ecd9a0', '#b89d5c', '#f4e6b8'], skirt: ['#b89d5c', '#8a744a'], kind: 'sand' },
+  [TILE.ARENA]:       { top: ['#dfc88a', '#cdb474'], sp: ['#eedca6', '#ba9f60', '#f6e8bc'], skirt: ['#b89d5c', '#8a744a'], kind: 'sand' },
+  [TILE.ROCK]:        { top: ['#84806f', '#6f6b5d'], sp: ['#98937f', '#5b574b', '#a5a08c'], skirt: ['#5b574b', '#3c392f'], kind: 'rock' },
+  [TILE.SCREE]:       { top: ['#9b9583', '#878271'], sp: ['#aea892', '#726d5c', '#bcb5a0'], skirt: ['#726d5c', '#4c4a3e'], kind: 'scree' },
+  [TILE.TUNDRA]:      { top: ['#adb08c', '#9a9d7b'], sp: ['#c0c29c', '#82856a', '#cccfab'], skirt: ['#6b5c3c', '#443b26'], kind: 'tundra' },
+  [TILE.SNOW]:        { top: ['#eef2f6', '#dde4ec'], sp: ['#ffffff', '#c8d4e2', '#f6faff'], skirt: ['#8d95a4', '#5f6672'], kind: 'snow' },
+  [TILE.ICE]:         { top: ['#c8e0ef', '#b2cfe2'], sp: ['#e4f2fa', '#96b8d0', '#ffffff'], skirt: ['#7e9cb4', '#54687c'], kind: 'ice' },
+  [TILE.FLOOR_WOOD]:  { top: ['#9a7440', '#875f35'], sp: ['#ad8850', '#6f4e2a', '#bb965c'], skirt: ['#5c432a', '#382a18'], kind: 'planks' },
+  [TILE.BRIDGE]:      { top: ['#8d6f44', '#7a5f38'], sp: ['#a08252', '#64502e', '#ac8e5e'], skirt: ['#4c3722', '#302214'], kind: 'planks' },
+  [TILE.FLOOR_STONE]: { top: ['#918c7b', '#7d7868'], sp: ['#a5a08e', '#68644f', '#b2ad9a'], skirt: ['#5b574b', '#3c392f'], kind: 'flags' },
+  [TILE.CAVE]:        { top: ['#6e5a3e', '#5a4a32'], sp: ['#826a48', '#4a3c28', '#8f7a54'], skirt: ['#4c3722', '#302214'], kind: 'dirt' },
+  [TILE.LAVA_ROCK]:   { top: ['#4a3a38', '#3c302e'], sp: ['#5c4a46', '#2c2422', '#6a5450'], skirt: ['#302422', '#1e1614'], kind: 'rock' },
+  [TILE.OCEAN]:       { top: ['#1e4066', '#152f4e'], sp: ['#2a5580', '#0e2340', '#31628f'], skirt: ['#12263e', '#0a1828'], kind: 'water' },
+  [TILE.WATER]:       { top: ['#2a5580', '#204468'], sp: ['#3a6a97', '#16334f', '#427299'], skirt: ['#16334f', '#0e2338'], kind: 'water' },
+  [TILE.RIVER]:       { top: ['#2e5f8a', '#244d72'], sp: ['#3f739f', '#1a3a58', '#487ba6'], skirt: ['#1a3a58', '#102840'], kind: 'water' },
+  [TILE.WATER_SWAMP]: { top: ['#41584a', '#35493d'], sp: ['#52694f', '#28362c', '#5e7758'], skirt: ['#28362c', '#18221c'], kind: 'water' },
 };
-const texCache = new Map(); // "t:variantIdx[:dark]" -> 64x64 canvas
+// -- small detail painters (all clipped to the diamond by the caller) --
+function speck(g, rnd, n, cols) {
+  for (let i = 0; i < n; i++) {
+    g.fillStyle = cols[(rnd() * cols.length) | 0];
+    g.globalAlpha = 0.3 + rnd() * 0.5;
+    g.fillRect((rnd() * 62) | 0, (rnd() * 30) | 0, rnd() > 0.82 ? 2 : 1, 1);
+  }
+  g.globalAlpha = 1;
+}
+function blades(g, rnd, n, cols) {
+  for (let i = 0; i < n; i++) {
+    const x = 4 + rnd() * 56, y = 4 + rnd() * 25, h2 = 2 + rnd() * 3;
+    g.strokeStyle = cols[(rnd() * cols.length) | 0];
+    g.globalAlpha = 0.55 + rnd() * 0.4; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + (rnd() - 0.5) * 2, y - h2); g.stroke();
+  }
+  g.globalAlpha = 1;
+}
+function pebbles(g, rnd, n, base) {
+  for (let i = 0; i < n; i++) {
+    const x = 5 + rnd() * 54, y = 4 + rnd() * 24, r = 1 + rnd() * 1.6;
+    g.fillStyle = base; g.globalAlpha = 0.8;
+    g.beginPath(); g.ellipse(x, y, r, r * 0.7, 0, 0, 7); g.fill();
+    g.fillStyle = '#ffffff30'; g.beginPath(); g.ellipse(x - r * 0.3, y - r * 0.3, r * 0.5, r * 0.35, 0, 0, 7); g.fill();
+  }
+  g.globalAlpha = 1;
+}
+function cracks(g, rnd, n, col) {
+  g.strokeStyle = col; g.lineWidth = 1;
+  for (let i = 0; i < n; i++) {
+    let x = 8 + rnd() * 48, y = 4 + rnd() * 24;
+    g.globalAlpha = 0.4 + rnd() * 0.3;
+    g.beginPath(); g.moveTo(x, y);
+    for (let s = 0; s < 3; s++) { x += (rnd() - 0.5) * 12; y += (rnd() - 0.3) * 5; g.lineTo(x, y); }
+    g.stroke();
+  }
+  g.globalAlpha = 1;
+}
+// paint one full block (diamond top + soil skirt) for a ground family
+function paintBlock(g, t, rnd) {
+  const m = MATS[t] || { top: [TILE_COLOR[t]?.[0] || '#808080', TILE_COLOR[t]?.[1] || '#606060'], sp: ['#909090'], skirt: ['#5c432a', '#382a18'], kind: 'dirt' };
+  // side skirt first (only shows at cliff edges / chunk seams)
+  const sg = g.createLinearGradient(0, 16, 0, 64);
+  sg.addColorStop(0, m.skirt[0]); sg.addColorStop(1, m.skirt[1]);
+  g.fillStyle = sg;
+  g.beginPath(); g.moveTo(-1, 16); g.lineTo(32, 33); g.lineTo(65, 16); g.lineTo(65, 48); g.lineTo(32, 65); g.lineTo(-1, 48); g.closePath(); g.fill();
+  // strata + buried stones on the skirt
+  g.save();
+  g.beginPath(); g.moveTo(-1, 16); g.lineTo(32, 33); g.lineTo(65, 16); g.lineTo(65, 48); g.lineTo(32, 65); g.lineTo(-1, 48); g.closePath(); g.clip();
+  g.strokeStyle = '#00000028'; g.lineWidth = 1;
+  for (let s = 1; s <= 3; s++) {
+    const yy = 16 + s * 9;
+    g.beginPath(); g.moveTo(0, yy + 2); g.lineTo(32, yy + 17); g.lineTo(64, yy + 2); g.stroke();
+  }
+  for (let i = 0; i < 7; i++) {
+    g.fillStyle = i % 2 ? '#00000022' : '#ffffff10';
+    g.fillRect((rnd() * 60) | 0, 22 + ((rnd() * 36) | 0), 2 + (rnd() * 2 | 0), 1 + (rnd() * 2 | 0));
+  }
+  g.restore();
+  // diamond top: base gradient + per-family detail
+  g.save();
+  diamondPath(g); g.clip();
+  const tg = g.createLinearGradient(0, 0, 0, 32);
+  tg.addColorStop(0, m.top[0]); tg.addColorStop(1, m.top[1]);
+  g.fillStyle = tg; g.fillRect(0, 0, 64, 32);
+  switch (m.kind) {
+    case 'grass':
+      speck(g, rnd, 40, m.sp); blades(g, rnd, 15, ['#9ed46e', '#6d9c42', '#b2e284']);
+      break;
+    case 'meadow': {
+      speck(g, rnd, 38, m.sp); blades(g, rnd, 13, ['#aade7a', '#7cab50', '#c2ec96']);
+      // wildflowers
+      const petals = ['#f2e6b0', '#e8b4c8', '#e8d24e', '#c9a2e0'];
+      for (let i = 0; i < 3; i++) {
+        const x = 8 + rnd() * 48, y = 5 + rnd() * 22, col = petals[(rnd() * petals.length) | 0];
+        g.fillStyle = col; g.fillRect(x - 1, y, 3, 1); g.fillRect(x, y - 1, 1, 3);
+        g.fillStyle = '#e8a02a'; g.fillRect(x, y, 1, 1);
+      }
+      break;
+    }
+    case 'litter':
+      speck(g, rnd, 44, m.sp); blades(g, rnd, 9, ['#7fae52', '#54803a']);
+      // fallen leaves & twigs
+      for (let i = 0; i < 6; i++) {
+        g.fillStyle = ['#8a6a34', '#a07f42', '#6d5228'][(rnd() * 3) | 0];
+        g.globalAlpha = 0.65;
+        g.fillRect(4 + rnd() * 56, 3 + rnd() * 26, 2, 1);
+      }
+      g.globalAlpha = 1;
+      break;
+    case 'swamp':
+      speck(g, rnd, 36, m.sp);
+      for (let i = 0; i < 4; i++) { // murky wet patches + reeds
+        g.fillStyle = '#31402c'; g.globalAlpha = 0.4;
+        g.beginPath(); g.ellipse(8 + rnd() * 48, 6 + rnd() * 20, 3 + rnd() * 4, 2 + rnd() * 2, 0, 0, 7); g.fill();
+      }
+      g.globalAlpha = 1; blades(g, rnd, 7, ['#6d8248', '#4a5c34']);
+      break;
+    case 'dirt':
+      speck(g, rnd, 52, m.sp); pebbles(g, rnd, 4, '#7a6844'); cracks(g, rnd, 1, '#00000030');
+      break;
+    case 'road':
+      speck(g, rnd, 40, m.sp); pebbles(g, rnd, 6, '#8d7c58');
+      // wheel ruts along the iso axis
+      g.strokeStyle = '#00000026'; g.lineWidth = 2;
+      g.beginPath(); g.moveTo(10, 11); g.lineTo(54, 21); g.stroke();
+      g.beginPath(); g.moveTo(12, 22); g.lineTo(52, 12); g.stroke();
+      break;
+    case 'farm':
+      speck(g, rnd, 30, m.sp);
+      g.strokeStyle = '#00000033'; g.lineWidth = 2;
+      for (let s = -2; s <= 2; s++) { // plough furrows
+        g.beginPath(); g.moveTo(6, 16 + s * 5 - 6); g.lineTo(58, 16 + s * 5 + 6); g.stroke();
+      }
+      break;
+    case 'sand':
+      speck(g, rnd, 46, m.sp);
+      g.strokeStyle = '#ffffff28'; g.lineWidth = 1;
+      for (let i = 0; i < 4; i++) { // wind ripples
+        const y = 5 + i * 6 + rnd() * 3;
+        g.beginPath(); g.moveTo(6, y); g.quadraticCurveTo(32, y + (rnd() - 0.5) * 5, 58, y); g.stroke();
+      }
+      g.strokeStyle = '#00000015';
+      for (let i = 0; i < 3; i++) { const y = 8 + i * 7 + rnd() * 3; g.beginPath(); g.moveTo(8, y); g.quadraticCurveTo(32, y + (rnd() - 0.5) * 5, 56, y); g.stroke(); }
+      break;
+    case 'rock':
+      speck(g, rnd, 34, m.sp); cracks(g, rnd, 3, '#00000045');
+      g.fillStyle = '#ffffff12'; // strata highlight
+      g.fillRect(6, 8 + rnd() * 6, 50, 2);
+      for (let i = 0; i < 3; i++) { g.fillStyle = '#9aa06a'; g.globalAlpha = 0.35; g.fillRect(6 + rnd() * 52, 4 + rnd() * 24, 2, 1); } // lichen
+      g.globalAlpha = 1;
+      break;
+    case 'scree':
+      speck(g, rnd, 30, m.sp);
+      for (let i = 0; i < 9; i++) { // angular fragments
+        const x = 5 + rnd() * 54, y = 4 + rnd() * 24, r = 1.5 + rnd() * 2;
+        g.fillStyle = i % 2 ? '#7c7767' : '#a8a290'; g.globalAlpha = 0.8;
+        g.beginPath(); g.moveTo(x, y - r); g.lineTo(x + r, y); g.lineTo(x, y + r * 0.8); g.lineTo(x - r * 0.9, y); g.closePath(); g.fill();
+      }
+      g.globalAlpha = 1;
+      break;
+    case 'tundra':
+      speck(g, rnd, 40, m.sp); blades(g, rnd, 8, ['#c2c49e', '#8e9172']);
+      for (let i = 0; i < 3; i++) { g.fillStyle = '#e8ecf2'; g.globalAlpha = 0.5; g.beginPath(); g.ellipse(8 + rnd() * 48, 6 + rnd() * 20, 3, 1.6, 0, 0, 7); g.fill(); }
+      g.globalAlpha = 1;
+      break;
+    case 'snow':
+      speck(g, rnd, 26, m.sp);
+      for (let i = 0; i < 7; i++) { // sparkle
+        const x = 4 + rnd() * 56, y = 3 + rnd() * 26;
+        g.fillStyle = '#ffffff'; g.globalAlpha = 0.8;
+        g.fillRect(x, y, 1, 1);
+        if (rnd() > 0.6) { g.globalAlpha = 0.4; g.fillRect(x - 1, y, 3, 1); g.fillRect(x, y - 1, 1, 3); }
+      }
+      g.globalAlpha = 1;
+      g.strokeStyle = '#c8d4e2'; g.lineWidth = 1; g.globalAlpha = 0.5; // drift line
+      g.beginPath(); g.moveTo(8, 10 + rnd() * 12); g.quadraticCurveTo(32, 8 + rnd() * 16, 56, 10 + rnd() * 12); g.stroke();
+      g.globalAlpha = 1;
+      break;
+    case 'ice':
+      speck(g, rnd, 14, m.sp);
+      g.strokeStyle = '#ffffff55'; g.lineWidth = 1;
+      cracks(g, rnd, 3, '#8fb2ca88');
+      g.beginPath(); g.moveTo(12, 6); g.lineTo(30, 24); g.stroke(); // sheen
+      g.strokeStyle = '#ffffff30'; g.beginPath(); g.moveTo(36, 6); g.lineTo(50, 20); g.stroke();
+      break;
+    case 'planks': {
+      // planks laid along the iso axis with grain + nails
+      g.strokeStyle = '#00000040'; g.lineWidth = 1;
+      for (let s = -2; s <= 2; s++) {
+        g.beginPath(); g.moveTo(0, 16 + s * 6 - 16); g.lineTo(64, 16 + s * 6 + 16); g.stroke();
+      }
+      speck(g, rnd, 24, m.sp);
+      g.strokeStyle = '#00000022';
+      for (let i = 0; i < 5; i++) { const x = 6 + rnd() * 52, y = 4 + rnd() * 24; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 6, y + 3); g.stroke(); }
+      g.fillStyle = '#3c2c14';
+      for (let i = 0; i < 3; i++) g.fillRect(8 + rnd() * 48, 6 + rnd() * 20, 1, 1);
+      break;
+    }
+    case 'flags': {
+      // flagstones: two joint lines + bevel highlights
+      speck(g, rnd, 26, m.sp);
+      g.strokeStyle = '#00000038'; g.lineWidth = 1.4;
+      g.beginPath(); g.moveTo(14 + rnd() * 8, 2); g.lineTo(24 + rnd() * 8, 30); g.stroke();
+      g.beginPath(); g.moveTo(40 + rnd() * 8, 2); g.lineTo(44 + rnd() * 8, 30); g.stroke();
+      g.beginPath(); g.moveTo(4, 12 + rnd() * 6); g.lineTo(60, 14 + rnd() * 6); g.stroke();
+      g.strokeStyle = '#ffffff18';
+      g.beginPath(); g.moveTo(6, 10 + rnd() * 6); g.lineTo(58, 12 + rnd() * 6); g.stroke();
+      break;
+    }
+    case 'water': {
+      // static deep base: darker depth blotches (the shimmer is animated separately)
+      for (let i = 0; i < 5; i++) {
+        g.fillStyle = m.sp[1]; g.globalAlpha = 0.35;
+        g.beginPath(); g.ellipse(8 + rnd() * 48, 5 + rnd() * 22, 4 + rnd() * 6, 2 + rnd() * 3, 0, 0, 7); g.fill();
+      }
+      g.globalAlpha = 1;
+      break;
+    }
+  }
+  g.restore();
+}
+const texCache = new Map(); // "t:variant:dark" -> 64x64 canvas
 function tileTexture(t, pick, dark = 0) {
-  const spec = TILE_TEX[t];
-  if (!spec || !atlasReady) return null;
-  const idx = spec.v[pick % spec.v.length];
-  const key = t + ':' + idx + ':' + dark;
+  const v = pick & 3;
+  const key = t + ':' + v + ':' + dark;
   let c = texCache.get(key);
   if (!c) {
     c = document.createElement('canvas');
     c.width = 64; c.height = 64;
     const g = c.getContext('2d');
-    g.imageSmoothingEnabled = false;
-    if (spec.f) g.filter = spec.f;
-    g.drawImage(terrainAtlas, (idx % 11) * 32, ((idx / 11) | 0) * 32, 32, 32, 0, 0, 64, 64);
-    g.filter = 'none';
+    paintBlock(g, t, mulberry(t * 7919 + v * 104729 + 1));
     if (dark) { g.globalCompositeOperation = 'source-atop'; g.fillStyle = `rgba(10,8,20,${Math.min(0.5, dark * 0.16)})`; g.fillRect(0, 0, 64, 64); g.globalCompositeOperation = 'source-over'; }
     texCache.set(key, c);
   }
   return c;
+}
+
+// ---- animated water --------------------------------------------------------------
+// Water tiles get a static deep base in the chunk cache plus a live overlay:
+// rolling highlight bands and crest sparkles cycling through 4 frames, with
+// foam lapping every edge that meets land. Chunks record their water tiles at
+// bake time so the per-frame cost is a couple of blits per visible water tile.
+const _waterAnim = new Map();      // tile -> [4 frames]
+function waterAnim(t) {
+  let fr = _waterAnim.get(t);
+  if (fr) return fr;
+  const hue = {
+    [TILE.OCEAN]: ['rgba(178,216,240,', 'rgba(120,170,210,'],
+    [TILE.WATER]: ['rgba(196,232,250,', 'rgba(140,190,225,'],
+    [TILE.RIVER]: ['rgba(205,238,252,', 'rgba(150,200,232,'],
+    [TILE.WATER_SWAMP]: ['rgba(168,192,150,', 'rgba(120,142,105,'],
+  }[t] || ['rgba(196,232,250,', 'rgba(140,190,225,'];
+  fr = [];
+  for (let f = 0; f < 4; f++) {
+    const c = document.createElement('canvas');
+    c.width = 64; c.height = 32;
+    const g = c.getContext('2d');
+    g.save();
+    g.beginPath(); g.moveTo(32, 0); g.lineTo(64, 16); g.lineTo(32, 32); g.lineTo(0, 16); g.closePath(); g.clip();
+    const ph = f / 4;
+    for (let b = 0; b < 3; b++) {   // rolling highlight bands
+      const yy = 3 + ((b * 9 + ph * 9) % 26);
+      const amp = 2 + Math.sin((ph + b / 3) * Math.PI * 2) * 1.6;
+      g.strokeStyle = hue[b % 2] + (0.12 + 0.06 * Math.sin((ph * 2 + b / 3) * Math.PI * 2)) + ')';
+      g.lineWidth = 1.4;
+      g.beginPath();
+      g.moveTo(2, yy);
+      g.quadraticCurveTo(18, yy + amp, 34, yy);
+      g.quadraticCurveTo(48, yy - amp, 62, yy);
+      g.stroke();
+    }
+    const rnd = mulberry(t * 31 + f * 7 + 5);
+    for (let i = 0; i < 4; i++) {   // crest sparkles
+      const x = 6 + rnd() * 52, y = 4 + rnd() * 24;
+      g.fillStyle = hue[0] + (0.35 + rnd() * 0.3) + ')';
+      g.fillRect(x, y, rnd() > 0.5 ? 2 : 1, 1);
+    }
+    g.restore();
+    fr.push(c);
+  }
+  _waterAnim.set(t, fr);
+  return fr;
+}
+// foam along the 4 diamond edges (bit order: N(x,y-1) TR edge, W(x-1,y) TL, E(x+1,y) RB, S(x,y+1) LB)
+const EDGE_SEG = [[[32, 1.5], [62, 16]], [[32, 1.5], [2, 16]], [[62, 16], [32, 30.5]], [[2, 16], [32, 30.5]]];
+let _foam = null;
+function foamFrames() {
+  if (_foam) return _foam;
+  _foam = [];
+  for (let e = 0; e < 4; e++) {
+    const frames = [];
+    for (let f = 0; f < 2; f++) {
+      const c = document.createElement('canvas');
+      c.width = 64; c.height = 32;
+      const g = c.getContext('2d');
+      const [[ax, ay], [bx, by]] = EDGE_SEG[e];
+      g.strokeStyle = 'rgba(240,250,255,0.5)';
+      g.lineWidth = 1.6;
+      g.setLineDash(f ? [3, 4] : [4, 3]);
+      g.lineDashOffset = f * 3;
+      g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.stroke();
+      g.strokeStyle = 'rgba(240,250,255,0.25)';
+      g.lineWidth = 3; g.setLineDash([2, 6]);
+      g.beginPath(); g.moveTo((ax * 3 + bx) / 4, (ay * 3 + by) / 4 + 1); g.lineTo((ax + bx * 3) / 4, (ay + by * 3) / 4 + 1); g.stroke();
+      frames.push(c);
+    }
+    _foam.push(frames);
+  }
+  return _foam;
 }
 
 function hashXY(x, y) { let h = (x * 73856093) ^ (y * 19349663); h = (h ^ (h >> 13)) * 0x5bd1e995; return ((h ^ (h >> 15)) >>> 0) / 4294967296; }
@@ -129,6 +415,7 @@ function chunkCanvas(plane, cx, cy) {
   const g = canvas.getContext('2d');
   g.imageSmoothingEnabled = false;
   const ox = CH * TW / 2, oy = top;
+  const water = [];   // animated-water tiles recorded at bake time
   for (let j = 0; j < CH; j++) for (let i = 0; i < CH; i++) {
     const x = cx * CH + i, y = cy * CH + j;
     const t = tileAtPlane(plane, x, y);
@@ -160,20 +447,22 @@ function chunkCanvas(plane, cx, cy) {
         continue;
       }
     }
-    const tex = tileTexture(t, (shade * 8) | 0);
-    if (tex && !WALLS.has(t)) {
+    if (!WALLS.has(t)) {
       for (let k = drop; k >= 1; k--) {
         const fill = tileTexture(TILE.DIRT, ((shade * 8) | 0) + k, k);
-        if (fill) g.drawImage(fill, lx - TW / 2, ly - TH / 2 + k * ESTEP);
+        g.drawImage(fill, lx - TW / 2, ly - TH / 2 + k * ESTEP);
       }
-      g.drawImage(tex, lx - TW / 2, ly - TH / 2);
-    } else if (!WALLS.has(t)) {
-      // fallback flat diamond while the atlas streams in
-      const col = TILE_COLOR[t] || ['#f0f', '#a0a'];
-      g.fillStyle = mixColor(col[0], col[1], smoothNoise(x, y));
-      g.beginPath();
-      g.moveTo(lx, ly - TH / 2 - 0.5); g.lineTo(lx + TW / 2 + 0.5, ly); g.lineTo(lx, ly + TH / 2 + 0.5); g.lineTo(lx - TW / 2 - 0.5, ly);
-      g.closePath(); g.fill();
+      g.drawImage(tileTexture(t, (shade * 8) | 0), lx - TW / 2, ly - TH / 2);
+      if (WATERS.has(t)) {
+        // record for the live shimmer overlay + note which edges lap onto land
+        let em = 0;
+        const dirs = [[0, -1], [-1, 0], [1, 0], [0, 1]];
+        for (let k2 = 0; k2 < 4; k2++) {
+          const nt = tileAtPlane(plane, x + dirs[k2][0], y + dirs[k2][1]);
+          if (!WATERS.has(nt) && nt !== TILE.BRIDGE) em |= 1 << k2;
+        }
+        water.push({ lx, ly, t, ph: (x * 7 + y * 13) % 64, em });
+      }
     }
     // dungeon rock: flat dark tile (no tall prism, so corridors stay readable),
     // studded with abyssal rocks and glowing crystal veins
@@ -300,7 +589,7 @@ function chunkCanvas(plane, cx, cy) {
       }
     }
   }
-  c = { canvas, top };
+  c = { canvas, top, water };
   chunkCache.set(key, c);
   // dungeon chunks re-render until the undead decor + geo sheets stream in
   if (plane >= PLANE.DUNGEON_BASE && MEDIA.sheets?.undeadDecor?.length && !mimg(MEDIA.sheets.undeadDecor[0].file)) chunkCache.delete(key);
@@ -386,7 +675,21 @@ export class Renderer {
     for (let cy = c0y; cy <= c1y; cy++) for (let cx = c0x; cx <= c1x; cx++) {
       const cc = chunkCanvas(plane, cx, cy);
       const [bx, by] = toScreen(cx * CH, cy * CH);
-      ctx.drawImage(cc.canvas, originX + bx - CH * TW / 2, originY + by - cc.top);
+      const cox = originX + bx - CH * TW / 2, coy = originY + by - cc.top;
+      ctx.drawImage(cc.canvas, cox, coy);
+      // live water: shimmer frames + foam lapping the shore edges
+      if (cc.water && cc.water.length) {
+        const foam = foamFrames();
+        for (const w of cc.water) {
+          const sx = cox + w.lx - TW / 2, sy = coy + w.ly - TH / 2;
+          if (sx < -TW || sy < -TH || sx > W || sy > H) continue;
+          ctx.drawImage(waterAnim(w.t)[((now / 260 + w.ph) | 0) & 3], sx, sy);
+          if (w.em) {
+            const f2 = ((now / 430 + w.ph) | 0) & 1;
+            for (let e = 0; e < 4; e++) if (w.em & (1 << e)) ctx.drawImage(foam[e][f2], sx, sy);
+          }
+        }
+      }
     }
 
     // ---- collect drawables (entities + nodes + farming), depth sort ----
