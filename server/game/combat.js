@@ -266,14 +266,22 @@ export function applyPlayerDamage(world, p, dmg, source) {
   const inArena = p.plane === PLANE.COLOSSEUM;
 
   if (inArena) { world.duelDeath && world.duelDeath(p); return; }
-  if (inWild && killer) {
-    // killer takes the victim's shilling pouch + their five most valuable carried items
-    if (p.pouch > 0) { world.earn(killer, p.pouch, `pvp:${p.name}`); world.send(killer, { t: MSG.MSGBOX, m: `You loot ${p.pouch} $LoS from ${p.name}'s pouch!` }); p.pouch = 0; }
-    const carried = p.inv.map((s, i) => s && { ...s, i, v: (ITEMS[s.id]?.value || 0) * s.qty }).filter(Boolean).sort((a, b) => b.v - a.v);
-    for (const s of carried.slice(0, 5)) { world.dropItem(p.plane, p.x, p.y, s.id, s.qty, killer.id); p.inv[s.i] = null; }
-    p.invDirty();
-    world.announce(`☠ ${killer.name} has slain ${p.name} in the Wild Lands!`);
+  // The at-risk $LoS pouch is lost on death — looted by a PvP killer, else void.
+  if (p.pouch > 0) {
+    if (inWild && killer) { world.earn(killer, p.pouch, `pvp:${p.name}`); world.send(killer, { t: MSG.MSGBOX, m: `You loot ${p.pouch} $LoS from ${p.name}'s pouch!` }); }
+    p.pouch = 0;
   }
+  // Everything in the pack spills into a pile at the death spot; the coin pouch
+  // and worn equipment are kept. A PvP killer owns the pile first.
+  const owner = (inWild && killer) ? killer.id : p.id;
+  let dropped = 0;
+  for (let i = 0; i < p.inv.length; i++) {
+    const s = p.inv[i]; if (!s) continue;
+    world.dropItem(p.plane, p.x, p.y, s.id, s.qty, owner, true);   // pile: exact tile, no scatter
+    p.inv[i] = null; dropped++;
+  }
+  if (dropped) p.invDirty();
+  if (inWild && killer) world.announce(`☠ ${killer.name} has slain ${p.name} in the Wild Lands!`);
   const dead = { plane: p.plane, x: p.x, y: p.y };
   setTimeout(() => {
     if (!world.players.has(p.name)) return;

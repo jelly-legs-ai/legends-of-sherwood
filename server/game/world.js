@@ -136,8 +136,12 @@ export class World {
   mobCount() { let n = 0; for (const e of this.entities.values()) if (e.kind === 'mob') n++; return n; }
 
   // ---------------- ground items & tokens ----------------
-  dropItem(plane, x, y, itemId, qty, owner) {
-    this.addEntity({ kind: 'item', plane, x: x + (Math.random() * 0.6 - 0.3), y: y + (Math.random() * 0.6 - 0.3), item: itemId, qty, owner, t0: Date.now() });
+  dropItem(plane, x, y, itemId, qty, owner, pile = false) {
+    // pile: land on the exact tile so death-drop stacks share one square (the
+    // client's right-click picker then lists every item in the pile).
+    const px = pile ? (x | 0) + 0.5 : x + (Math.random() * 0.6 - 0.3);
+    const py = pile ? (y | 0) + 0.5 : y + (Math.random() * 0.6 - 0.3);
+    this.addEntity({ kind: 'item', plane, x: px, y: py, item: itemId, qty, owner, t0: Date.now() });
   }
   dropShillings(plane, x, y, amount, owner) {
     this.addEntity({ kind: 'shil', plane, x, y, amt: amount, owner, t0: Date.now() });

@@ -55,6 +55,7 @@ export function initUI(game) {
   for (const b of document.querySelectorAll('#tabs button'))
     b.onclick = () => { document.querySelectorAll('#tabs button').forEach(x => x.classList.remove('on')); b.classList.add('on'); G.tab = b.dataset.tab; renderPanel(); };
   $('#bigwin-x').onclick = () => closeWin();
+  $('#cpouch-wrap').onclick = () => openCoinPouch();
   $('#chat-in').addEventListener('keydown', async (e) => {
     e.stopPropagation();
     const dev = await devcmd();
@@ -154,6 +155,7 @@ function invMenu(e, s, i) {
   if (def.potion) opts.push(['Drink', () => G.net.send({ t: MSG.EAT, slot: i })]);
   if (def.bones) opts.push(['Bury', () => G.net.send({ t: MSG.BURY, slot: i })]);
   if (def.pouch) opts.push(['Summon', () => G.net.send({ t: MSG.SUMMON, pouch: s.id })]);
+  if (s.id === 'coins') opts.push(['👛 Store in pouch', () => G.net.send({ t: 'coinpouch', deposit: s.qty })]);
   if (s.id.endsWith('_logs') || s.id === 'logs') opts.push(['Light fire', () => G.net.send({ t: MSG.USE_ITEM, slot: i })]);
   if (s.id.endsWith('_seed')) opts.push(['Select for planting', () => { G.selectedSeed = s.id; toast(`You'll plant ${def.name} next.`); }]);
   if (G.bankOpen) opts.push(['Deposit 1', () => G.net.send({ t: MSG.BANK, deposit: i, qty: 1 })], ['Deposit all', () => G.net.send({ t: MSG.BANK, deposit: i })]);
@@ -1006,6 +1008,33 @@ export function updateOrbs() {
   $('#energy-txt').textContent = s.energy;
   $('#shl').textContent = fmt(G.bal);
   $('#pouch').textContent = s.pouch > 0 ? ` +${s.pouch}⚠` : '';
+  $('#cpouch').textContent = fmt(G.coinPouch || 0);
+}
+
+// Coin pouch: a small always-on store for coins, kept safe when you die.
+function invCoins() { return (G.inv || []).reduce((n, s) => n + (s && s.id === 'coins' ? s.qty : 0), 0); }
+export function openCoinPouch() {
+  openWin('👛 Coin pouch', (body) => {
+    const draw = () => {
+      const inPack = invCoins(), inPouch = G.coinPouch || 0;
+      body.innerHTML = `<p style="margin-bottom:8px">Coins on your person are <b>safe when you die</b>. Coins left in your pack spill onto the ground.</p>
+        <div class="craft-cat">In pouch: ${fmt(inPouch)} · In pack: ${fmt(inPack)}</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0">
+          <input id="cp-dep" type="number" min="1" placeholder="amount" style="width:90px">
+          <button id="cp-dep-go">Deposit</button><button id="cp-dep-all">Deposit all</button>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <input id="cp-wd" type="number" min="1" placeholder="amount" style="width:90px">
+          <button id="cp-wd-go">Withdraw</button><button id="cp-wd-all">Withdraw all</button>
+        </div>`;
+      body.querySelector('#cp-dep-go').onclick = () => { const n = parseInt(body.querySelector('#cp-dep').value) || 0; if (n > 0) G.net.send({ t: 'coinpouch', deposit: n }); };
+      body.querySelector('#cp-dep-all').onclick = () => { if (inPack > 0) G.net.send({ t: 'coinpouch', deposit: inPack }); };
+      body.querySelector('#cp-wd-go').onclick = () => { const n = parseInt(body.querySelector('#cp-wd').value) || 0; if (n > 0) G.net.send({ t: 'coinpouch', withdraw: n }); };
+      body.querySelector('#cp-wd-all').onclick = () => { if (inPouch > 0) G.net.send({ t: 'coinpouch', withdraw: inPouch }); };
+    };
+    draw();
+    G._coinPouchRedraw = draw;   // refreshed when a coinpouch update arrives
+  });
 }
 export function eventBanner(m) {
   const b = $('#event-banner');

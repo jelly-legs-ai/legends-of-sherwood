@@ -33,7 +33,8 @@ export class Player {
     this.prayersOn = new Set();
     this.prayerPts = this.level('prayer');
     this.energy = 100; this.run = true;
-    this.pouch = 0;
+    this.pouch = 0;                               // at-risk $LoS pouch (wilderness)
+    this.coinPouch = 0;                           // coins kept on the person; safe on death
     this.farm = {};                               // "x,y" -> {crop, t0}
     this.house = { furniture: {} };
     this.relics = {};
@@ -280,7 +281,7 @@ export class Player {
     return {
       sex: this.sex, skin: this.skin, hair: this.hair, xp: this.xp, inv: this.inv, equip: this.equip,
       bank: this.bank, quests: this.quests, kills: this.kills, milestonesPaid: this.milestonesPaid,
-      pouch: this.pouch, farm: this.farm, house: this.house, relics: this.relics, dungeonBest: this.dungeonBest,
+      pouch: this.pouch, coinPouch: this.coinPouch, farm: this.farm, house: this.house, relics: this.relics, dungeonBest: this.dungeonBest,
       task: this.task, x: this.x, y: this.y, hp: this.hp, style: this.style,
       pets: this.pets, activePet: this.activePet, wallet: this.wallet,
     };
@@ -290,7 +291,7 @@ export class Player {
       sex: s.sex ?? this.sex, skin: s.skin ?? this.skin, hair: s.hair ?? this.hair,
       xp: { ...this.xp, ...s.xp }, inv: s.inv ?? this.inv, equip: s.equip ?? {}, bank: s.bank ?? {},
       quests: s.quests ?? {}, kills: s.kills ?? {}, milestonesPaid: s.milestonesPaid ?? {},
-      pouch: s.pouch ?? 0, farm: s.farm ?? {}, house: s.house ?? { furniture: {} }, relics: s.relics ?? {},
+      pouch: s.pouch ?? 0, coinPouch: s.coinPouch ?? 0, farm: s.farm ?? {}, house: s.house ?? { furniture: {} }, relics: s.relics ?? {},
       dungeonBest: s.dungeonBest ?? 0, task: s.task ?? null, hp: s.hp, style: s.style ?? 'balanced',
       pets: Array.isArray(s.pets) ? s.pets : [], activePet: s.activePet ?? null,
       wallet: s.wallet ?? this.wallet,

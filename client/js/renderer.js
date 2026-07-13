@@ -508,8 +508,10 @@ export class Renderer {
     if (sx < -80 || sy < -100 || sx > this.canvas.width + 80 || sy > this.canvas.height + 80) return;
 
     if (e.k === 'item') {
-      ctx.drawImage(itemIcon(e.item), sx - 10, sy - 16, 20, 20);
+      // tiny deterministic scatter so items sharing a tile (a death pile) fan into a heap
+      const ox = ((e.id * 7) % 7) - 3, oy = ((e.id * 13) % 5) - 2;
       ctx.fillStyle = '#00000030'; ctx.beginPath(); ctx.ellipse(sx, sy + 3, 8, 3, 0, 0, 7); ctx.fill();
+      ctx.drawImage(itemIcon(e.item), sx - 10 + ox, sy - 16 + oy, 20, 20);
       return;
     }
     if (e.k === 'shil') {

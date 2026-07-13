@@ -74,7 +74,7 @@ async function join() {
 G.net.on(MSG.WELCOME, (m) => {
   G.myId = m.id; G.myName = m.name;
   G.xp = m.xp; G.inv = m.inv; G.equip = m.equip; G.quests = m.quests;
-  G.bal = m.bal; G.milestones = m.milestones || {}; G.style = m.style;
+  G.bal = m.bal; G.coinPouch = m.coinPouch || 0; G.milestones = m.milestones || {}; G.style = m.style;
   G.houseFurniture = (m.house && m.house.furniture) || {};
   G.pets = m.pets || []; G.activePet = m.activePet ?? null;
   $('#login').classList.add('hidden');
@@ -163,6 +163,7 @@ G.net.on(MSG.TOKEN, (m) => {
   UI.updateOrbs();
 });
 G.net.on('inv', (m) => { G.inv = m.inv; G.equip = m.equip; if (G.tab === 'inv' || G.tab === 'equip') UI.renderPanel(); });
+G.net.on('coinpouch', (m) => { G.coinPouch = m.coins; UI.updateOrbs(); if (G._coinPouchRedraw && !$('#bigwin').classList.contains('hidden')) G._coinPouchRedraw(); });
 G.net.on(MSG.DEATH, (m) => {
   const e = G.entities.get(m.id);
   if (e) { e.anim = 'hurt'; e.animStart = performance.now(); e.hp = 0; }
@@ -289,7 +290,19 @@ function clickEntity(ent, e, menu) {
     opts.push(['💬 Talk to ' + ent.name, () => send({ t: MSG.TALK, id: ent.id })]);
     opts.push(['🖐 Pickpocket', () => send({ t: MSG.ACTION, pickpocket: ent.id })]);
   }
-  if (ent.k === 'item') opts.push(['Take ' + (ITEMS[ent.item]?.name || ent.item), () => send({ t: MSG.PICKUP, id: ent.id })]);
+  if (ent.k === 'item') {
+    // Gather every item on this tile so a pile (e.g. a death drop) can be
+    // cherry-picked. Right-click lists them all; left-click grabs the top one.
+    const gx = Math.floor(ent.rx), gy = Math.floor(ent.ry);
+    const pile = [...G.entities.values()].filter(o => o.k === 'item' && Math.floor(o.rx) === gx && Math.floor(o.ry) === gy);
+    if (pile.length > 1) {
+      pile.sort((a, b) => (ITEMS[b.item]?.value || 0) * b.qty - (ITEMS[a.item]?.value || 0) * a.qty);
+      for (const o of pile) opts.push(['Take ' + (ITEMS[o.item]?.name || o.item) + (o.qty > 1 ? ` ×${o.qty}` : ''), () => send({ t: MSG.PICKUP, id: o.id })]);
+      opts.push([`⇊ Take all (${pile.length})`, () => { for (const o of pile) send({ t: MSG.PICKUP, id: o.id }); }]);
+    } else {
+      opts.push(['Take ' + (ITEMS[ent.item]?.name || ent.item), () => send({ t: MSG.PICKUP, id: ent.id })]);
+    }
+  }
   if (ent.k === 'shil') opts.push(['✦ Take $LoS', () => send({ t: MSG.PICKUP, id: ent.id })]);
   if (ent.k === 'evbox') opts.push(['Open strongbox', () => send({ t: MSG.ACTION, evbox: ent.id })]);
   if (ent.k === 'chest') opts.push([(ent.locked ? '🔒 Unlock ' : '🧰 Open ') + ent.name, () => send({ t: MSG.ACTION, chest: ent.id })]);

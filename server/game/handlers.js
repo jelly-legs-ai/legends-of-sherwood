@@ -12,7 +12,7 @@ import { CROPS } from '../../shared/data/items.js';
 import { SHORTCUTS, ANCHORS, ARENA, HOUSE } from '../../shared/data/world.js';
 import { computeWorld, isBlocked, dungeonFloor } from '../../shared/mapgen.js';
 import { Player } from './player.js';
-import { castSpellAt, useAbility, pvpAllowed } from './combat.js';
+import { castSpellAt, useAbility, pvpAllowed, applyPlayerDamage } from './combat.js';
 import { GrandExchange } from './economy.js';
 
 const RECIPE_BY_ID = Object.fromEntries(RECIPES.map(r => [r.id, r]));
@@ -58,6 +58,7 @@ export function handleMessage(world, ws, msg) {
     case 'pet': return onPet(world, p, msg);
     case 'mount': return onMount(world, p);
     case 'withdraw': return onWithdraw(world, p, msg);
+    case 'coinpouch': return onCoinPouch(world, p, msg);
     case 'devcmd': return onDevCmd(world, p, msg);
     case 'devgrant': if (process.argv.includes('--dev')) {
       if (msg.item && ITEMS[msg.item]) p.addItem(String(msg.item), Math.max(1, msg.qty | 0));
@@ -157,7 +158,7 @@ function sendWelcome(world, p) {
   world.send(p, {
     t: MSG.WELCOME, id: p.id, name: p.name, seed: world.seed,
     xp: p.xp, inv: p.inv, equip: p.equip, quests: p.quests, style: p.style,
-    bal: world.ledger.balance(p.name), pouch: p.pouch, sex: p.sex, skin: p.skin, hair: p.hair,
+    bal: world.ledger.balance(p.name), pouch: p.pouch, coinPouch: p.coinPouch, sex: p.sex, skin: p.skin, hair: p.hair,
     milestones: p.milestonesPaid, dungeonBest: p.dungeonBest, house: p.house, task: p.task,
     pets: p.pets, activePet: p.activePet,
     x: p.x, y: p.y, plane: p.plane,
@@ -600,6 +601,7 @@ function onDevCmd(world, p, msg) {
       world.applyMobDamage(t, t.hp, p);
       return say(`slew ${MOBS[t.type].name}`);
     }
+    case 'die': { applyPlayerDamage(world, p, p.hp + 999, null); return say('struck down (testing death)'); }
     default: return say(`unknown command '${msg.cmd}'`);
   }
 }
@@ -1026,6 +1028,23 @@ function onBank(world, p, msg) {
     p.invDirty();
   }
   world.send(p, { t: MSG.INTERFACE, iface: 'bank', bank: p.bank });
+}
+
+// ---------------- coin pouch ----------------
+// A pouch worn at all times that holds coins out of the pack. Coins here are
+// safe on death (the pack itself spills into a pile). Move coins in/out freely.
+function onCoinPouch(world, p, msg) {
+  if (msg.deposit) {
+    const n = Math.min(p.countItem('coins'), Math.max(1, msg.deposit | 0));
+    if (n <= 0) return;
+    p.removeItem('coins', n); p.coinPouch += n;
+  } else if (msg.withdraw) {
+    const n = Math.min(p.coinPouch, Math.max(1, msg.withdraw | 0));
+    if (n <= 0) return;
+    if (!p.addItem('coins', n)) return world.send(p, { t: MSG.MSGBOX, m: 'No room in your pack for those coins.' });
+    p.coinPouch -= n;
+  }
+  world.send(p, { t: 'coinpouch', coins: p.coinPouch });
 }
 
 // ---------------- Grand Exchange ----------------

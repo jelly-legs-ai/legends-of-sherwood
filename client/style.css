@@ -77,6 +77,8 @@ button { font-family: inherit; }
   box-shadow: 0 3px 12px #000b, inset 0 1px 0 #ffffff1c;
 }
 #token-hud #pouch { color: #ff9b54; font-size: 12px; margin-left: 6px; }
+#token-hud #cpouch-wrap { margin-left: 12px; padding-left: 12px; border-left: 1px solid #6b5a34; color: #ffe08a; cursor: pointer; }
+#token-hud #cpouch-wrap:hover { color: #fff3c0; }
 #zone-name { position: absolute; top: 52px; left: 50%; transform: translateX(-50%); font-size: 13px; color: #d8caa0; text-shadow: 0 1px 3px #000, 0 0 8px #000; font-style: italic; letter-spacing: .5px; }
 
 #minimap {
