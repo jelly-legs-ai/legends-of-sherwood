@@ -328,7 +328,7 @@ def('ball_of_wool', { name: 'Ball of wool', stack: true, value: 14, material: tr
 def('fishing_bait', { name: 'Fishing bait', stack: true, value: 1 });
 
 // Currency & tokens
-def('coins', { name: 'Copper coins', stack: true, value: 1 });
+def('coins', { name: 'Copper coins', stack: true, value: 1, tradeable: true, examine: 'Shiny copper coins — spend them, or trade them for $LoS on the Exchange.' });
 // $LoS never exists in inventory — ground pickups credit the ledger directly.
 
 // Keys & misc

@@ -672,7 +672,7 @@ export function openWin(title, bodyFn) {
 }
 export function closeWin() {
   $('#bigwin').classList.add('hidden');
-  G.bankOpen = false; G.shopOpen = null;
+  G.bankOpen = false; G.shopOpen = null; geOpen = false;
 }
 
 export function openBank(bank) {
@@ -732,59 +732,168 @@ export function openShop(npcEntId, npcName, shop) {
   });
 }
 
+// ---------------- Grand Exchange (RS-style: 8 offer slots, buy/sell setup) ----
+let geData = null, geView = 'main', geSel = null, geOpen = false;
+function guidePrice(id) { return Math.max(1, (geData && geData.prices && geData.prices[id]) || ITEMS[id]?.value || 1); }
 export function openGE(data) {
-  openWin('⚖ Grand Exchange — balance: ' + fmt(data.bal) + ' $LoS', (body) => {
-    const form = document.createElement('div');
-    form.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px';
-    form.innerHTML = `
-      <select id="ge-type"><option value="buy">Buy</option><option value="sell">Sell</option></select>
-      <input id="ge-item" list="ge-items" placeholder="item id" style="width:150px">
-      <datalist id="ge-items">${Object.values(ITEMS).filter(i => i.tradeable).map(i => `<option value="${i.id}">${i.name}</option>`).join('')}</datalist>
-      <input id="ge-qty" type="number" min="1" value="1" style="width:64px" title="quantity">
-      <input id="ge-price" type="number" min="1" value="1" style="width:80px" title="price each ($LoS)">
-      <button id="ge-place">Place offer</button>`;
-    body.appendChild(form);
-    form.querySelector('#ge-place').onclick = () => {
-      G.net.send({ t: MSG.GE, place: { type: $('#ge-type').value, item: $('#ge-item').value.trim(), qty: +$('#ge-qty').value, price: +$('#ge-price').value } });
-    };
-    // ---- $LoS chain withdrawal: only from the Exchange, only to the sign-in wallet ----
-    const wd = document.createElement('div');
-    wd.style.cssText = 'margin:6px 0 10px;padding:8px;border:1px solid #6b5a34;border-radius:6px;background:#241d10';
-    const shortW = data.wallet ? data.wallet.slice(0, 10) + '…' + data.wallet.slice(-4) : '—';
-    wd.innerHTML = `<div class="craft-cat" style="margin:0 0 5px">⛓ Withdraw $LoS to your wallet</div>
-      <div style="font-size:11px;color:#c9b487;margin-bottom:5px">Paid to your sign-in wallet <b title="${data.wallet || ''}">${shortW}</b> — funds can go to no other account.</div>
-      <div style="display:flex;gap:5px;align-items:center;font-size:12px">
-        <input id="wd-amt" type="number" min="5" placeholder="amount" style="width:90px">
-        <button id="wd-go" ${data.wallet ? '' : 'disabled'}>Withdraw ⛓</button>
-      </div>
-      <div style="font-size:10.5px;color:#8d7a5b;margin-top:3px">Screened by the Vault Wardens — large or rapid transactions are held for review.</div>`;
-    body.appendChild(wd);
-    wd.querySelector('#wd-go').onclick = () => {
-      const amount = parseInt(wd.querySelector('#wd-amt').value) || 0;
-      if (amount > 0) G.net.send({ t: 'withdraw', amount });
-      else toast('Enter an amount to withdraw.');
-    };
-    const hist = document.createElement('div');
-    hist.style.cssText = 'font-size:11px;color:#8d7a4b;margin-bottom:8px';
-    const prices = Object.entries(data.prices || {});
-    hist.textContent = prices.length ? 'Recent prices: ' + prices.slice(-6).map(([i, p]) => `${ITEMS[i]?.name || i} @ ${p}` ).join(' · ') : 'No trades yet — set the market!';
-    body.appendChild(hist);
-    const head = document.createElement('div');
-    head.className = 'craft-cat';
-    head.textContent = 'Your offers';
-    body.appendChild(head);
-    if (!data.offers.length) body.appendChild(Object.assign(document.createElement('i'), { textContent: 'None open.' }));
-    for (const o of data.offers) {
-      const row = document.createElement('div');
-      row.className = 'ge-offer';
-      row.innerHTML = `<span>${o.type.toUpperCase()} ${o.left}/${o.qty} × ${ITEMS[o.item]?.name || o.item} @ ${o.price} $LoS</span>`;
-      const b = document.createElement('button');
-      b.textContent = 'Cancel';
-      b.onclick = () => G.net.send({ t: MSG.GE, cancel: o.id });
-      row.appendChild(b);
-      body.appendChild(row);
+  geData = data;
+  const fresh = !geOpen;
+  if (fresh) { geOpen = true; geView = 'main'; geSel = null; openWin('⚖ Grand Exchange', () => {}); }
+  // On a background sync only refresh the main board; don't disturb a setup form.
+  if (fresh || geView === 'main') renderGE();
+}
+function renderGE() {
+  const body = $('#bigwin-body'); if (!body) return;
+  $('#bigwin-title').textContent = '⚖ Grand Exchange';
+  body.innerHTML = '';
+  if (geView === 'sellpick') return geSellPick(body);
+  if (geView === 'buysearch') return geBuySearch(body);
+  if (geView === 'setup') return geSetup(body);
+  geMain(body);
+}
+function geBack(body, title, onBack) {
+  const h = document.createElement('div'); h.className = 'ge-head';
+  h.innerHTML = `<button class="ge-backbtn">←</button><span>${title}</span>`;
+  h.querySelector('.ge-backbtn').onclick = onBack;
+  body.appendChild(h);
+}
+function geWithdrawPanel() {
+  const wd = document.createElement('div'); wd.className = 'ge-withdraw';
+  const w = geData.wallet, shortW = w ? w.slice(0, 10) + '…' + w.slice(-4) : '—';
+  wd.innerHTML = `<div class="craft-cat" style="margin:0 0 5px">⛓ Withdraw $LoS to your wallet</div>
+    <div style="font-size:11px;color:#c9b487;margin-bottom:5px">Paid to your sign-in wallet <b title="${w || ''}">${shortW}</b> — funds can go to no other account.</div>
+    <div style="display:flex;gap:5px;align-items:center;font-size:12px">
+      <input id="wd-amt" type="number" min="5" placeholder="amount" style="width:90px">
+      <button id="wd-go" ${w ? '' : 'disabled'}>Withdraw ⛓</button></div>
+    <div style="font-size:10.5px;color:#8d7a5b;margin-top:3px">Screened by the Vault Wardens — large or rapid transactions are held for review.</div>`;
+  wd.querySelector('#wd-go').onclick = () => { const a = parseInt(wd.querySelector('#wd-amt').value) || 0; if (a > 0) G.net.send({ t: 'withdraw', amount: a }); else toast('Enter an amount to withdraw.'); };
+  return wd;
+}
+function geMain(body) {
+  const d = geData, offers = d.offers || [];
+  const hdr = document.createElement('div'); hdr.className = 'ge-topbar';
+  hdr.innerHTML = `<button id="ge-hist">History</button>
+    <div class="ge-bal">Balance: <b>${fmt(d.bal)}</b> $LoS</div>
+    <button id="ge-collect">Collect all</button>`;
+  body.appendChild(hdr);
+  const note = document.createElement('div'); note.className = 'ge-note';
+  note.textContent = 'Select an empty slot to set up a Buy or Sell offer.';
+  body.appendChild(note);
+  const grid = document.createElement('div'); grid.className = 'ge-slots';
+  for (let i = 0; i < 8; i++) {
+    const o = offers[i], slot = document.createElement('div'); slot.className = 'ge-slot';
+    if (o) {
+      const pct = Math.round(100 * o.filled / o.qty), col = o.type === 'buy' ? '#c0392b' : '#2e8b57';
+      slot.innerHTML = `<div class="ge-slot-h ${o.type}">${o.type.toUpperCase()}</div>
+        <div class="ge-slot-item"></div>
+        <div class="ge-slot-name">${ITEMS[o.item]?.name || o.item} <span style="color:#c9b487">×${fmt(o.qty)}</span></div>
+        <div class="ge-bar"><div style="width:${pct}%;background:${col}"></div></div>
+        <div class="ge-slot-price">${fmt(o.price)} $LoS ea · ${o.filled >= o.qty ? 'complete' : pct + '%'}</div>
+        <button class="wood-btn ge-cancel">Cancel / Collect</button>`;
+      slot.querySelector('.ge-slot-item').appendChild(iconCanvas(o.item));
+      slot.querySelector('.ge-cancel').onclick = () => G.net.send({ t: MSG.GE, cancel: o.id });
+    } else {
+      slot.classList.add('empty');
+      slot.innerHTML = `<div class="ge-slot-h" style="color:#8d7a4b">Empty</div><div class="ge-empty-btns"></div>`;
+      const bb = document.createElement('button'); bb.className = 'wood-btn ge-buy'; bb.innerHTML = '⬇ Buy';
+      bb.onclick = () => { geView = 'buysearch'; geSel = null; renderGE(); };
+      const sb = document.createElement('button'); sb.className = 'wood-btn ge-sell'; sb.innerHTML = '⬆ Sell';
+      sb.onclick = () => { geView = 'sellpick'; geSel = null; renderGE(); };
+      slot.querySelector('.ge-empty-btns').append(bb, sb);
     }
+    grid.appendChild(slot);
+  }
+  body.appendChild(grid);
+  body.appendChild(geWithdrawPanel());
+  hdr.querySelector('#ge-collect').onclick = () => { for (const o of offers) G.net.send({ t: MSG.GE, cancel: o.id }); };
+  hdr.querySelector('#ge-hist').onclick = () => {
+    const ps = Object.entries(d.prices || {});
+    toast(ps.length ? 'Recent: ' + ps.slice(-6).map(([i, p]) => `${ITEMS[i]?.name || i} @ ${p}`).join(' · ') : 'No trades recorded yet.');
+  };
+}
+function geSellPick(body) {
+  geBack(body, 'Sell Offer — choose an item from your pack', () => { geView = 'main'; renderGE(); });
+  const grid = document.createElement('div'); grid.className = 'bank-grid';
+  let any = false;
+  (G.inv || []).forEach((s) => {
+    if (!s || !ITEMS[s.id]?.tradeable) return; any = true;
+    const d = document.createElement('div'); d.className = 'inv-slot'; d.appendChild(iconCanvas(s.id));
+    const q = document.createElement('span'); q.className = 'qty'; q.textContent = fmt(s.qty); d.appendChild(q);
+    d.onmouseenter = (e) => tooltip(e, itemTip(s.id, s.qty)); d.onmouseleave = hideTooltip;
+    d.onclick = () => { geSel = { type: 'sell', item: s.id, maxQty: s.qty }; geView = 'setup'; renderGE(); };
+    grid.appendChild(d);
   });
+  if (!any) grid.innerHTML = '<i style="color:#8d7a4b">No tradeable items in your pack.</i>';
+  body.appendChild(grid);
+}
+function geBuySearch(body) {
+  geBack(body, 'Buy Offer — search for an item', () => { geView = 'main'; renderGE(); });
+  const search = document.createElement('input'); search.className = 'ge-search'; search.placeholder = 'Type part of an item name…';
+  body.appendChild(search);
+  const results = document.createElement('div'); results.className = 'ge-results'; body.appendChild(results);
+  const all = Object.values(ITEMS).filter(it => it.tradeable);
+  const fill = (q) => {
+    results.innerHTML = ''; const ql = q.toLowerCase().trim();
+    const list = (ql ? all.filter(it => it.name.toLowerCase().includes(ql)) : all).slice(0, 60);
+    if (!list.length) { results.innerHTML = '<i style="color:#8d7a4b">No matches — try another name.</i>'; return; }
+    for (const it of list) {
+      const r = document.createElement('div'); r.className = 'ge-result';
+      r.appendChild(iconCanvas(it.id));
+      const nm = document.createElement('span'); nm.className = 'ge-rname'; nm.textContent = it.name; r.appendChild(nm);
+      const gp = document.createElement('span'); gp.className = 'ge-guide'; gp.textContent = fmt(guidePrice(it.id)) + ' $LoS'; r.appendChild(gp);
+      r.onclick = () => { geSel = { type: 'buy', item: it.id }; geView = 'setup'; renderGE(); };
+      results.appendChild(r);
+    }
+  };
+  search.oninput = () => fill(search.value);   // auto-populates as you type
+  fill(''); setTimeout(() => search.focus(), 0);
+}
+function geSetup(body) {
+  const it = ITEMS[geSel.item], isBuy = geSel.type === 'buy', guide = guidePrice(geSel.item);
+  geBack(body, (isBuy ? 'Buy Offer' : 'Sell Offer') + ' — ' + it.name, () => { geView = isBuy ? 'buysearch' : 'sellpick'; renderGE(); });
+  const wrap = document.createElement('div'); wrap.className = 'ge-setup';
+  wrap.innerHTML = `
+    <div class="ge-setup-top"><div class="ge-setup-icon"></div>
+      <div><b>${it.name}</b><div class="ge-examine">${it.examine || ''}</div>
+      <div class="ge-guideline">Guide price: ${fmt(guide)} $LoS${geSel.maxQty ? ` · you have ${fmt(geSel.maxQty)}` : ''}</div></div></div>
+    <div class="ge-setup-grid">
+      <div><div class="craft-cat">Quantity</div>
+        <div class="ge-stepper"><button data-q="-1">−</button><input id="ge-q" type="number" min="1" value="1"><button data-q="1">+</button></div>
+        <div class="ge-quick">${(isBuy ? ['+1', '+10', '+100', '+1K'] : ['1', '10', '100', 'All']).map(l => `<button data-ql="${l}">${l}</button>`).join('')}</div></div>
+      <div><div class="craft-cat">Price per item ($LoS)</div>
+        <div class="ge-stepper"><button data-p="-1">−</button><input id="ge-p" type="number" min="1" value="${guide}"><button data-p="1">+</button></div>
+        <div class="ge-quick">${['-5%', 'guide', '+5%'].map(l => `<button data-pl="${l}">${l}</button>`).join('')}</div></div>
+    </div>
+    <div class="ge-total">Total: <b id="ge-total">0</b> $LoS</div>
+    <button id="ge-confirm" class="wood-btn ge-confirm">Confirm Offer</button>`;
+  body.appendChild(wrap);
+  wrap.querySelector('.ge-setup-icon').appendChild(iconCanvas(geSel.item));
+  const qEl = wrap.querySelector('#ge-q'), pEl = wrap.querySelector('#ge-p');
+  const clampQ = () => { if (!isBuy && geSel.maxQty) qEl.value = Math.min(+qEl.value || 1, geSel.maxQty); };
+  const upd = () => { $('#ge-total').textContent = fmt((+qEl.value || 0) * (+pEl.value || 0)); };
+  wrap.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { qEl.value = Math.max(1, (+qEl.value || 1) + (+b.dataset.q)); clampQ(); upd(); });
+  wrap.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { pEl.value = Math.max(1, (+pEl.value || 1) + (+b.dataset.p)); upd(); });
+  wrap.querySelectorAll('[data-ql]').forEach(b => b.onclick = () => {
+    const l = b.dataset.ql;
+    if (l === 'All') qEl.value = geSel.maxQty || 1;
+    else if (l[0] === '+') qEl.value = (+qEl.value || 0) + (l === '+1K' ? 1000 : +l.slice(1));
+    else qEl.value = +l;
+    clampQ(); upd();
+  });
+  wrap.querySelectorAll('[data-pl]').forEach(b => b.onclick = () => {
+    const l = b.dataset.pl;
+    pEl.value = l === 'guide' ? guide : Math.max(1, Math.round((+pEl.value || guide) * (l === '-5%' ? 0.95 : 1.05)));
+    upd();
+  });
+  qEl.oninput = () => { clampQ(); upd(); }; pEl.oninput = upd; upd();
+  wrap.querySelector('#ge-confirm').onclick = () => {
+    const qty = +qEl.value || 0, price = +pEl.value || 0;
+    if (qty < 1 || price < 1) return toast('Enter a quantity and price.');
+    if (isBuy && qty * price > (geData.bal || 0)) return toast('Not enough $LoS for that buy offer.');
+    if (!isBuy && geSel.maxQty && qty > geSel.maxQty) return toast('You do not have that many.');
+    G.net.send({ t: MSG.GE, place: { type: geSel.type, item: geSel.item, qty, price } });
+    geView = 'main'; geSel = null; renderGE();
+  };
 }
 
 export function openDungeon(best) {
