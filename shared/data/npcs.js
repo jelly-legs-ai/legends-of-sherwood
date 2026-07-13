@@ -1,23 +1,43 @@
 // NPCs: position, LPC visuals, dialogue, shops, quest hooks, pickpocketing.
 // Dialogue: array of lines, or keyed stages driven by quest state (server picks).
 
+import { ITEMS } from './items.js';
+
 export const NPCS = {};
 function npc(id, o) { NPCS[id] = { id, wander: 0, ...o }; return NPCS[id]; }
 
+// Dress a generated character in REAL equipment: each item's paperdoll layer is
+// applied over the base look, so unique NPCs wear the very gear players can
+// earn — Robin Hood carries an actual Sherwood longbow in Lincoln green.
+function gear(base, ...itemIds) {
+  const vis = { ...base };
+  for (const id of itemIds) {
+    const v = ITEMS[id] && ITEMS[id].vis;
+    if (!v) continue;
+    vis[v.layer] = [v.sheet || v.type, v.color];
+  }
+  return vis;
+}
+
 // ---------------- Loxley (tutorial hub) ----------------
+// The legend himself: a generated character in top-end ranger kit — Lincoln
+// green from coif to chaps, a quiver at his back, the Sherwood longbow in hand.
 npc('robin_hood', {
   name: 'Robin Hood', x: 251, y: 328, quest: 'a_legend_begins',
-  vis: { skin: 'light', hair: ['plain', 'light_brown'], torso: ['tunic', 'green'], legs: ['pants', 'brown'], head: ['hood', 'green'], weapon: ['bow', 'medium'] },
+  vis: gear({ skin: 'light', hair: ['plain', 'light_brown'] },
+    'lincoln_coif', 'lincoln_body', 'lincoln_chaps', 'leather_boots', 'quiver', 'sherwood_longbow'),
   lines: ['Welcome to Sherwood, friend. The Sheriff bleeds these lands dry — we could use another pair of hands.'],
 });
 npc('maid_marian', {
   name: 'Maid Marian', x: 255, y: 330, quest: 'marians_message',
-  vis: { skin: 'light', hair: ['braid', 'dark_brown'], torso: ['longsleeve', 'blue'], legs: ['pants', 'white'] },
+  vis: gear({ skin: 'light', hair: ['braid', 'dark_brown'], torso: ['longsleeve', 'blue'], legs: ['pants', 'white'] },
+    'leather_boots'),
   lines: ['A word, traveller? I have a letter that must reach Nottingham... discreetly.'],
 });
 npc('friar_tuck', {
   name: 'Friar Tuck', x: 261, y: 339, quest: 'tucks_faith', tutor: 'prayer',
-  vis: { skin: 'light', hair: ['balding_fallback', 'gray'], beard: 'gray', torso: ['robe', 'brown'], legs: ['pants', 'brown'], weapon: ['staff', 'medium'] },
+  vis: gear({ skin: 'light', hair: ['balding_fallback', 'gray'], beard: 'gray' },
+    'friar_robe_top', 'friar_robe_skirt', 'friar_staff'),
   lines: ['Bless you, child. Bury the bones of the fallen and the saints will lend you strength.', 'The chapel altar restores your prayers.'],
 });
 npc('much_the_miller', {
@@ -28,7 +48,8 @@ npc('much_the_miller', {
 });
 npc('wat_the_smith', {
   name: 'Wat the Smith', x: 244, y: 340, tutor: 'smithing',
-  vis: { skin: 'brown', hair: ['buzzcut', 'black'], torso: ['leather', 'brown'], legs: ['pants', 'charcoal'], hands: ['gloves', 'leather'] },
+  vis: gear({ skin: 'brown', hair: ['buzzcut', 'black'], torso: ['leather', 'brown'], legs: ['pants', 'charcoal'] },
+    'steel_gauntlets', 'iron_mace'),
   shop: [['hammer', 12], ['copper_pickaxe', 25], ['copper_hatchet', 25], ['copper_dagger', 15], ['copper_sword', 30], ['knife', 8], ['tinderbox', 10], ['copper_arrow', 2], ['shortbow', 25], ['apprentice_staff', 25]],
   lines: ['A dull blade never fed a family. What do you need?'],
 });
@@ -88,12 +109,14 @@ npc('ge_clerk_n', {
 });
 npc('colosseum_marshal', {
   name: 'Marshal Brand', x: 323, y: 336, marshal: true,
-  vis: { skin: 'brown', hair: ['buzzcut', 'black'], torso: ['plate', 'iron'], legs: ['plate', 'iron'], weapon: ['spear', 'steel'] },
+  vis: gear({ skin: 'brown', hair: ['buzzcut', 'black'] },
+    'steel_platebody', 'steel_platelegs', 'steel_helm', 'steel_gauntlets', 'steel_spear'),
   lines: ['Care to wager your $LoS on your own blood? Challenge another warrior, agree a stake, and the pot is winner-takes-all. I keep five parts in a hundred for the sand.'],
 });
 npc('fletcher_ansel', {
   name: 'Fletcher Ansel', x: 336, y: 334, tutor: 'fletching',
-  vis: { skin: 'light', hair: ['plain', 'chestnut_fallback'], torso: ['leather', 'forest'], legs: ['pants', 'brown'], weapon: ['bow', 'normal'] },
+  vis: gear({ skin: 'light', hair: ['plain', 'chestnut_fallback'] },
+    'studded_body', 'studded_chaps', 'leather_boots', 'quiver', 'ash_bow'),
   shop: [['knife', 8], ['feathers', 2], ['bowstring', 35], ['shortbow', 25], ['ash_bow', 90], ['copper_arrow', 2], ['bronze_arrow', 4], ['iron_arrow', 8], ['iron_bolts', 10], ['crossbow_stock', 60], ['quiver', 40]],
   lines: ['A straight arrow is an honest answer to a crooked law.'],
 });
@@ -126,35 +149,41 @@ npc('noble', {
 });
 npc('castle_knight', {
   name: 'Castle knight', x: 330, y: 312, wander: 3, pickpocket: { lvl: 70, xp: 230, loot: [['coins', [60, 150]], ['kings_elixir', 1, 0.03]] },
-  vis: { skin: 'light', torso: ['plate', 'steel'], legs: ['plate', 'steel'], head: ['greathelm', 'steel'], weapon: ['sword', 'steel'] },
+  vis: gear({ skin: 'light' },
+    'silversteel_platebody', 'silversteel_platelegs', 'silversteel_helm', 'silversteel_gauntlets', 'silversteel_shield', 'silversteel_sword'),
   lines: ['Move along. The castle is no place for outlaws.'],
 });
 
 // ---------------- Sherwood camp ----------------
 npc('little_john', {
   name: 'Little John', x: 278, y: 298, quest: 'wolves_at_the_door', tutor: 'strength',
-  vis: { skin: 'light', hair: ['bedhead', 'dark_brown'], beard: 'dark_brown', torso: ['leather', 'brown'], legs: ['pants', 'forest'], weapon: ['spear', 'iron'] },
+  vis: gear({ skin: 'light', hair: ['bedhead', 'dark_brown'], beard: 'dark_brown', legs: ['pants', 'forest'] },
+    'leather_body', 'leather_boots', 'steel_spear'),
   lines: ['Ha! You look like you could barely lift a quarterstaff. Prove me wrong.'],
 });
 npc('will_scarlet', {
   name: 'Will Scarlet', x: 274, y: 300, quest: 'the_poacher_problem', tutor: 'thieving',
-  vis: { skin: 'light', hair: ['plain', 'red'], torso: ['tunic', 'red'], legs: ['pants', 'black'], weapon: ['sword', 'iron'] },
+  vis: gear({ skin: 'light', hair: ['plain', 'red'], torso: ['tunic', 'red'] },
+    'studded_chaps', 'leather_boots', 'steel_sword'),
   lines: ['Quick fingers keep you fed. Quicker feet keep you alive.'],
 });
 npc('elder_druid', {
   name: 'Elder Druid Cathbad', x: 322, y: 282, tutor: 'magic',
-  vis: { skin: 'taupe', hair: ['plain', 'gray'], beard: 'gray', torso: ['robe', 'white'], legs: ['pants', 'white'], weapon: ['staff', 'gnarled'] },
+  vis: gear({ skin: 'taupe', hair: ['plain', 'gray'], beard: 'gray' },
+    'druidic_robe_top', 'druidic_robe_skirt', 'druid_staff'),
   shop: [['air_rune', 6], ['earth_rune', 6], ['water_rune', 6], ['fire_rune', 8], ['apprentice_staff', 25], ['novice_hood', 15], ['novice_robe_top', 30], ['novice_robe_skirt', 25]],
   lines: ['The old magic sleeps in stone and stream. Bring essence to the altars and it will wake for you.'],
 });
 npc('warden_askel', {
   name: 'Dungeon Warden Askel', x: 360, y: 290, quest: 'depths_of_the_abyss', tutor: 'dungeoneering',
-  vis: { skin: 'brown', hair: ['buzzcut', 'black'], torso: ['chainmail', 'iron'], legs: ['plate', 'iron'], weapon: ['sword', 'steel'] },
+  vis: gear({ skin: 'brown', hair: ['buzzcut', 'black'] },
+    'steel_platebody', 'iron_platelegs', 'steel_gauntlets', 'silversteel_sword'),
   lines: ['The Abyssal Depths go down further than any sane man has mapped. Clear a floor, earn true $LoS — the deeper, the richer.'],
 });
 npc('ranger_hodd', {
   name: 'Ranger Hodd', x: 284, y: 314, tutor: 'hunter',
-  vis: { skin: 'light', hair: ['plain', 'dark_brown'], torso: ['leather', 'forest'], legs: ['pants', 'forest'], head: ['hood', 'forest'], weapon: ['bow', 'medium'] },
+  vis: gear({ skin: 'light', hair: ['plain', 'dark_brown'] },
+    'ranger_coif', 'ranger_body', 'ranger_chaps', 'leather_boots', 'quiver', 'yew_bow'),
   shop: [['box_trap', 12], ['small_fishing_net', 8], ['fishing_rod', 12], ['harpoon', 45], ['fishing_bait', 1]],
   lines: ['Tracks tell true tales. Set your traps along the runs and be patient.'],
 });
@@ -179,7 +208,8 @@ npc('bay_banker', {
 });
 npc('smuggler_meg', {
   name: 'Smuggler Meg', x: 44, y: 429, quest: 'the_cold_run',
-  vis: { skin: 'light', hair: ['bangs', 'black'], torso: ['leather', 'black'], legs: ['pants', 'black'], head: ['hood', 'black'] },
+  vis: gear({ skin: 'light', hair: ['bangs', 'black'] },
+    'studded_coif', 'studded_body', 'studded_chaps', 'leather_boots', 'iron_dagger'),
   lines: ["Psst. Cold work up north pays warm coin — if you don't freeze first."],
 });
 
@@ -235,7 +265,8 @@ npc('siltfoot_sam', {
 // ---------------- Peveril Stronghold (wealth and steel) -----------------------
 npc('castellan_devereux', {
   name: 'Castellan Devereux', x: 351, y: 167,
-  vis: { skin: 'light', hair: ['plain', 'black'], torso: ['plate', 'silver'], legs: ['plate', 'silver'], weapon: ['sword', 'silver'] },
+  vis: gear({ skin: 'light', hair: ['plain', 'black'] },
+    'silversteel_platebody', 'silversteel_platelegs', 'silversteel_gauntlets', 'silversteel_sword'),
   shop: [['steel_sword', 380], ['steel_platebody', 520], ['steel_helm', 260], ['steel_shield', 330], ['steel_platelegs', 400], ['arbalest', 3400], ['silversteel_bolts', 40]],
   lines: ['Peveril holds the north road. Coin buys steel here — good steel.', 'The Wild Lands lie beyond the moor. Go armed or go home.'],
 });
@@ -246,7 +277,8 @@ npc('lady_isolde', {
 });
 npc('serjeant_brock', {
   name: 'Serjeant Brock', x: 355, y: 169, tutor: 'attack',
-  vis: { skin: 'brown', hair: ['buzzcut', 'black'], torso: ['chainmail', 'steel'], legs: ['plate', 'iron'], head: ['kettle', 'iron'], weapon: ['spear', 'steel'] },
+  vis: gear({ skin: 'brown', hair: ['buzzcut', 'black'] },
+    'steel_platebody', 'iron_platelegs', 'steel_helm', 'steel_spear'),
   lines: ['Brigands on the moor, wights past the snowline, and worse past that. Keep your blade oiled.'],
 });
 
