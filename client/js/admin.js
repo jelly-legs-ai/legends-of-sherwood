@@ -8,7 +8,7 @@ import { MOBS } from '/shared/data/mobs.js';
 import { PETS } from '/shared/data/pets.js';
 import { SPELLS, PRAYERS } from '/shared/data/skills.js';
 import { loadMedia, MEDIA, drawCreature, drawFxSprite } from './media.js';
-import { loadManifest, composite, drawChar } from './sprites.js';
+import { loadManifest, composite, drawChar, drawOversize, critterSprite, ANIMS } from './sprites.js';
 import { itemIcon } from './icons.js';
 
 const $ = (s) => document.querySelector(s);
@@ -347,9 +347,20 @@ function preview(sel) {
   cancelAnimationFrame(raf);
 
   if (sel.kind === 'item') {
-    info.textContent = JSON.stringify(ITEMS[sel.id], null, 1);
-    g.imageSmoothingEnabled = false;
-    g.drawImage(itemIcon(sel.id), 66, 36, 128, 128);
+    const it = ITEMS[sel.id];
+    info.textContent = JSON.stringify(it, null, 1);
+    // Pet tokens preview the actual companion critter, not the inventory token.
+    // Equippable items are shown worn on an LPC paperdoll (helmet on the head,
+    // armour on the body, weapon in hand). Everything else keeps its icon — that
+    // IS how it looks in-game.
+    if (it.pet && PETS[it.pet]) {
+      previewCritterDef(g, PETS[it.pet], () => compSel === sel);
+    } else if (it.vis && it.vis.layer) {
+      previewEquipped(g, it, () => compSel === sel);
+    } else {
+      g.imageSmoothingEnabled = false;
+      g.drawImage(itemIcon(sel.id), 66, 36, 128, 128);
+    }
     return;
   }
   if (sel.kind === 'fx') {
@@ -368,20 +379,54 @@ function preview(sel) {
   if (sel.kind === 'creature' || sel.kind === 'pet') {
     const def = sel.kind === 'pet' ? PETS[sel.id] : MOBS[sel.id];
     info.textContent = JSON.stringify(def, null, 1).slice(0, 900);
-    const sheet = def.sheet, tint = def.tint;
-    let anim = 'idle';
+    // Render through whichever visual system the creature actually uses in-game:
+    // an animated media sheet, a procedural critter, or an LPC-composited humanoid.
+    const system = def.sheet ? 'sheet' : def.critter ? 'critter' : def.vis ? 'vis' : 'none';
+    const animSets = {
+      sheet: ['idle', 'walk', 'attack', 'special', 'death'],
+      critter: ['idle', 'walk', 'attack'],
+      vis: ['idle', 'walk', 'slash', 'thrust', 'spellcast', 'shoot', 'hurt'],
+      none: [],
+    };
+    let anim = 'idle', animStart = performance.now();
     const sels = document.createElement('div');
-    sels.innerHTML = ['idle', 'walk', 'attack', 'special', 'death'].map(a => `<button class="act" data-a="${a}">${a}</button>`).join(' ');
+    sels.style.marginTop = '6px';
+    sels.innerHTML = animSets[system].map(a => `<button class="act" data-a="${a}">${a}</button>`).join(' ')
+      || '<i style="color:var(--dim)">no visual defined</i>';
     pv.appendChild(sels);
-    for (const b of sels.querySelectorAll('button')) b.onclick = () => { anim = b.dataset.a; };
-    const fake = { id: 7, dir: 2, hp: 1, tint, animStart: performance.now() };
+    for (const b of sels.querySelectorAll('button')) b.onclick = () => { anim = b.dataset.a; animStart = performance.now(); };
+    const cx = 130, cy = 178;
+    const fake = { id: 7, dir: 2, hp: 1, tint: def.tint, animStart };
     const loop = (now) => {
       g.clearRect(0, 0, 260, 200);
-      if (sheet) {
+      g.imageSmoothingEnabled = false;
+      if (system === 'sheet') {
         fake.anim = anim;
-        if (anim === 'attack' || anim === 'special') { if (!fake._last || now - fake._last > 1400) { fake.animStart = now; fake._last = now; } }
-        drawCreature(g, sheet, fake, anim, now, 130, 180, def.scale || 1);
-      } else { g.fillStyle = '#8b949e'; g.font = '12px monospace'; g.fillText('procedural critter: ' + (def.critter || def.vis && 'LPC humanoid' || '?'), 20, 100); }
+        fake.hp = anim === 'death' ? 0 : 1;
+        fake.deathStart = anim === 'death' ? animStart : 0;
+        if (anim === 'attack' || anim === 'special') { if (now - (fake._last || 0) > 1400) { fake.animStart = animStart = now; fake._last = now; } }
+        else fake.animStart = animStart;
+        drawCreature(g, def.sheet, fake, anim, now, cx, cy + 4, def.scale || 1);
+      } else if (system === 'critter') {
+        const wf = anim === 'walk' ? Math.floor(now / 70) % 9 : 0;
+        const sc = (def.scale || 1) * 1.7;
+        const spr = critterSprite(def.critter, wf, false);
+        const S = 64 * sc;
+        g.drawImage(spr, cx - S / 2, cy - S + 14 * sc, S, S);
+        if (anim === 'attack') { g.fillStyle = '#ffffff33'; g.beginPath(); g.arc(cx, cy - 22 * sc, 16 * sc, 0, 7); g.fill(); }
+      } else if (system === 'vis') {
+        const ai = ANIMS[anim] || ANIMS.idle;
+        let frame;
+        if (ai.once) { const el = now - animStart; frame = Math.min(ai.frames - 1, Math.floor(el / ai.ms)); }
+        else frame = Math.floor(now / ai.ms) % ai.frames;
+        const sc = (def.scale || 1) * 1.9;
+        const comp = composite(def.vis);
+        drawChar(g, comp, anim, 2, frame, cx, cy, sc);
+        drawOversize(g, comp, def.vis, anim, 2, frame, cx, cy, sc);
+      } else {
+        g.fillStyle = '#8b949e'; g.font = '12px monospace';
+        g.fillText('no visual defined for ' + sel.id, 20, 100);
+      }
       if (compSel === sel) raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -390,18 +435,54 @@ function preview(sel) {
   if (sel.kind === 'weapon') {
     const it = ITEMS[sel.id];
     info.textContent = JSON.stringify(it, null, 1);
-    const vis = { sex: 'male', skin: 'light', hair: ['plain', 'dark_brown'], torso: ['tunic', 'green'], legs: ['pants', 'brown'], weapon: [it.vis.type, it.vis.color] };
-    const comp = composite(vis);
-    const loop = (now) => {
-      g.clearRect(0, 0, 260, 200);
-      g.imageSmoothingEnabled = false;
-      const frame = Math.floor(now / 110) % 9;
-      drawChar(g, comp, 'walk', 2, frame, 90, 170, 2);
-      drawChar(g, comp, 'slash', 2, Math.floor(now / 120) % 6, 190, 170, 2);
-      if (compSel === sel) raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
+    previewEquipped(g, it, () => compSel === sel);
   }
+}
+
+// Render a pet/creature def (sheet or procedural critter) walking, for pet tokens.
+function previewCritterDef(g, def, alive) {
+  const loop = (now) => {
+    g.clearRect(0, 0, 260, 200);
+    g.imageSmoothingEnabled = false;
+    if (def.sheet) {
+      drawCreature(g, def.sheet, { id: 7, dir: 2, hp: 1, tint: def.tint, anim: 'walk', animStart: 0 }, 'walk', now, 130, 182, def.scale || 1);
+    } else if (def.critter) {
+      const sc = (def.scale || 1) * 1.9;
+      const spr = critterSprite(def.critter, Math.floor(now / 70) % 9, false);
+      const S = 64 * sc;
+      g.drawImage(spr, 130 - S / 2, 178 - S + 14 * sc, S, S);
+    }
+    if (alive()) raf = requestAnimationFrame(loop);
+  };
+  raf = requestAnimationFrame(loop);
+}
+
+// Render an equippable item exactly as it loads in-game: worn on an LPC paperdoll,
+// with a walk cycle beside its action pose (weapon swing / bow shot / spell cast).
+function previewEquipped(g, it, alive) {
+  const vis = {
+    sex: 'male', skin: 'light', hair: ['plain', 'dark_brown'],
+    torso: ['tunic', 'green'], legs: ['pants', 'brown'], feet: ['shoes', 'brown'],
+  };
+  vis[it.vis.layer] = [it.vis.sheet || it.vis.type, it.vis.color];
+  const isWeapon = it.vis.layer === 'weapon';
+  const actAnim = !isWeapon ? 'walk'
+    : ['bow', 'crossbow'].includes(it.vis.type) ? 'shoot'
+      : it.vis.type === 'staff' ? 'spellcast' : 'slash';
+  const comp = composite(vis);
+  const loop = (now) => {
+    g.clearRect(0, 0, 260, 200);
+    g.imageSmoothingEnabled = false;
+    const wf = Math.floor(now / 110) % ANIMS.walk.frames;
+    drawChar(g, comp, 'walk', 2, wf, 78, 172, 2);
+    drawOversize(g, comp, vis, 'walk', 2, wf, 78, 172, 2);
+    const ai = ANIMS[actAnim] || ANIMS.slash;
+    const af = Math.floor(now / ai.ms) % ai.frames;
+    drawChar(g, comp, actAnim, 2, af, 186, 172, 2);
+    drawOversize(g, comp, vis, actAnim, 2, af, 186, 172, 2);
+    if (alive()) raf = requestAnimationFrame(loop);
+  };
+  raf = requestAnimationFrame(loop);
 }
 
 connect();
