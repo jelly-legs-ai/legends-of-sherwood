@@ -335,7 +335,7 @@ function clickGround(e, menu) {
       if (!type) continue;
       if (k > 0) { // only claim the click if that node's sprite really covers it
         const [ex, ey] = R.screenOf(0, cx2 + 0.5, cy2 + 0.5);
-        if (Math.abs(e.clientX - ex) > 32 || e.clientY < ey - 70 || e.clientY > ey + 14) continue;
+        if (Math.abs(e.clientX - ex) > 40 || e.clientY < ey - 106 || e.clientY > ey + 14) continue;
       }
       nodeType = type; nodeX = cx2; nodeY = cy2;
     }

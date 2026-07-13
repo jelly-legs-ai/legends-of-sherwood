@@ -779,7 +779,8 @@ export class Renderer {
     const spr = nodeSprite(type, node.off);
     // gentle bob for fishing spots
     const bob = /spot/.test(type) ? Math.sin(now / 400 + node.x) * 2 : 0;
-    ctx.drawImage(spr, sx - 32, sy - 64 + bob);
+    if (spr.width === 96) ctx.drawImage(spr, sx - 48, sy - 112 + bob);   // tall HD trees
+    else ctx.drawImage(spr, sx - 32, sy - 64 + bob);
   }
   // A one-tile segment of the Grand Exchange teller desk. In a row these tile
   // into a continuous wooden divide; `window` segments add a glazed booth above

@@ -478,80 +478,291 @@ function drawSpider(g, st, s, swing) {
 }
 
 // ---- gather nodes / stations -------------------------------------------------
+// ---- HD trees: one hand-drawn model per wood type -------------------------------
+// leaf palette: [outline, dark, mid, lite]; trunk palette: [dark, mid, lite]
 const TREE_STYLE = {
-  tree: ['#79a95a', '#4a7a34', 14], oak_tree: ['#5e8a3c', '#3c6424', 18],
-  willow_tree: ['#8fb573', '#5f8a4c', 16], maple_tree: ['#c98a3c', '#8a5a24', 16],
-  yew_tree: ['#3c5e34', '#24401f', 17], elm_tree: ['#6e9a4c', '#48682f', 20],
-  frostpine_tree: ['#cfe0da', '#8fb0a5', 16],
+  tree:           { trunk: ['#5c4c32', '#7d6a4a', '#9a8a66'], leaf: ['#2c4a1e', '#4f7f31', '#6fa348', '#95c86a'] },
+  oak_tree:       { trunk: ['#3f2d1a', '#5c4326', '#7a5c38'], leaf: ['#1e3812', '#33581f', '#4f7f31', '#74a548'] },
+  willow_tree:    { trunk: ['#4a3c26', '#6b5a3c', '#8a7852'], leaf: ['#3c5c30', '#5c8050', '#7ea468', '#a8cc8a'] },
+  maple_tree:     { trunk: ['#3f2d1a', '#5c4326', '#7a5c38'], leaf: ['#5c2410', '#9c4a24', '#c9702e', '#e8a84c'] },
+  yew_tree:       { trunk: ['#32271a', '#4a3826', '#665032'], leaf: ['#101f0b', '#1f3618', '#32512a', '#4a7040'] },
+  elm_tree:       { trunk: ['#42341f', '#5f4c30', '#7d6844'], leaf: ['#26421a', '#3f6028', '#5c8438', '#82ac52'] },
+  frostpine_tree: { trunk: ['#33291c', '#4c3f2e', '#665844'], leaf: ['#2c463f', '#4a6c60', '#74998c', '#cfe0da'] },
 };
 const ROCK_STYLE = {
-  copper_rock: '#b87333', tin_rock: '#a8a8b0', iron_rock: '#8a6a5a', coal_rock: '#3a3a3e',
-  silver_rock: '#cfd4dc', gold_rock: '#e0b93c', sylvanite_rock: '#7fe07f', essence_rock: '#b09fe0',
+  copper_rock:    { rock: ['#4c3a2c', '#7a5c44', '#96755c'], vein: '#c9803c', extra: 'patina' },
+  tin_rock:       { rock: ['#3c4046', '#6e747c', '#8b919a'], vein: '#c8ccd4', extra: 'fleck' },
+  iron_rock:      { rock: ['#42342a', '#6e523c', '#87654b'], vein: '#b06a3c', extra: 'bands' },
+  coal_rock:      { rock: ['#17171c', '#2e2e36', '#45454f'], vein: '#0e0e12', extra: 'gloss' },
+  silver_rock:    { rock: ['#4a4e58', '#7d828e', '#a3a9b5'], vein: '#eef2fa', extra: 'glint' },
+  gold_rock:      { rock: ['#5c5648', '#948c74', '#c2bca4'], vein: '#e8c24e', extra: 'glint' },
+  sylvanite_rock: { rock: ['#2c3a28', '#4a5c40', '#66805a'], vein: '#7fe07f', extra: 'glow' },
+  essence_rock:   { rock: ['#3a3348', '#5c5372', '#7d7394'], vein: '#c09fe8', extra: 'glow' },
 };
+function sprng(seed) {
+  let a = seed >>> 0;
+  return () => { a = (a * 1103515245 + 12345) & 0x7fffffff; return a / 0x7fffffff; };
+}
+// a textured foliage mass: dark ring, body, then dozens of leaf lobes
+function leafCluster(g, rnd, cx, cy, r, [outline, dark, mid, lite], squash = 1) {
+  const blob = (rr, col) => { g.fillStyle = col; g.beginPath(); g.ellipse(cx, cy, rr, rr * squash, 0, 0, 7); g.fill(); };
+  blob(r + 1.5, outline); blob(r, dark);
+  g.fillStyle = mid; g.beginPath(); g.ellipse(cx - r * 0.22, cy - r * 0.2, r * 0.8, r * 0.8 * squash, 0, 0, 7); g.fill();
+  for (let i = 0; i < r * 1.7; i++) {
+    const a = rnd() * Math.PI * 2, rr = Math.sqrt(rnd()) * r * 0.88;
+    const x = cx + Math.cos(a) * rr, y = cy + Math.sin(a) * rr * squash;
+    const up = y < cy - r * squash * 0.05;
+    g.fillStyle = up ? (rnd() > 0.4 ? lite : mid) : (rnd() > 0.72 ? mid : dark);
+    g.globalAlpha = 0.45 + rnd() * 0.5;
+    g.beginPath(); g.arc(x, y, 1.1 + rnd() * 1.7, 0, 7); g.fill();
+  }
+  g.globalAlpha = 1;
+}
+// a tapered trunk with root flare, bark striations and a side shadow
+function trunkHD(g, rnd, x, topY, baseY, wTop, wBase, [dark, mid, lite], lean = 0) {
+  const tx = x + lean;
+  g.fillStyle = dark;
+  g.beginPath();
+  g.moveTo(tx - wTop / 2, topY);
+  g.lineTo(x - wBase / 2 - 1, baseY - 6);
+  g.lineTo(x - wBase / 2 - 5, baseY);       // left root flare
+  g.lineTo(x + wBase / 2 + 5, baseY);       // right root flare
+  g.lineTo(x + wBase / 2 + 1, baseY - 6);
+  g.lineTo(tx + wTop / 2, topY);
+  g.closePath(); g.fill();
+  g.fillStyle = mid;
+  g.beginPath();
+  g.moveTo(tx - wTop / 2 + 1.2, topY);
+  g.lineTo(x - wBase / 2, baseY - 5);
+  g.lineTo(x - wBase / 2 - 3, baseY);
+  g.lineTo(x + wBase / 2 + 2, baseY);
+  g.lineTo(x + wBase / 2 - 0.5, baseY - 6);
+  g.lineTo(tx + wTop / 2 - 1, topY);
+  g.closePath(); g.fill();
+  // highlight strip + bark striations + a knot
+  g.strokeStyle = lite; g.lineWidth = 1.6; g.globalAlpha = 0.8;
+  g.beginPath(); g.moveTo(tx - wTop * 0.15, topY + 3); g.lineTo(x - wBase * 0.15, baseY - 4); g.stroke();
+  g.strokeStyle = dark; g.lineWidth = 1; g.globalAlpha = 0.65;
+  for (let i = 0; i < 4; i++) {
+    const f = (i + 1) / 5;
+    const bx = tx + (x - tx) * 0.5 + (f - 0.5) * wBase * 0.8;
+    g.beginPath(); g.moveTo(bx + (rnd() - 0.5) * 2, topY + 6);
+    g.quadraticCurveTo(bx + (rnd() - 0.5) * 4, (topY + baseY) / 2, bx + (rnd() - 0.5) * 3, baseY - 6);
+    g.stroke();
+  }
+  g.globalAlpha = 1;
+  if (rnd() > 0.5) { g.fillStyle = dark; g.beginPath(); g.ellipse(x + (rnd() - 0.5) * wBase * 0.5, (topY + baseY) / 2 + rnd() * 10, 1.6, 2.4, 0, 0, 7); g.fill(); }
+}
+// One detailed model per species, drawn on a 96x128 canvas (ground line y=116).
+function drawTreeHD(g, type) {
+  const spec = TREE_STYLE[type];
+  const rnd = sprng([...type].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) >>> 0);
+  const L = spec.leaf, T = spec.trunk;
+  g.fillStyle = '#00000032';
+  g.beginPath(); g.ellipse(48, 116, 24, 7, 0, 0, 7); g.fill();
+  switch (type) {
+    case 'tree': // Ash: slender pale trunk, airy open canopy
+      trunkHD(g, rnd, 48, 54, 116, 5, 9, T);
+      g.strokeStyle = T[1]; g.lineWidth = 2.5;
+      g.beginPath(); g.moveTo(48, 58); g.lineTo(38, 46); g.moveTo(48, 56); g.lineTo(58, 44); g.stroke();
+      leafCluster(g, rnd, 36, 44, 14, L);
+      leafCluster(g, rnd, 61, 41, 13, L);
+      leafCluster(g, rnd, 48, 27, 16, L);
+      break;
+    case 'oak_tree': { // Oak: massive gnarled trunk, broad dense crown, acorns
+      trunkHD(g, rnd, 48, 60, 116, 10, 16, T);
+      g.strokeStyle = T[1]; g.lineWidth = 4;
+      g.beginPath(); g.moveTo(48, 64); g.lineTo(32, 50); g.moveTo(48, 62); g.lineTo(64, 48); g.stroke();
+      leafCluster(g, rnd, 27, 50, 14, L);
+      leafCluster(g, rnd, 69, 48, 14, L);
+      leafCluster(g, rnd, 37, 33, 15, L);
+      leafCluster(g, rnd, 60, 32, 14, L);
+      leafCluster(g, rnd, 48, 43, 17, L);
+      g.fillStyle = '#a8823c';
+      for (let i = 0; i < 4; i++) g.fillRect(30 + rnd() * 36, 40 + rnd() * 16, 2, 2);
+      break;
+    }
+    case 'willow_tree': { // Willow: leaning trunk, cascading fronds
+      trunkHD(g, rnd, 50, 58, 116, 6, 10, T, -7);
+      leafCluster(g, rnd, 37, 48, 13, L, 0.85);
+      leafCluster(g, rnd, 59, 46, 13, L, 0.85);
+      leafCluster(g, rnd, 47, 37, 16, L, 0.85);
+      for (let i = 0; i < 10; i++) { // weeping fronds
+        const x0 = 26 + i * 5 + (rnd() - 0.5) * 3, y0 = 44 + rnd() * 8;
+        const drop = 34 + rnd() * 22, sway = (rnd() - 0.5) * 10;
+        g.strokeStyle = i % 2 ? L[2] : L[3]; g.lineWidth = 1.6; g.globalAlpha = 0.85;
+        g.beginPath(); g.moveTo(x0, y0);
+        g.quadraticCurveTo(x0 + sway, y0 + drop * 0.6, x0 + sway * 0.6, y0 + drop);
+        g.stroke();
+        g.fillStyle = L[3];
+        g.fillRect(x0 + sway * 0.6 - 1, y0 + drop - 1, 2, 2);
+      }
+      g.globalAlpha = 1;
+      break;
+    }
+    case 'maple_tree': { // Maple: layered autumn crown, drifting leaves
+      trunkHD(g, rnd, 48, 62, 116, 6, 11, T);
+      leafCluster(g, rnd, 48, 56, 18, L, 0.8);
+      leafCluster(g, rnd, 48, 42, 16, L, 0.85);
+      leafCluster(g, rnd, 48, 28, 12, L, 0.9);
+      g.fillStyle = L[3]; g.globalAlpha = 0.9; // drifting leaves
+      g.fillRect(72, 66, 2, 2); g.fillRect(26, 78, 2, 2); g.fillRect(68, 92, 2, 2);
+      g.globalAlpha = 1;
+      break;
+    }
+    case 'yew_tree': { // Yew: twin dark trunk, brooding crown, red arils
+      trunkHD(g, rnd, 44, 62, 116, 6, 9, T);
+      trunkHD(g, rnd, 53, 66, 116, 5, 8, T, 3);
+      leafCluster(g, rnd, 33, 52, 15, L, 0.85);
+      leafCluster(g, rnd, 63, 50, 15, L, 0.85);
+      leafCluster(g, rnd, 48, 38, 18, L, 0.85);
+      leafCluster(g, rnd, 48, 55, 14, L, 0.8);
+      g.fillStyle = '#d03a3a';
+      for (let i = 0; i < 6; i++) { g.beginPath(); g.arc(30 + rnd() * 36, 44 + rnd() * 16, 1.2, 0, 7); g.fill(); }
+      break;
+    }
+    case 'elm_tree': { // Great elm: tall vase of limbs, crown held high
+      trunkHD(g, rnd, 48, 66, 116, 7, 12, T);
+      g.strokeStyle = T[1]; g.lineWidth = 3.4;
+      g.beginPath(); g.moveTo(48, 70); g.quadraticCurveTo(38, 52, 33, 38); g.stroke();
+      g.beginPath(); g.moveTo(48, 68); g.quadraticCurveTo(58, 50, 63, 37); g.stroke();
+      g.beginPath(); g.moveTo(48, 70); g.lineTo(48, 32); g.stroke();
+      leafCluster(g, rnd, 33, 30, 13, L);
+      leafCluster(g, rnd, 63, 29, 13, L);
+      leafCluster(g, rnd, 48, 18, 14, L);
+      leafCluster(g, rnd, 48, 34, 13, L);
+      break;
+    }
+    case 'frostpine_tree': { // Frostpine: snow-capped conifer tiers
+      trunkHD(g, rnd, 48, 96, 118, 5, 8, T);
+      for (let i = 4; i >= 0; i--) {
+        const y0 = 14 + i * 17, w = 11 + i * 5.5, y1 = y0 + 22;
+        g.fillStyle = L[0];
+        g.beginPath(); g.moveTo(48, y0 - 2); g.lineTo(48 - w - 1.5, y1 + 1.5); g.lineTo(48 + w + 1.5, y1 + 1.5); g.closePath(); g.fill();
+        g.fillStyle = L[1];
+        g.beginPath(); g.moveTo(48, y0); g.lineTo(48 - w, y1); g.lineTo(48 + w, y1); g.closePath(); g.fill();
+        g.fillStyle = L[2];
+        g.beginPath(); g.moveTo(48, y0); g.lineTo(48 - w * 0.6, y0 + 15); g.lineTo(48 + w * 0.15, y0 + 15); g.closePath(); g.fill();
+        // snow on the tier's shoulders
+        g.fillStyle = '#eef4f8';
+        g.beginPath(); g.moveTo(48, y0); g.lineTo(48 - w * 0.55, y0 + 12); g.lineTo(48 - w * 0.28, y0 + 12); g.lineTo(48, y0 + 4); g.closePath(); g.fill();
+        g.beginPath(); g.moveTo(48, y0); g.lineTo(48 + w * 0.5, y0 + 11); g.lineTo(48 + w * 0.22, y0 + 11); g.lineTo(48, y0 + 4); g.closePath(); g.fill();
+        for (let s = 0; s < 4; s++) { g.fillRect(48 - w + rnd() * w * 2, y1 - 3 + rnd() * 2, 2, 1); }
+      }
+      g.fillStyle = '#eef4f8';   // snow mound at the base
+      g.beginPath(); g.ellipse(48, 114, 12, 3.5, 0, 0, 7); g.fill();
+      break;
+    }
+  }
+}
+// A distinct HD boulder per ore: silhouette, facets, cracks, veins & crystals.
+function drawRockHD(g, type, off) {
+  const spec = ROCK_STYLE[type];
+  const rnd = sprng([...type].reduce((a, c) => a * 37 + c.charCodeAt(0), 11) >>> 0);
+  const [dark, mid, lite] = off ? ['#3a3a36', '#55504a', '#615c54'] : spec.rock;
+  // irregular boulder silhouette
+  const pts = [];
+  const n = 8;
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    const rr = 19 + rnd() * 7;
+    pts.push([32 + Math.cos(a) * rr * 1.16, 52 + Math.sin(a) * rr * 0.68]);
+  }
+  g.fillStyle = '#26221c';
+  g.beginPath(); g.moveTo(pts[0][0], pts[0][1] + 1.5);
+  for (const [x, y] of pts) g.lineTo(x + (x > 32 ? 1.5 : -1.5), y + 1);
+  g.closePath(); g.fill();
+  g.fillStyle = mid;
+  g.beginPath(); g.moveTo(pts[0][0], pts[0][1]);
+  for (const [x, y] of pts) g.lineTo(x, y);
+  g.closePath(); g.fill();
+  g.save();
+  g.beginPath(); g.moveTo(pts[0][0], pts[0][1]);
+  for (const [x, y] of pts) g.lineTo(x, y);
+  g.closePath(); g.clip();
+  // lit top-left facet + shaded base
+  g.fillStyle = lite;
+  g.beginPath(); g.moveTo(12, 46); g.lineTo(30, 34); g.lineTo(46, 40); g.lineTo(30, 52); g.closePath(); g.fill();
+  g.fillStyle = dark; g.globalAlpha = 0.7;
+  g.beginPath(); g.moveTo(10, 62); g.lineTo(56, 54); g.lineTo(56, 70); g.lineTo(10, 70); g.closePath(); g.fill();
+  g.globalAlpha = 1;
+  // cracks
+  g.strokeStyle = '#00000055'; g.lineWidth = 1;
+  for (let i = 0; i < 3; i++) {
+    let x = 16 + rnd() * 30, y = 40 + rnd() * 20;
+    g.beginPath(); g.moveTo(x, y);
+    for (let s = 0; s < 3; s++) { x += (rnd() - 0.4) * 9; y += (rnd() - 0.3) * 6; g.lineTo(x, y); }
+    g.stroke();
+  }
+  if (!off) {
+    const glow = spec.extra === 'glow';
+    // mineral veins snaking across the face
+    g.strokeStyle = spec.vein; g.lineWidth = 1.6;
+    if (glow) { g.shadowColor = spec.vein; g.shadowBlur = 5; }
+    g.globalAlpha = 0.85;
+    for (let i = 0; i < 2; i++) {
+      let x = 14 + rnd() * 14, y = 42 + rnd() * 16;
+      g.beginPath(); g.moveTo(x, y);
+      for (let s = 0; s < 3; s++) { x += 7 + rnd() * 7; y += (rnd() - 0.5) * 8; g.lineTo(x, y); }
+      g.stroke();
+    }
+    g.globalAlpha = 1;
+    if (spec.extra === 'bands') {           // rust strata
+      g.fillStyle = spec.vein; g.globalAlpha = 0.5;
+      g.fillRect(12, 44 + rnd() * 4, 40, 2.4); g.fillRect(14, 54 + rnd() * 4, 36, 2);
+      g.globalAlpha = 1;
+    } else if (spec.extra === 'patina') {   // oxidised green blooms
+      g.fillStyle = '#5aa06a'; g.globalAlpha = 0.4;
+      for (let i = 0; i < 4; i++) { g.beginPath(); g.arc(16 + rnd() * 32, 40 + rnd() * 22, 2.5 + rnd() * 2.5, 0, 7); g.fill(); }
+      g.globalAlpha = 1;
+    } else if (spec.extra === 'fleck') {    // silvery flecks
+      g.fillStyle = spec.vein;
+      for (let i = 0; i < 12; i++) { g.globalAlpha = 0.5 + rnd() * 0.5; g.fillRect(14 + rnd() * 36, 38 + rnd() * 24, 1, 1); }
+      g.globalAlpha = 1;
+    } else if (spec.extra === 'gloss') {    // anthracite sheen
+      g.strokeStyle = '#6a6a78'; g.lineWidth = 2; g.globalAlpha = 0.6;
+      g.beginPath(); g.moveTo(20, 38); g.lineTo(34, 48); g.stroke();
+      g.globalAlpha = 1;
+    }
+    // ore crystals / nuggets with glints
+    if (glow) { g.shadowColor = spec.vein; g.shadowBlur = 6; } else { g.shadowBlur = 0; }
+    for (const [ox, oy, s2] of [[24, 52, 5], [37, 47, 6], [30, 60, 4], [45, 56, 4.5]]) {
+      g.fillStyle = spec.vein;
+      g.beginPath(); g.moveTo(ox, oy - s2 / 2); g.lineTo(ox + s2 / 2, oy); g.lineTo(ox, oy + s2 / 2); g.lineTo(ox - s2 / 2, oy); g.closePath(); g.fill();
+      g.fillStyle = '#ffffffb0'; g.fillRect(ox - 1, oy - s2 / 2 + 1, 1, 1);
+    }
+    g.shadowBlur = 0;
+  }
+  g.restore();
+  // moss tuft + base pebbles ground the boulder
+  if (!off) {
+    g.fillStyle = '#4f7f31'; g.globalAlpha = 0.7;
+    g.beginPath(); g.ellipse(15, 63, 4, 2, 0, 0, 7); g.fill();
+    g.globalAlpha = 1;
+  }
+  g.fillStyle = '#55504a';
+  g.beginPath(); g.ellipse(50, 68, 2.5, 1.4, 0, 0, 7); g.fill();
+  g.beginPath(); g.ellipse(13, 68.5, 2, 1.2, 0, 0, 7); g.fill();
+}
 export function nodeSprite(type, off = false) {
   const key = `nd:${type}:${off ? 1 : 0}`;
+  // living trees are tall 96x128 sprites; everything else stays 64x80
+  if (TREE_STYLE[type] && !off) return proc(key, 96, 128, (g) => drawTreeHD(g, type));
   return proc(key, 64, 80, (g) => {
     // soft ground shadow under every node
     g.fillStyle = '#00000030';
     g.beginPath(); g.ellipse(32, 68, 15, 5, 0, 0, 7); g.fill();
-    if (TREE_STYLE[type]) {
-      const [lite, dark, r] = TREE_STYLE[type];
-      if (off) { // fresh stump with rings
-        g.fillStyle = '#5a442c'; g.beginPath(); g.ellipse(32, 64, 8, 5, 0, 0, 7); g.fill();
-        px(g, 24, 58, 16, 7, '#6e522f');
-        g.fillStyle = '#c9ac7c'; g.beginPath(); g.ellipse(32, 58, 8, 5, 0, 0, 7); g.fill();
-        g.strokeStyle = '#9a7c50'; g.lineWidth = 1;
-        g.beginPath(); g.ellipse(32, 58, 5, 3, 0, 0, 7); g.stroke();
-        g.beginPath(); g.ellipse(32, 58, 2.4, 1.4, 0, 0, 7); g.stroke();
-        return;
-      }
-      // tapered trunk with root flare + bark shading
-      g.fillStyle = '#4a3520';
-      g.beginPath(); g.moveTo(28, 42); g.lineTo(26, 66); g.lineTo(22, 68); g.lineTo(43, 68); g.lineTo(38, 66); g.lineTo(36, 42); g.closePath(); g.fill();
-      g.fillStyle = '#6e522f'; g.beginPath(); g.moveTo(29, 42); g.lineTo(28, 67); g.lineTo(33, 67); g.lineTo(32, 42); g.closePath(); g.fill();
-      if (type === 'frostpine_tree') {
-        for (let i = 2; i >= 0; i--) {
-          const y0 = 8 + i * 13, w = 13 + i * 5;
-          g.fillStyle = '#24401f'; g.beginPath(); g.moveTo(32, y0 - 2); g.lineTo(32 - w - 1, y0 + 25); g.lineTo(32 + w + 1, y0 + 25); g.closePath(); g.fill();
-          g.fillStyle = dark; g.beginPath(); g.moveTo(32, y0); g.lineTo(32 - w, y0 + 23); g.lineTo(32 + w, y0 + 23); g.closePath(); g.fill();
-          g.fillStyle = lite; g.beginPath(); g.moveTo(32, y0); g.lineTo(32 - w * 0.55, y0 + 14); g.lineTo(32 + w * 0.2, y0 + 14); g.closePath(); g.fill();
-        }
-      } else {
-        // layered canopy: dark outline ring, mid body, clustered highlights
-        const blobs = [[32, 28, r], [32 - r * 0.55, 33, r * 0.62], [32 + r * 0.58, 32, r * 0.6]];
-        g.fillStyle = '#1e3315';
-        for (const [bx, by, br] of blobs) { g.beginPath(); g.arc(bx, by, br + 1.5, 0, 7); g.fill(); }
-        g.fillStyle = dark;
-        for (const [bx, by, br] of blobs) { g.beginPath(); g.arc(bx, by, br, 0, 7); g.fill(); }
-        g.fillStyle = lite;
-        g.beginPath(); g.arc(28, 24, r * 0.62, 0, 7); g.fill();
-        g.beginPath(); g.arc(32 + r * 0.45, 29, r * 0.34, 0, 7); g.fill();
-        g.fillStyle = '#ffffff22';
-        g.beginPath(); g.arc(26, 21, r * 0.3, 0, 7); g.fill();
-        if (type === 'maple_tree') { g.fillStyle = '#e0a04c55'; g.beginPath(); g.arc(36, 26, r * 0.5, 0, 7); g.fill(); }
-      }
-    } else if (ROCK_STYLE[type]) {
-      const col = ROCK_STYLE[type];
-      // faceted boulder: outline, lit top facet, shaded base
-      g.fillStyle = '#3c3830';
-      g.beginPath(); g.moveTo(10, 68); g.lineTo(17, 47); g.lineTo(33, 40); g.lineTo(51, 49); g.lineTo(56, 68); g.closePath(); g.fill();
-      g.fillStyle = off ? '#55504a' : '#7a766c';
-      g.beginPath(); g.moveTo(12, 66); g.lineTo(19, 48); g.lineTo(33, 42); g.lineTo(49, 50); g.lineTo(54, 66); g.closePath(); g.fill();
-      g.fillStyle = off ? '#615c54' : '#8f8a7e';
-      g.beginPath(); g.moveTo(19, 48); g.lineTo(33, 42); g.lineTo(44, 47); g.lineTo(30, 54); g.closePath(); g.fill();
-      g.fillStyle = '#00000022';
-      g.beginPath(); g.moveTo(30, 54); g.lineTo(44, 47); g.lineTo(54, 66); g.lineTo(34, 66); g.closePath(); g.fill();
-      if (!off) {
-        // ore crystals with glint
-        g.shadowColor = col; g.shadowBlur = 5;
-        for (const [ox, oy, s2] of [[25, 53, 5], [37, 50, 6], [31, 60, 4], [44, 58, 4]]) {
-          g.fillStyle = col;
-          g.beginPath(); g.moveTo(ox, oy - s2 / 2); g.lineTo(ox + s2 / 2, oy); g.lineTo(ox, oy + s2 / 2); g.lineTo(ox - s2 / 2, oy); g.closePath(); g.fill();
-        }
-        g.shadowBlur = 0;
-        g.fillStyle = '#ffffff88'; px(g, 36, 48, 2, 2, '#ffffff88');
-      }
-    } else switch (type) {
+    if (TREE_STYLE[type]) { // felled: a fresh stump with growth rings
+      g.fillStyle = '#5a442c'; g.beginPath(); g.ellipse(32, 64, 8, 5, 0, 0, 7); g.fill();
+      px(g, 24, 58, 16, 7, '#6e522f');
+      g.fillStyle = '#c9ac7c'; g.beginPath(); g.ellipse(32, 58, 8, 5, 0, 0, 7); g.fill();
+      g.strokeStyle = '#9a7c50'; g.lineWidth = 1;
+      g.beginPath(); g.ellipse(32, 58, 5, 3, 0, 0, 7); g.stroke();
+      g.beginPath(); g.ellipse(32, 58, 2.4, 1.4, 0, 0, 7); g.stroke();
+      return;
+    }
+    if (ROCK_STYLE[type]) { drawRockHD(g, type, off); return; }
+    switch (type) {
       case 'net_spot': case 'rod_spot': case 'harpoon_spot': {
         g.strokeStyle = '#bfe8f8'; g.lineWidth = 2;
         g.beginPath(); g.ellipse(32, 64, 13, 6, 0, 0, 7); g.stroke();
