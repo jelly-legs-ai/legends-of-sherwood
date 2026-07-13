@@ -28,12 +28,19 @@ mob('sherwood_wolf', { name: 'Sherwood wolf', lvl: 18, life: 44, atk: 11, def: 9
 mob('outlaw', { name: 'Outlaw', lvl: 22, life: 52, atk: 13, def: 11, style: 'melee',
   vis: { skin: 'light', hair: ['plain', 'light_brown'], torso: ['tunic', 'green'], legs: ['pants', 'brown'], head: ['hood', 'green'], weapon: ['sword', 'bronze'] },
   drops: [['bones', 1, 1], ['coins', [8, 28], 0.9], ['bronze_sword', 1, 0.05], ['grimy_yarrow', 1, 0.2], ['spirit_shard', [2, 6], 0.3]] });
-mob('sheriffs_guard', { name: "Sheriff's guard", lvl: 28, life: 66, atk: 16, def: 16, style: 'melee', aggro: true,
+// Town watch: passive to players (won't attack on sight — retaliates only when
+// struck), but hunts down any hostile mob that strays into the town. Respawns
+// at its post a minute after falling.
+mob('sheriffs_guard', { name: "Sheriff's guard", lvl: 28, life: 66, atk: 16, def: 16, style: 'melee', guard: true, respawnMs: 60000,
   vis: { skin: 'light', torso: ['chainmail', 'steel'], legs: ['plate', 'iron'], head: ['mail', 'iron'], weapon: ['spear', 'iron'] },
   drops: [['bones', 1, 1], ['coins', [12, 40], 0.95], ['iron_spear', 1, 0.04], ['crossbow', 1, 0.015], ['iron_bolts', [5, 15], 0.2], ['iron_platebody', 1, 0.02], ['bread', 1, 0.2], ['amber_charm', 1, 0.1]] });
+// Hostile escort for the tax-convoy raid event — these DO attack raiders on sight.
+mob('convoy_guard', { name: "Sheriff's escort", lvl: 30, life: 74, atk: 18, def: 16, style: 'melee', aggro: true,
+  vis: { skin: 'light', torso: ['chainmail', 'steel'], legs: ['plate', 'iron'], head: ['mail', 'iron'], weapon: ['spear', 'iron'] },
+  drops: [['bones', 1, 1], ['coins', [15, 50], 0.95], ['iron_spear', 1, 0.05], ['iron_bolts', [5, 15], 0.2], ['iron_platebody', 1, 0.03], ['amber_charm', 1, 0.12]] });
 // Elite castle-guard of the Grand Exchange. Passive (aggro:false) — it only
 // fights when struck — but hits hard, standing watch over the fortified hall.
-mob('ge_guard', { name: 'Exchange guard', lvl: 42, life: 130, atk: 24, def: 26, style: 'melee', shil: 2, respawnMs: 20000,
+mob('ge_guard', { name: 'Exchange guard', lvl: 42, life: 130, atk: 24, def: 26, style: 'melee', shil: 2, guard: true, respawnMs: 60000,
   vis: { skin: 'light', torso: ['chainmail', 'steel'], legs: ['plate', 'iron'], head: ['mail', 'iron'], weapon: ['spear', 'iron'] },
   drops: [['bones', 1, 1], ['coins', [30, 90], 0.95], ['iron_spear', 1, 0.05], ['iron_platebody', 1, 0.03], ['iron_bolts', [8, 20], 0.2], ['amber_charm', 1, 0.12]] });
 mob('poacher', { name: 'Poacher', lvl: 25, life: 58, atk: 14, def: 12, style: 'ranged',

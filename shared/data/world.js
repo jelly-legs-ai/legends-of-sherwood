@@ -75,6 +75,17 @@ export const TOWNS = {
   },
 };
 
+// The Grand Exchange teller room laid out like a bank floor: a full-width wooden
+// desk divide across the hall (blocking counter segments + glazed teller windows)
+// with the clerks working behind it, and rope-stanchion queue lanes out front
+// (purely decorative — any number of players can be served at once).
+function geFurniture() {
+  const out = [], windows = new Set([320, 324, 328, 332, 336]);   // teller window columns
+  for (let x = 317; x <= 342; x++) out.push([windows.has(x) ? 'ge_window' : 'ge_counter', x, 316]);
+  for (const y of [319, 321, 323]) for (const x of [318, 322, 326, 330, 334, 338, 341]) out.push(['ge_rope', x, y]);
+  return out;
+}
+
 // Stations / interactables placed at exact tiles: [nodeType, x, y]
 export const POIS = [
   // --- Loxley (tutorial hub) ---
@@ -85,7 +96,7 @@ export const POIS = [
   ['net_spot', 248, 358], ['rod_spot', 256, 358], ['rod_spot', 262, 358],
   ['house_portal', 240, 330], ['loom', 258, 327], ['tanning_rack', 246, 341],
   // --- Nottingham ---
-  ['bank_booth', 305, 324], ['ge_desk', 330, 320], ['museum_bench', 339, 342],
+  ['bank_booth', 305, 324], ...geFurniture(), ['museum_bench', 339, 342],
   ['bakery_stall', 328, 330], ['fur_stall', 331, 330], ['silver_stall', 334, 330], ['gem_stall', 337, 330],
   ['range', 320, 342], ['chapel_altar', 322, 334], ['furnace', 344, 330], ['anvil', 345, 332], ['loom', 342, 334], ['tanning_rack', 347, 334],
   // --- Bay ---

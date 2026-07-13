@@ -203,7 +203,7 @@ function spellImpact(spell) {
 export function mobAttack(world, m, t, now) {
   const def = MOBS[m.type];
   if (now - (m.lastAttack || 0) < 2800) return;
-  if (t.kind !== 'player' || t.hp <= 0) return;
+  if (!t || t.hp <= 0 || (t.kind !== 'player' && t.kind !== 'mob')) return;
   m.lastAttack = now;
   m.dir = Math.abs(t.x - m.x) > Math.abs(t.y - m.y) ? (t.x > m.x ? 3 : 1) : (t.y > m.y ? 2 : 0);
   m.anim = def.style === 'ranged' ? 'shoot' : def.style === 'magic' ? 'spellcast' : 'slash';
@@ -216,18 +216,28 @@ export function mobAttack(world, m, t, now) {
   }
   const scale = m.lvlScale || 1;
   const acc = COMBAT.ROLL(def.atk * scale, 20);
-  const defRoll = playerDefRoll(t);
   let dmg = 0;
-  if (roll(acc, defRoll)) {
-    dmg = 1 + (Math.random() * COMBAT.MAX_HIT(def.atk * scale, 8) | 0);
-    if (t.protectedFrom(def.style)) dmg = Math.ceil(dmg * 0.35);
-    if (t.effects?.shield > Date.now()) dmg = Math.ceil(dmg * 0.5);
+  if (t.kind === 'player') {
+    if (roll(acc, playerDefRoll(t))) {
+      dmg = 1 + (Math.random() * COMBAT.MAX_HIT(def.atk * scale, 8) | 0);
+      if (t.protectedFrom(def.style)) dmg = Math.ceil(dmg * 0.35);
+      if (t.effects?.shield > Date.now()) dmg = Math.ceil(dmg * 0.5);
+    }
+    setTimeout(() => {
+      if (t.hp <= 0) return;
+      world.broadcastNear(m.plane, t.x, t.y, { t: MSG.HIT, id: t.id, dmg, src: m.id });
+      if (dmg > 0) applyPlayerDamage(world, t, dmg, m);
+    }, def.style === 'melee' ? 120 : 350);
+  } else {
+    // mob-vs-mob (a town guard cutting down a raider): roll against the target's defence
+    const tdef = MOBS[t.type];
+    if (roll(acc, COMBAT.ROLL((tdef.def || 1) * (t.lvlScale || 1), 20))) dmg = 1 + (Math.random() * COMBAT.MAX_HIT(def.atk * scale, 8) | 0);
+    setTimeout(() => {
+      if (t.hp <= 0) return;
+      world.broadcastNear(m.plane, t.x, t.y, { t: MSG.HIT, id: t.id, dmg, src: m.id });
+      if (dmg > 0) world.applyMobDamage(t, dmg, m);
+    }, def.style === 'melee' ? 120 : 350);
   }
-  setTimeout(() => {
-    if (t.hp <= 0) return;
-    world.broadcastNear(m.plane, t.x, t.y, { t: MSG.HIT, id: t.id, dmg, src: m.id });
-    if (dmg > 0) applyPlayerDamage(world, t, dmg, m);
-  }, def.style === 'melee' ? 120 : 350);
 }
 
 export function applyPlayerDamage(world, p, dmg, source) {

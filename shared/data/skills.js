@@ -86,7 +86,7 @@ export const NODES = {
   tanning_rack: { skill: 'crafting', lvl: 1, xp: 0, name: 'Tanning rack', station: 'tanning_rack' },
   bank_booth: { skill: null, lvl: 1, xp: 0, name: 'Bank booth', bank: true },
   ge_booth: { skill: null, lvl: 1, xp: 0, name: 'Grand Exchange', ge: true },
-  ge_desk: { skill: null, lvl: 1, xp: 0, name: 'Grand Exchange', ge: true },
+  ge_window: { skill: null, lvl: 1, xp: 0, name: 'Exchange teller window', ge: true },
   house_portal: { skill: 'construction', lvl: 1, xp: 0, name: 'House portal', house: true },
 };
 

@@ -240,7 +240,7 @@ export function worldTile(x, y) {
 }
 
 // Blocking: unwalkable tile, or a gather node occupies it (except flat stations)
-const FLAT_NODES = new Set(['net_spot', 'rod_spot', 'harpoon_spot', 'allotment', 'herb_patch', 'rabbit_run', 'fox_trail', 'deer_track', 'sable_run', 'campfire', 'log_balance', 'stepping_stones', 'cliff_scramble', 'rope_swing', 'ice_traverse', 'roman_ruin', 'saxon_barrow', 'druid_circle', 'norman_keep', 'grail_shrine', 'dungeon_entrance', 'house_portal']);
+const FLAT_NODES = new Set(['net_spot', 'rod_spot', 'harpoon_spot', 'allotment', 'herb_patch', 'rabbit_run', 'fox_trail', 'deer_track', 'sable_run', 'campfire', 'log_balance', 'stepping_stones', 'cliff_scramble', 'rope_swing', 'ice_traverse', 'roman_ruin', 'saxon_barrow', 'druid_circle', 'norman_keep', 'grail_shrine', 'dungeon_entrance', 'house_portal', 'ge_rope']);
 export function isBlockedOverworld(x, y) {
   if (x < 0 || y < 0 || x >= W || y >= H) return true;
   if (!TILE_WALKABLE.has(worldTile(x, y))) return true;

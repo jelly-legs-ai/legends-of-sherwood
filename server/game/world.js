@@ -508,13 +508,24 @@ export class World {
     const def = MOBS[m.type];
     if (m.hp <= 0) return;
     // acquire target
-    if (def.aggro && !m.target && this.tickN % 5 === 0) {
-      for (const e of this.near(m.plane, m.x, m.y, COMBAT.AGGRO_RADIUS)) {
-        if (e.kind === 'player' && e.hp > 0 && !e.safe) { m.target = e.id; break; }
+    if (!m.target && this.tickN % 5 === 0) {
+      if (def.guard) {
+        // town guards defend their post: hunt the nearest hostile mob nearby,
+        // but never a player (they retaliate only when struck — see applyMobDamage)
+        for (const e of this.near(m.plane, m.x, m.y, def.guardRadius || 8)) {
+          if (e.kind !== 'mob' || e.id === m.id || e.hp <= 0) continue;
+          const ed = MOBS[e.type];
+          if (ed.aggro && !ed.guard && !ed.farm) { m.target = e.id; break; }
+        }
+      } else if (def.aggro) {
+        for (const e of this.near(m.plane, m.x, m.y, COMBAT.AGGRO_RADIUS)) {
+          if (e.kind === 'player' && e.hp > 0 && !e.safe) { m.target = e.id; break; }
+        }
       }
     }
     const t = m.target ? this.entities.get(m.target) : null;
-    if (t && (t.hp <= 0 || t.plane !== m.plane || Math.hypot(t.x - m.x, t.y - m.y) > 14)) { m.target = null; }
+    // drop the target if it's dead/gone, too far, or (for a guard) has lured us too far from post
+    if (t && (t.hp <= 0 || t.plane !== m.plane || Math.hypot(t.x - m.x, t.y - m.y) > 14 || (def.guard && Math.hypot(m.home.x - m.x, m.home.y - m.y) > 14))) { m.target = null; }
     else if (t) {
       const range = def.style === 'melee' ? 1.5 : 6;
       const d = Math.hypot(t.x - m.x, t.y - m.y);
@@ -671,24 +682,29 @@ export class World {
     else f.anim = 'idle';
   }
 
-  applyMobDamage(mob, dmg, player) {
+  applyMobDamage(mob, dmg, attacker) {
     mob.hp -= dmg;
-    mob.damagers.set(player.id, (mob.damagers.get(player.id) || 0) + dmg);
-    if (!mob.target) mob.target = player.id;
-    if (mob.hp <= 0) this.killMob(mob, player);
+    if (attacker) mob.damagers.set(attacker.id, (mob.damagers.get(attacker.id) || 0) + dmg);
+    if (!mob.target && attacker) mob.target = attacker.id;   // retaliate against whoever struck (player OR guard)
+    if (mob.hp <= 0) this.killMob(mob, attacker);
   }
   killMob(mob, killer) {
     mob.hp = 0;
     this.broadcastNear(mob.plane, mob.x, mob.y, { t: MSG.DEATH, id: mob.id });
-    this.rollMobDrops(mob, killer);
-    for (const p of this.players.values()) p.onKill && p.onKill(mob.type);
+    // only a player killer earns loot / bounty; a guard felling a raider gets nothing
+    if (killer && killer.kind === 'player') {
+      this.rollMobDrops(mob, killer);
+      for (const p of this.players.values()) p.onKill && p.onKill(mob.type);
+    }
     const def = MOBS[mob.type];
     // sheet-animated creatures linger briefly so their death animation plays
     if (def.sheet) { mob.target = null; setTimeout(() => { if (this.entities.has(mob.id)) this.removeEntity(mob); }, 1400); }
     else this.removeEntity(mob);
     if (!mob.noRespawn) setTimeout(() => {
       if (mob.plane >= PLANE.DUNGEON_BASE) return;      // dungeon mobs respawn with the instance
-      this.spawnMob(mob.type, mob.zone, mob.plane, mob.lvlScale);
+      // guards return to their exact post; other mobs repopulate their zone
+      const zone = def.guard ? { x: mob.home.x, y: mob.home.y, r: 0, n: 1 } : mob.zone;
+      this.spawnMob(mob.type, zone, mob.plane, mob.lvlScale);
     }, def.respawnMs || 8000);
   }
 
@@ -739,7 +755,7 @@ export class World {
         this.announce(`⚑ EVENT — ${ev.name}: ${ev.desc}`);
         if (ev.id === 'convoy') {
           st.ents = [];
-          for (let i = 0; i < 4; i++) st.ents.push(this.spawnMob('sheriffs_guard', { x: ev.x, y: ev.y, r: 3, n: 1 }, PLANE.OVERWORLD, 1.5));
+          for (let i = 0; i < 4; i++) st.ents.push(this.spawnMob('convoy_guard', { x: ev.x, y: ev.y, r: 3, n: 1 }, PLANE.OVERWORLD, 1.5));
           const box = this.addEntity({ kind: 'evbox', ev: 'convoy', plane: PLANE.OVERWORLD, x: ev.x + 0.5, y: ev.y + 0.5, anim: 'idle', animSeq: 0, dir: 2, hp: 1, maxHp: 1 });
           st.box = box;
         } else if (ev.custom) {

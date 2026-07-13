@@ -458,7 +458,9 @@ export class Renderer {
 
   drawNode(ctx, node, now) {
     const [sx, sy] = this.screenOf(0, node.x + 0.5, node.y + 0.5);
-    if (node.type === 'ge_desk') { this.drawGEDesk(ctx, sx, sy); return; }
+    if (node.type === 'ge_counter') { this.drawGEcounter(ctx, sx, sy, false); return; }
+    if (node.type === 'ge_window') { this.drawGEcounter(ctx, sx, sy, true); return; }
+    if (node.type === 'ge_rope') { this.drawGErope(ctx, sx, sy); return; }
     if (node.type === 'hotspot') {
       ctx.strokeStyle = '#c77ce766'; ctx.setLineDash([4, 4]);
       ctx.strokeRect(sx - 14, sy - 20, 28, 22);
@@ -476,30 +478,47 @@ export class Renderer {
     const bob = /spot/.test(type) ? Math.sin(now / 400 + node.x) * 2 : 0;
     ctx.drawImage(spr, sx - 32, sy - 64 + bob);
   }
-  // The Grand Exchange's circular teller desk: a polished wooden counter the four
-  // clerks work from, drawn as an isometric ring with a gilded scales emblem.
-  drawGEDesk(ctx, sx, sy) {
-    const rx = 58, ry = 31, h = 18, topY = sy - h;
+  // A one-tile segment of the Grand Exchange teller desk. In a row these tile
+  // into a continuous wooden divide; `window` segments add a glazed booth above
+  // the counter (semi-transparent, so the clerk standing behind shows through).
+  drawGEcounter(ctx, sx, sy, isWindow) {
+    const hw = TW / 2, hh = TH / 2, h = 22;
+    const N = [sx, sy - hh], E = [sx + hw, sy], S = [sx, sy + hh], W = [sx - hw, sy];
+    const up = (p, dz = h) => [p[0], p[1] - dz];
     ctx.save();
-    ctx.fillStyle = '#00000033'; ctx.beginPath(); ctx.ellipse(sx, sy + 3, rx + 3, ry + 3, 0, 0, 7); ctx.fill();
-    // outer side band (front half, from bottom ellipse up to the top ellipse)
-    ctx.fillStyle = '#49300f';
-    ctx.beginPath();
-    ctx.ellipse(sx, sy, rx, ry, 0, 0, Math.PI);
-    ctx.ellipse(sx, topY, rx, ry, 0, Math.PI, 0, true);
-    ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = '#2c1c0a'; ctx.lineWidth = 1;              // vertical staves
-    for (let a = 0.18; a < Math.PI; a += 0.26) { const x = sx + Math.cos(a) * rx; ctx.beginPath(); ctx.moveTo(x, sy + Math.sin(a) * ry); ctx.lineTo(x, topY + Math.sin(a) * ry); ctx.stroke(); }
-    // polished top surface
-    const g = ctx.createRadialGradient(sx, topY - 4, 4, sx, topY, rx);
-    g.addColorStop(0, '#9a6a34'); g.addColorStop(1, '#6b451f');
-    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(sx, topY, rx, ry, 0, 0, 7); ctx.fill();
-    ctx.strokeStyle = '#33200f'; ctx.lineWidth = 1.6; ctx.stroke();
-    ctx.strokeStyle = '#b98a45'; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(sx, topY, rx - 9, ry - 5, 0, 0, 7); ctx.stroke();
-    // gilded scales emblem
-    ctx.fillStyle = '#0000004d'; ctx.font = 'bold 22px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('⚖', sx + 1, topY + 1);
-    ctx.fillStyle = '#e8c84e'; ctx.fillText('⚖', sx, topY);
+    // camera-facing counter faces (SW + SE), then the top
+    const face = (a, b, col) => { const at = up(a), bt = up(b); ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineTo(bt[0], bt[1]); ctx.lineTo(at[0], at[1]); ctx.closePath(); ctx.fill(); };
+    face(W, S, '#573a1c'); face(S, E, '#6a4824');
+    const Nt = up(N), Et = up(E), St = up(S), Wt = up(W);
+    ctx.fillStyle = '#7d5327'; ctx.beginPath(); ctx.moveTo(Nt[0], Nt[1]); ctx.lineTo(Et[0], Et[1]); ctx.lineTo(St[0], St[1]); ctx.lineTo(Wt[0], Wt[1]); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#33200f'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(S[0], S[1]); ctx.lineTo(St[0], St[1]); ctx.stroke();   // corner seam
+    if (isWindow) {
+      const gh = 34;
+      // glazed panes on the two camera-facing sides (clerk behind shows through)
+      const glass = (a, b) => { const at = up(a), bt = up(b); ctx.fillStyle = 'rgba(155,205,230,0.20)'; ctx.beginPath(); ctx.moveTo(at[0], at[1]); ctx.lineTo(bt[0], bt[1]); ctx.lineTo(bt[0], bt[1] - gh); ctx.lineTo(at[0], at[1] - gh); ctx.closePath(); ctx.fill(); };
+      glass(W, S); glass(S, E);
+      // gilded frame: corner posts + top beam
+      ctx.strokeStyle = '#c9a24a'; ctx.lineWidth = 2.5;
+      for (const t of [Wt, St, Et]) { ctx.beginPath(); ctx.moveTo(t[0], t[1]); ctx.lineTo(t[0], t[1] - gh); ctx.stroke(); }
+      ctx.beginPath(); ctx.moveTo(Wt[0], Wt[1] - gh); ctx.lineTo(St[0], St[1] - gh); ctx.lineTo(Et[0], Et[1] - gh); ctx.stroke();
+      // glass sheen
+      ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(St[0] - 7, St[1] - 5); ctx.lineTo(St[0] - 7, St[1] - gh + 5); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  // A gilded rope stanchion marking the customer queue lanes (decorative only).
+  drawGErope(ctx, sx, sy) {
+    const h = 24;
+    ctx.save();
+    ctx.fillStyle = '#00000022'; ctx.beginPath(); ctx.ellipse(sx, sy + 2, 5, 2.5, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#b8912f'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx, sy - h); ctx.stroke();
+    ctx.fillStyle = '#e8c84e'; ctx.beginPath(); ctx.arc(sx, sy - h - 2, 4, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff3b0'; ctx.beginPath(); ctx.arc(sx - 1.2, sy - h - 3, 1.4, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#3c7a3c'; ctx.lineWidth = 2;             // a draped green rope
+    ctx.beginPath(); ctx.moveTo(sx, sy - h + 3); ctx.quadraticCurveTo(sx + 10, sy - h + 13, sx + 20, sy - h + 3); ctx.stroke();
     ctx.restore();
   }
 

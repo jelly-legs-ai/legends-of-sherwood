@@ -1054,7 +1054,7 @@ function nearGE(world, p) {
   const { nodes } = computeWorld();
   for (let dy = -5; dy <= 5; dy++) for (let dx = -5; dx <= 5; dx++) {
     const n = nodes.get(((p.x | 0) + dx) + ',' + ((p.y | 0) + dy));
-    if (n === 'ge_desk' || n === 'ge_booth') return true;
+    if (n === 'ge_window' || n === 'ge_desk' || n === 'ge_booth') return true;
   }
   for (const e of world.near(p.plane, p.x, p.y, 6)) if (e.kind === 'npc' && NPCS[e.type]?.geClerk) return true;
   return false;

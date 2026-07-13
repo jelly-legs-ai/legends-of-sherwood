@@ -60,26 +60,31 @@ npc('nottingham_banker', {
   vis: { skin: 'olive', hair: ['plain', 'black'], torso: ['longsleeve', 'charcoal'], legs: ['pants', 'black'] },
   lines: ['The Bank of Nottingham never sleeps. Mostly because of the rats.'],
 });
-// Four Exchange tellers work a circular desk at the centre of the great hall.
+// Five Exchange tellers work the glazed teller windows along the back of the hall.
 npc('ge_clerk', {
-  name: 'Exchange Clerk Hild', x: 330, y: 318, geClerk: true,
+  name: 'Exchange Clerk Hild', x: 320, y: 315, geClerk: true,
   vis: { skin: 'light', hair: ['bangs', 'blonde'], torso: ['longsleeve', 'white'], legs: ['pants', 'black'] },
   lines: ['Buy low, sell high — all offers settled in $LoS. And should you wish to cash your $LoS out to the chain, this is the only place it is done — paid straight to the wallet you signed in with.'],
 });
 npc('ge_clerk_e', {
-  name: 'Exchange Clerk Osric', x: 332, y: 320, geClerk: true,
+  name: 'Exchange Clerk Osric', x: 324, y: 315, geClerk: true,
   vis: { skin: 'brown', hair: ['plain', 'black'], torso: ['longsleeve', 'white'], legs: ['pants', 'charcoal'] },
   lines: ['Step up, step up — the book never closes at the Grand Exchange.'],
 });
 npc('ge_clerk_s', {
-  name: 'Exchange Clerk Edith', x: 330, y: 322, geClerk: true,
+  name: 'Exchange Clerk Edith', x: 328, y: 315, geClerk: true,
   vis: { skin: 'light', hair: ['bun', 'brown'], torso: ['longsleeve', 'white'], legs: ['skirt', 'black'] },
   lines: ['Coins, kit, curios — if it can be traded, it trades here.'],
 });
 npc('ge_clerk_w', {
-  name: 'Exchange Clerk Alaric', x: 328, y: 320, geClerk: true,
+  name: 'Exchange Clerk Alaric', x: 332, y: 315, geClerk: true,
   vis: { skin: 'olive', hair: ['plain', 'grey'], torso: ['longsleeve', 'white'], legs: ['pants', 'black'] },
   lines: ['Even a sack of coins fetches a fair price on the exchange floor.'],
+});
+npc('ge_clerk_n', {
+  name: 'Exchange Clerk Wystan', x: 336, y: 315, geClerk: true,
+  vis: { skin: 'light', hair: ['plain', 'brown'], torso: ['longsleeve', 'white'], legs: ['pants', 'charcoal'] },
+  lines: ['Next window along, friend — I can take your order just as well.'],
 });
 npc('colosseum_marshal', {
   name: 'Marshal Brand', x: 323, y: 336, marshal: true,
