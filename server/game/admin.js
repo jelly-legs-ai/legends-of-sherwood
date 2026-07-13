@@ -25,12 +25,30 @@ const HELP = [
   'help',
 ];
 
-export function loadCustomEvents(dataDir) {
-  try { return JSON.parse(fs.readFileSync(path.join(dataDir, 'config.json'), 'utf8')).events || []; } catch { return []; }
+// config.json holds both the custom events and the tunable economy config; the
+// read/modify/write helpers below preserve whichever key they don't touch.
+function readConfig(dataDir) {
+  try { return JSON.parse(fs.readFileSync(path.join(dataDir, 'config.json'), 'utf8')) || {}; } catch { return {}; }
 }
-export function saveCustomEvents(dataDir, events) {
-  try { fs.writeFileSync(path.join(dataDir, 'config.json'), JSON.stringify({ events }, null, 1)); } catch (e) { console.error('[admin] config save', e.message); }
+function writeConfig(dataDir, cfg) {
+  try { fs.writeFileSync(path.join(dataDir, 'config.json'), JSON.stringify(cfg, null, 1)); } catch (e) { console.error('[admin] config save', e.message); }
 }
+export function loadCustomEvents(dataDir) { return readConfig(dataDir).events || []; }
+export function saveCustomEvents(dataDir, events) { const c = readConfig(dataDir); c.events = events; writeConfig(dataDir, c); }
+
+// Tunable $LoS award rates. distMult is the global distribution multiplier
+// applied to every payout; the rest are the per-category base rates the reward
+// code reads instead of the hard-coded SHILLING constants.
+export const ECON_DEFAULTS = {
+  distMult: 1,
+  bossBounty: SHILLING.BOSS_BOUNTY_BASE,
+  mobDropChance: SHILLING.MOB_DROP_CHANCE_BASE,
+  dungeonFloor: SHILLING.DUNGEON_FLOOR_BASE,
+  eventPayout: SHILLING.EVENT_PAYOUT_BASE,
+};
+export function loadEconConfig(dataDir) { return { ...ECON_DEFAULTS, ...(readConfig(dataDir).econ || {}) }; }
+export function saveEconConfig(dataDir, econ) { const c = readConfig(dataDir); c.econ = econ; writeConfig(dataDir, c); }
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 export function loadTokenConfig(dataDir) {
   try { return JSON.parse(fs.readFileSync(path.join(dataDir, 'token.json'), 'utf8')); }
   catch { return { migrated: false, symbol: SHILLING.SYMBOL, contract: '', treasuryAddress: '', mintAuthority: '', chain: 'robinhood' }; }
@@ -112,17 +130,30 @@ export function handleAdminMessage(world, ws, msg) {
       return send({ t: 'token', config: world.tokenConfig, manifest: buildDeployManifest(world.tokenConfig || {}) });
     }
     case 'treasury': {
-      if (msg.buyback) world.ledger.treasuryBuyback(msg.buyback | 0);
-      if (msg.creatorFrom && msg.creatorAmt) world.ledger.creatorTransfer(String(msg.creatorFrom).slice(0, 32), msg.creatorAmt | 0);
+      // Buyback-and-burn and creator-wallet transfers are handled physically by
+      // the operator off-platform — no in-app controls for them here.
       const inflows = world.ledger.log.filter(l => l[1] === 'treasury').slice(-40).reverse();
-      return send({ t: 'treasury', balance: world.ledger.treasuryBalance(), taxBps: Math.round(SHILLING.GE_TREASURY_TAX * 10000), inflows });
+      return send({ t: 'treasury', balance: world.ledger.treasuryBalance(), taxBps: Math.round(SHILLING.GE_TREASURY_TAX * 10000), inflows, econ: world.econConfig });
+    }
+    case 'rewards': {
+      if (msg.set) {
+        const s = msg.set, c = world.econConfig;
+        if (s.distMult !== undefined) c.distMult = clamp(+s.distMult || 1, 0, 100);
+        if (s.bossBounty !== undefined) c.bossBounty = clamp(+s.bossBounty || 0, 0, 1e6);
+        if (s.mobDropChance !== undefined) c.mobDropChance = clamp(+s.mobDropChance || 0, 0, 1);
+        if (s.dungeonFloor !== undefined) c.dungeonFloor = clamp(+s.dungeonFloor || 0, 0, 1e6);
+        if (s.eventPayout !== undefined) c.eventPayout = clamp(+s.eventPayout || 0, 0, 1e6);
+        saveEconConfig(world.dataDir, world.econConfig);
+        world.vault.alert('econ', `admin set award rates — ×${c.distMult} dist, boss ${c.bossBounty}, mobDrop ${c.mobDropChance.toFixed(5)}, dungeon ${c.dungeonFloor}, event ${c.eventPayout}`);
+      }
+      return send({ t: 'rewards', econ: world.econConfig });
     }
     case 'simulate': return send({ t: 'simulate', result: runEconSim(world, msg.params || {}) });
     case 'security':
       return send({ t: 'securityLog', log: world.vault.security.slice(-150).reverse() });
     case 'vault':
       if (msg.review) world.vault.review(msg.review | 0, !!msg.approve);
-      return send({ t: 'vault', requests: world.vault.requests.slice(-150).reverse(), rules: { large: 500, freqN: 3 } });
+      return send({ t: 'vault', requests: world.vault.requests.slice(-150).reverse(), rules: { large: 1000000, freqN: 3 } });
     case 'events': {
       if (msg.create) {
         const e = msg.create;
@@ -132,7 +163,8 @@ export function handleAdminMessage(world, ws, msg) {
           desc: String(e.desc || '').slice(0, 200),
           x: e.x | 0, y: e.y | 0, everyMin: Math.max(5, e.everyMin | 0 || 30), durMin: Math.max(1, e.durMin | 0 || 5),
           custom: true, mob: MOBS[e.mob] ? e.mob : null, n: Math.min(12, Math.max(0, e.n | 0)),
-          shl: Math.min(50, Math.max(0, e.shl | 0)),
+          shl: Math.min(1000000, Math.max(0, e.shl | 0)),   // $LoS pool paid to participants over the event
+
         };
         world.customEvents = world.customEvents.filter(x => x.id !== ev.id);
         world.customEvents.push(ev);
@@ -166,24 +198,28 @@ function runEconSim(world, p) {
   const hoursPerDay = Math.max(0.1, +p.hoursPerDay || 2);
   const tradeVolPerPlayerDay = Math.max(0, p.tradeVolPerPlayerDay | 0 || 300);   // $LoS traded on the GE per active player/day
   const withdrawFrac = Math.min(1, Math.max(0, p.withdrawFrac ?? 0.25));          // fraction of earnings cashed out to chain
-  const dailyBuyback = Math.max(0, p.dailyBuyback | 0 || 0);
+  // Distribution-rate multiplier: the sim honours whatever is passed (the x2…x10
+  // / custom presets), otherwise the live global multiplier from the reward
+  // config. This scales all faucet emission to model a boosted payout regime.
+  const ec = world.econConfig || ECON_DEFAULTS;
+  const distMult = Math.max(0, +p.distMult || ec.distMult || 1);
 
-  // Per-player-hour emission estimated from the reward constants + typical play.
+  // Per-player-hour emission estimated from the LIVE reward rates + typical play.
   const em = {
-    mobDrops: 40 * SHILLING.MOB_DROP_CHANCE_BASE * (1 + 40 / 12) * 1.5,           // ~kills/hr × rare-drop odds × avg amount
-    bossBounty: 0.5 * SHILLING.BOSS_BOUNTY_BASE * 3,                              // ~½ boss/hr × base × avg tier
-    dungeon: 1.5 * (SHILLING.DUNGEON_FLOOR_BASE + 5),                             // floor clears/hr (only some players dungeoneer)
-    events: 0.3 * SHILLING.EVENT_PAYOUT_BASE,                                     // event payouts/hr
+    mobDrops: 40 * ec.mobDropChance * (1 + 40 / 12) * 1.5,                        // ~kills/hr × rare-drop odds × avg amount
+    bossBounty: 0.5 * ec.bossBounty * 3,                                          // ~½ boss/hr × base × avg tier
+    dungeon: 1.5 * (ec.dungeonFloor + 5),                                         // floor clears/hr (only some players dungeoneer)
+    events: 0.3 * ec.eventPayout,                                                 // event payouts/hr
     milestones: 0.6,                                                              // amortised level-up milestones
   };
-  const emissionPerPlayerHour = Object.values(em).reduce((a, b) => a + b, 0);
+  const emissionPerPlayerHour = Object.values(em).reduce((a, b) => a + b, 0) * distMult;
 
   const dailyEmission = players * hoursPerDay * emissionPerPlayerHour;
   const dailyGE = players * tradeVolPerPlayerDay;
   const dailyTax = dailyGE * SHILLING.GE_TREASURY_TAX;                            // to treasury (out of player circulation)
   const dailyBurnFees = dailyGE * SHILLING.GE_LISTING_FEE;                        // burned sink
   const dailyWithdraw = dailyEmission * withdrawFrac;                            // leaves the ledger for chain
-  const dailySinks = dailyTax + dailyBurnFees + dailyWithdraw + dailyBuyback;
+  const dailySinks = dailyTax + dailyBurnFees + dailyWithdraw;
   const netDaily = dailyEmission - dailySinks;
 
   let circulating = world.ledger.minted - world.ledger.burned - world.ledger.treasuryBalance();
@@ -191,7 +227,7 @@ function runEconSim(world, p) {
   const series = [];
   for (let d = 1; d <= days; d++) {
     circulating += netDaily;
-    treasury += dailyTax + dailyBuyback * 0;                                      // buyback burns, doesn't add to treasury
+    treasury += dailyTax;
     if (d % Math.ceil(days / 12) === 0 || d === days) series.push({ day: d, circulating: Math.round(circulating), treasury: Math.round(treasury) });
   }
   // Annualise against the PROJECTED end supply (a bootstrapping economy starting
@@ -201,11 +237,11 @@ function runEconSim(world, p) {
     : netDaily < dailyEmission * 0.35 ? 'STABLE — mild net inflation, well within healthy bounds.'
       : 'INFLATIONARY — emission outpaces sinks; raise the GE tax, add sinks, or throttle rewards.';
   return {
-    assumptions: { players, days, hoursPerDay, tradeVolPerPlayerDay, withdrawFrac, dailyBuyback },
+    assumptions: { players, days, hoursPerDay, tradeVolPerPlayerDay, withdrawFrac, distMult },
     perPlayerHour: Math.round(emissionPerPlayerHour * 100) / 100,
     daily: {
       emission: Math.round(dailyEmission), tax: Math.round(dailyTax), burns: Math.round(dailyBurnFees),
-      withdrawals: Math.round(dailyWithdraw), buyback: dailyBuyback, net: Math.round(netDaily),
+      withdrawals: Math.round(dailyWithdraw), net: Math.round(netDaily),
     },
     series, endCirculating: Math.round(circulating), endTreasury: Math.round(treasury),
     annualisedInflationPct: Math.round(inflationPct * 10) / 10, verdict,

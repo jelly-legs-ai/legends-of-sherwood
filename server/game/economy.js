@@ -53,8 +53,8 @@ export class Ledger {
   }
 
   // ---------------- protocol treasury ----------------
-  // The treasury is a reserved ledger account. It grows from the GE trade tax,
-  // token buybacks and creator-wallet transfers; it can fund buybacks (burn).
+  // The treasury is a reserved ledger account. It grows from the GE trade tax.
+  // (Buybacks and creator-wallet transfers are handled physically off-platform.)
   treasuryBalance() { return this.balances[TREASURY_ACCT] || 0; }
   fundTreasury(amt, source) {
     amt = Math.floor(amt);
@@ -63,28 +63,8 @@ export class Ledger {
     this.log.push([Date.now(), 'treasury', source, amt, 'inflow']);
     this._dirty = true;
   }
-  // Buyback: the treasury spends its own balance to remove tokens from supply.
-  treasuryBuyback(amt) {
-    amt = Math.floor(amt);
-    if (amt <= 0 || this.treasuryBalance() < amt) return false;
-    this.balances[TREASURY_ACCT] -= amt;
-    this.burned += amt;
-    this.log.push([Date.now(), 'burn', TREASURY_ACCT, amt, 'buyback']);
-    return true;
-  }
-  // Move tokens from a creator/named wallet into the treasury.
-  creatorTransfer(from, amt) {
-    amt = Math.floor(amt);
-    if (amt <= 0) return false;
-    // creator wallets may be minted-to accounts; allow going into the reserve
-    if ((this.balances[from] || 0) < amt) { // top up a creator faucet then move
-      this.minted += amt; this.log.push([Date.now(), 'mint', from, amt, 'creator:seed']);
-      this.balances[from] = (this.balances[from] || 0) + amt;
-    }
-    this.balances[from] -= amt;
-    this.fundTreasury(amt, `creator:${from}`);
-    return true;
-  }
+  // Buyback-and-burn and creator-wallet → treasury transfers are performed
+  // physically by the operator off-platform, so no in-app methods exist for them.
 }
 
 // ---------------- Grand Exchange ----------------

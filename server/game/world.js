@@ -15,7 +15,7 @@ import { Ledger } from './economy.js';
 import { tickCombat, mobAttack } from './combat.js';
 import { createStore } from './store.js';
 import { Vault } from './vault.js';
-import { loadCustomEvents, loadTokenConfig } from './admin.js';
+import { loadCustomEvents, loadTokenConfig, loadEconConfig } from './admin.js';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -55,6 +55,7 @@ export class World {
     this.vault = new Vault(this, this.dataDir);
     this.vault.tokenConfig = this.tokenConfig;
     this.customEvents = loadCustomEvents(this.dataDir);
+    this.econConfig = loadEconConfig(this.dataDir);   // admin-tunable $LoS award rates
     this.adminSockets = new Set();
     this.spawnMobs();
     this.spawnNpcs();
@@ -154,7 +155,7 @@ export class World {
     }
     // The very rare $LoS drop — scaled by mob level, zone and mob multiplier
     const wild = mob.plane === PLANE.OVERWORLD && mob.y < WILDERNESS_Y ? SHILLING.WILDERNESS_BONUS : 1;
-    const p = SHILLING.MOB_DROP_CHANCE_BASE * (1 + mob.lvl / 12) * (def.shil || 1) * wild;
+    const p = (this.econConfig?.mobDropChance ?? SHILLING.MOB_DROP_CHANCE_BASE) * (1 + mob.lvl / 12) * (def.shil || 1) * wild;
     if (Math.random() < p) {
       const amt = 1 + (Math.random() * (1 + mob.lvl / 25) | 0);
       this.dropShillings(mob.plane, mob.x, mob.y, amt, killer.id);
@@ -178,17 +179,19 @@ export class World {
       for (const [pid, dmg] of mob.damagers) {
         const pl = this.entities.get(pid);
         if (!pl || pl.kind !== 'player' || dmg < mob.maxHp * 0.05) continue;
-        const amt = SHILLING.EVENT_PAYOUT_BASE + (Math.random() * 5 | 0);
+        const amt = (this.econConfig?.eventPayout ?? SHILLING.EVENT_PAYOUT_BASE) + (Math.random() * 5 | 0);
         this.earn(pl, amt, 'event:golden_stag');
       }
       this.announce('⚑ The Golden Stag has fallen — its blessing is shared among the hunters.');
     }
+    // custom-event $LoS pool: this mob's share goes to whoever felled it
+    if (mob.eventShl && killer && killer.kind === 'player') this.earn(killer, mob.eventShl, `event:${mob.eventId || 'custom'}`);
   }
   payBossBounty(mob, def) {
     for (const [pid, dmg] of mob.damagers) {
       const pl = this.entities.get(pid);
       if (!pl || pl.kind !== 'player' || dmg < mob.maxHp * 0.05) continue;
-      let amt = SHILLING.BOSS_BOUNTY_BASE * (def.tier || 1);
+      let amt = (this.econConfig?.bossBounty ?? SHILLING.BOSS_BOUNTY_BASE) * (def.tier || 1);
       if (Math.random() < SHILLING.BOSS_JACKPOT_CHANCE) {
         amt += SHILLING.BOSS_JACKPOT;
         this.announce(`✦✦ JACKPOT! ${pl.name} claims a bounty of ${amt} $LoS from ${def.name}!`);
@@ -197,6 +200,7 @@ export class World {
     }
   }
   earn(player, amount, reason) {
+    amount = Math.round(amount * (this.econConfig?.distMult || 1));   // global distribution-rate multiplier
     if (amount <= 0) return;
     const inWild = player.plane === PLANE.OVERWORLD && player.y < WILDERNESS_Y;
     if (inWild) {
@@ -736,9 +740,12 @@ export class World {
           st.box = box;
         } else if (ev.custom) {
           st.ents = [];
+          // Split the event's $LoS pool evenly across its mobs; each pays its
+          // share to whoever fells it.
+          const perMob = ev.shl > 0 && ev.n > 0 ? Math.ceil(ev.shl / ev.n) : 0;
           if (ev.mob && ev.n) for (let i = 0; i < ev.n; i++) {
             const m = this.spawnMob(ev.mob, { x: ev.x, y: ev.y, r: 4, n: 1 }, PLANE.OVERWORLD);
-            m.noRespawn = true; st.ents.push(m);
+            m.noRespawn = true; if (perMob) { m.eventShl = perMob; m.eventId = ev.id; } st.ents.push(m);
           }
         } else if (ev.id === 'golden_stag') {
           const stag = this.spawnMob('golden_stag', { x: ev.x, y: ev.y, r: 8, n: 1 }, PLANE.OVERWORLD);

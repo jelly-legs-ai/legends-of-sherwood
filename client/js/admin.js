@@ -25,13 +25,14 @@ function connect() {
 }
 const send = (o) => { if (ws?.readyState === 1) ws.send(JSON.stringify(o)); };
 
-const state = { status: null, ledger: null, vault: null, events: null, security: [], term: [], treasury: null, token: null, sim: null };
+const state = { status: null, ledger: null, vault: null, events: null, security: [], term: [], treasury: null, token: null, sim: null, econ: null };
 function onMsg(m) {
   if (m.t === 'status') { state.status = m; if (view === 'dash') render(); }
   else if (m.t === 'ledger') { state.ledger = m; if (view === 'eco') render(); }
   else if (m.t === 'vault') { state.vault = m; if (view === 'vault') render(); }
   else if (m.t === 'events') { state.events = m; if (view === 'events') render(); }
-  else if (m.t === 'treasury') { state.treasury = m; if (view === 'treasury') render(); }
+  else if (m.t === 'treasury') { state.treasury = m; if (m.econ) state.econ = m.econ; if (view === 'treasury') render(); }
+  else if (m.t === 'rewards') { state.econ = m.econ; if (view === 'treasury') render(); }
   else if (m.t === 'token') { state.token = m; if (view === 'token') render(); }
   else if (m.t === 'simulate') { state.sim = m.result; if (view === 'sim') render(); }
   else if (m.t === 'securityLog') { state.security = m.log; if (view === 'dash') render(); }
@@ -66,27 +67,42 @@ function render() {
 
 function renderTreasury() {
   const t = state.treasury;
+  const e = state.econ || {};
+  const oneIn = e.mobDropChance ? Math.round(1 / e.mobDropChance) : 900;
   main.innerHTML = `<h2>Protocol treasury</h2>
     <div class="cards">
       <div class="card"><b style="color:var(--gold)">${t ? t.balance.toLocaleString() : '…'}</b><span>$LoS in treasury</span></div>
       <div class="card"><b>${t ? (t.taxBps / 100) : '…'}%</b><span>GE trade tax</span></div>
+      <div class="card"><b>×${e.distMult ?? '…'}</b><span>distribution rate</span></div>
     </div>
-    <p style="color:var(--dim);margin-bottom:10px">The treasury grows from the ${t ? t.taxBps / 100 : 5}% Grand Exchange trade tax, creator-wallet transfers and buybacks. Buybacks burn tokens from supply.</p>
-    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px">
-      <div class="card" style="min-width:230px">
-        <div style="font-size:12px;color:var(--dim);margin-bottom:6px">Buyback &amp; burn (from treasury)</div>
-        <input id="bb-amt" type="number" placeholder="amount" style="width:110px"> <button class="act" id="bb-go">Buyback</button>
-      </div>
-      <div class="card" style="min-width:280px">
-        <div style="font-size:12px;color:var(--dim);margin-bottom:6px">Creator-wallet transfer → treasury</div>
-        <input id="cr-from" placeholder="creator wallet" style="width:130px"> <input id="cr-amt" type="number" placeholder="amount" style="width:90px"> <button class="act" id="cr-go">Transfer</button>
-      </div>
-    </div>
+    <p style="color:var(--dim);margin-bottom:10px">The treasury grows solely from the ${t ? t.taxBps / 100 : 5}% Grand Exchange trade tax. Buyback-and-burn and creator-wallet transfers are handled physically by the operator, off-platform.</p>
+
+    <h2>$LoS award rates</h2>
+    <p style="color:var(--dim);margin-bottom:8px">Adjust the base rates at which $LoS is minted to players. The <b>distribution multiplier</b> scales every payout; the rest are per-category base rates.</p>
+    <form class="ev" id="rw-form" style="grid-template-columns:repeat(3,1fr);max-width:720px">
+      <label>Distribution multiplier (×)<input name="distMult" type="number" step="0.5" min="0" value="${e.distMult ?? 1}"></label>
+      <label>Boss bounty (base $LoS)<input name="bossBounty" type="number" step="1" min="0" value="${e.bossBounty ?? 3}"></label>
+      <label>Mob $LoS drop — 1 in<input name="mobDropOneIn" type="number" step="1" min="1" value="${oneIn}"></label>
+      <label>Dungeon floor (base $LoS)<input name="dungeonFloor" type="number" step="1" min="0" value="${e.dungeonFloor ?? 2}"></label>
+      <label>Event payout (base $LoS)<input name="eventPayout" type="number" step="1" min="0" value="${e.eventPayout ?? 5}"></label>
+      <label style="justify-content:end"><button class="act" type="submit">Save reward rates</button></label>
+    </form>
+
     <h2>Recent inflows</h2>
     <table><tr><th>time</th><th>source</th><th>amount</th></tr>
     ${t ? t.inflows.map(l => `<tr><td>${fmtT(l[0])}</td><td>${l[2]}</td><td class="mint">+${l[3]}</td></tr>`).join('') || '<tr><td colspan=3><i>no inflows yet</i></td></tr>' : ''}</table>`;
-  main.querySelector('#bb-go') && (main.querySelector('#bb-go').onclick = () => { send({ t: 'treasury', buyback: +main.querySelector('#bb-amt').value || 0 }); });
-  main.querySelector('#cr-go') && (main.querySelector('#cr-go').onclick = () => { send({ t: 'treasury', creatorFrom: main.querySelector('#cr-from').value.trim(), creatorAmt: +main.querySelector('#cr-amt').value || 0 }); });
+  main.querySelector('#rw-form').onsubmit = (ev) => {
+    ev.preventDefault();
+    const f = Object.fromEntries(new FormData(ev.target).entries());
+    const oneInN = Math.max(1, parseFloat(f.mobDropOneIn) || 900);
+    send({ t: 'rewards', set: {
+      distMult: parseFloat(f.distMult) || 0,
+      bossBounty: parseFloat(f.bossBounty) || 0,
+      mobDropChance: 1 / oneInN,
+      dungeonFloor: parseFloat(f.dungeonFloor) || 0,
+      eventPayout: parseFloat(f.eventPayout) || 0,
+    } });
+  };
   send({ t: 'treasury' });
 }
 
@@ -120,19 +136,24 @@ function renderSim() {
   const r = state.sim;
   main.innerHTML = `<h2>Economy sustainability simulation</h2>
     <p style="color:var(--dim);margin-bottom:10px">Projects $LoS emission (mob drops, boss bounties, dungeons, events, milestones) against sinks (GE treasury tax, burns, player withdrawals) using the live reward constants. Tune the activity assumptions and run.</p>
+    <div style="margin-bottom:8px">
+      <span style="color:var(--dim);font-size:12px;margin-right:6px">Distribution rate:</span>
+      ${[1, 2, 3, 4, 5, 10].map(n => `<button class="act dm-preset" data-m="${n}">${n === 1 ? 'base' : '×' + n}</button>`).join(' ')}
+      <button class="act dm-preset" data-m="custom">custom…</button>
+    </div>
     <form class="ev" id="sim-form" style="grid-template-columns:repeat(3,1fr)">
       <label>Players<input name="players" type="number" value="${r?.assumptions.players || 200}"></label>
       <label>Days<input name="days" type="number" value="${r?.assumptions.days || 30}"></label>
       <label>Hours/player/day<input name="hoursPerDay" type="number" step="0.5" value="${r?.assumptions.hoursPerDay || 2}"></label>
       <label>GE volume /player/day ($LoS)<input name="tradeVolPerPlayerDay" type="number" value="${r?.assumptions.tradeVolPerPlayerDay || 300}"></label>
       <label>Withdraw fraction (0–1)<input name="withdrawFrac" type="number" step="0.05" value="${r?.assumptions.withdrawFrac ?? 0.25}"></label>
-      <label>Daily buyback ($LoS)<input name="dailyBuyback" type="number" value="${r?.assumptions.dailyBuyback || 0}"></label>
+      <label>Distribution multiplier (×)<input name="distMult" type="number" step="0.5" min="0" value="${r?.assumptions.distMult ?? 1}"></label>
       <label style="justify-content:end"><button class="act" type="submit">Run simulation</button></label>
     </form>
     ${r ? `<div class="cards">
       <div class="card"><b>${r.daily.emission.toLocaleString()}</b><span>daily emission</span></div>
       <div class="card"><b class="mint">${r.daily.tax.toLocaleString()}</b><span>daily treasury tax</span></div>
-      <div class="card"><b class="burn">${(r.daily.burns + r.daily.withdrawals + r.daily.buyback).toLocaleString()}</b><span>daily sinks (burn+withdraw)</span></div>
+      <div class="card"><b class="burn">${(r.daily.burns + r.daily.withdrawals).toLocaleString()}</b><span>daily sinks (burn+withdraw)</span></div>
       <div class="card"><b style="color:${r.daily.net > 0 ? 'var(--gold)' : 'var(--green)'}">${r.daily.net > 0 ? '+' : ''}${r.daily.net.toLocaleString()}</b><span>net daily supply</span></div>
       <div class="card"><b>${r.annualisedInflationPct}%</b><span>annualised inflation</span></div>
     </div>
@@ -140,11 +161,17 @@ function renderSim() {
     <h2>Projection (per player-hour emission: ${r.perPlayerHour} $LoS)</h2>
     <table><tr><th>day</th><th>circulating</th><th>treasury</th></tr>
     ${r.series.map(s => `<tr><td>${s.day}</td><td>${s.circulating.toLocaleString()}</td><td>${s.treasury.toLocaleString()}</td></tr>`).join('')}</table>` : '<p style="color:var(--dim)">Run a simulation to see results.</p>'}`;
-  main.querySelector('#sim-form').onsubmit = (e) => {
-    e.preventDefault();
-    const f = Object.fromEntries(new FormData(e.target).entries());
+  const runSim = () => {
+    const f = Object.fromEntries(new FormData(main.querySelector('#sim-form')).entries());
     for (const k in f) f[k] = parseFloat(f[k]) || 0;
     send({ t: 'simulate', params: f });
+  };
+  main.querySelector('#sim-form').onsubmit = (e) => { e.preventDefault(); runSim(); };
+  for (const b of main.querySelectorAll('.dm-preset')) b.onclick = () => {
+    const dm = main.querySelector('input[name="distMult"]');
+    if (b.dataset.m === 'custom') { dm.focus(); dm.select(); return; }
+    dm.value = b.dataset.m;
+    runSim();
   };
 }
 
@@ -215,7 +242,7 @@ function renderEco() {
 function renderVault() {
   const v = state.vault;
   main.innerHTML = `<h2>PDA Vault — Robinhood-chain withdrawals</h2>
-    <p style="color:var(--dim);margin-bottom:12px">Flags: single withdrawal ≥ 500 $LoS · &gt;3 withdrawals per hour · any anti-cheat flag. Frozen transactions keep funds on the ledger and temp-ban the account until reviewed here.</p>
+    <p style="color:var(--dim);margin-bottom:12px">Flags: single withdrawal ≥ 1,000,000 $LoS · &gt;3 withdrawals per hour · any anti-cheat flag. Frozen transactions keep funds on the ledger and temp-ban the account until reviewed here.</p>
     <table><tr><th>#</th><th>time</th><th>player</th><th>amount</th><th>address</th><th>status</th><th>flags</th><th></th></tr>
     ${v ? v.requests.map(r => `<tr><td>${r.id}</td><td>${fmtT(r.t)}</td><td>${r.name}</td><td>${r.amount}</td><td>${r.address.slice(0, 18)}…</td>
       <td class="${r.status}">${r.status.toUpperCase()}</td><td>${(r.reasons || []).join('; ')}</td>
@@ -238,12 +265,14 @@ function renderEvents() {
       <label>y <input name="y" type="number" value="640"></label>
       <label>every (min) <input name="everyMin" type="number" value="30"></label>
       <label>duration (min) <input name="durMin" type="number" value="6"></label>
+      <label>$LoS pool <input name="shl" type="number" value="0" min="0" title="$LoS shared among participants who fell the event's mobs"></label>
       <label style="justify-content:end"><button class="act" type="submit">Create / update</button></label>
     </form>
-    <table><tr><th>id</th><th>name</th><th>where</th><th>cadence</th><th>state</th><th></th></tr>
+    <table><tr><th>id</th><th>name</th><th>where</th><th>cadence</th><th>$LoS</th><th>state</th><th></th></tr>
     ${ev ? [...ev.builtin.map(e => ({ ...e, builtin: true })), ...ev.custom].map(e => `<tr>
       <td>${e.id}${e.builtin ? ' <span style="color:var(--dim)">(built-in)</span>' : ''}</td><td>${e.name}</td>
       <td>${e.x},${e.y}</td><td>every ${e.everyMin}m for ${e.durMin}m</td>
+      <td>${e.builtin ? '<span style="color:var(--dim)">base</span>' : (e.shl || 0)}</td>
       <td>${ev.state[e.id]?.active ? '<span class="released">ACTIVE</span>' : 'idle'}</td>
       <td><button class="act" data-tr="${e.id}">trigger</button>${e.builtin ? '' : ` <button class="act" data-rm="${e.id}">delete</button>`}</td></tr>`).join('') : ''}</table>`;
   $('#evform').onsubmit = (e) => {

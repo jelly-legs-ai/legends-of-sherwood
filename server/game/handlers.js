@@ -503,7 +503,7 @@ function openEventBox(world, p, id) {
   }
   if (st.claims.get(p.name)) return world.send(p, { t: MSG.MSGBOX, m: 'You already claimed your share.' });
   st.claims.set(p.name, 1);
-  const amt = SHILLING.EVENT_PAYOUT_BASE + (Math.random() * 4 | 0);
+  const amt = (world.econConfig?.eventPayout ?? SHILLING.EVENT_PAYOUT_BASE) + (Math.random() * 4 | 0);
   world.earn(p, amt, 'event:convoy');
   world.fx(p.plane, e.x, e.y, FX.SHILLING, {});
   world.send(p, { t: MSG.MSGBOX, m: `You pry open the strongbox — ${amt} $LoS!` });
@@ -1146,7 +1146,9 @@ function dungeonAction(world, p, x, y, msg) {
     if (!near(p, x, y, 2.5)) return walkThen(world, p, x, y, () => dungeonAction(world, p, x, y, msg));
     if (p.countItem('dungeon_key') < 1) return world.send(p, { t: MSG.MSGBOX, m: 'The stair is sealed — an Abyssal key will open it.' });
     p.removeItem('dungeon_key', 1);
-    const tokens = DUNGEON.tokenReward(floor);
+    // scale the floor reward by the admin's dungeon base-rate (relative to default)
+    const dscale = (world.econConfig?.dungeonFloor ?? SHILLING.DUNGEON_FLOOR_BASE) / SHILLING.DUNGEON_FLOOR_BASE;
+    const tokens = Math.round(DUNGEON.tokenReward(floor) * dscale);
     world.earn(p, tokens, `dungeon:floor:${floor}`);
     p.addXp('dungeoneering', DUNGEON.xpReward(floor));
     p.dungeonBest = Math.max(p.dungeonBest, floor);
