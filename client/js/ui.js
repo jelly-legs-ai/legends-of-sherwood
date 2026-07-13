@@ -14,32 +14,36 @@ import { drawFxSprite, drawMediaIcon } from './media.js';
 const $ = (s) => document.querySelector(s);
 
 // ---- Animated pixel HUD bars (sliced from assets/ui/hudbars.png) ----
-// Each colour row runs from a full bar (col 1 @ x51) to an empty track (col 6 @
-// x291); we draw the empty track then clip the full bar to the current fraction.
+// Column 0 of each colour row is a hollow beveled casing (bbox x6-43); its
+// interior is transparent. So we paint the coloured fill first, clipped to the
+// current fraction, then stamp the casing frame on top — the frame masks the
+// fill's edges and its hollow shows the fill through.
 const hudBarsImg = new Image();
 hudBarsImg.src = 'assets/ui/hudbars.png';
 hudBarsImg.onload = () => { try { if (G && G.self) updateOrbs(); } catch { } };
 const BAR_ROW = { hp: 131, pray: 147, energy: 163 };   // y of each colour row on the sheet
-const BAR_CELL = { fillX: 51, trackX: 291, w: 42, h: 11 };
+const CASE = { x: 6, w: 38, h: 11 };                   // casing bbox within col 0
+const CASE_INNER = { x: 3, y: 2, w: 32, h: 7 };        // fillable hollow, relative to the casing
+const BAR_GRAD = { hp: ['#f0454f', '#9c0f18'], pray: ['#4fc6f7', '#0a6ea0'], energy: ['#ffd75e', '#bf8618'] };
 function drawStatBar(canvas, frac, kind) {
   if (!canvas) return;
   const g = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
   g.clearRect(0, 0, W, H);
   if (!hudBarsImg.complete || !hudBarsImg.naturalWidth) return;
-  g.imageSmoothingEnabled = false;
-  const y = BAR_ROW[kind], { w, h, fillX, trackX } = BAR_CELL;
-  g.drawImage(hudBarsImg, trackX, y, w, h, 0, 0, W, H);   // empty track
+  const S = W / CASE.w;
   frac = Math.max(0, Math.min(1, frac));
-  if (frac > 0) {
-    const pad = 3;                                        // leave the left cap outline intact
-    g.save();
-    g.beginPath();
-    g.rect(0, 0, pad + (W - pad * 2) * frac, H);
-    g.clip();
-    g.drawImage(hudBarsImg, fillX, y, w, h, 0, 0, W, H);  // coloured fill, clipped
-    g.restore();
+  if (frac > 0) {                                        // coloured fill inside the socket
+    const fx = CASE_INNER.x * S, fy = CASE_INNER.y * S, fh = CASE_INNER.h * S;
+    const fw = CASE_INNER.w * S * frac;
+    const [c0, c1] = BAR_GRAD[kind];
+    const grad = g.createLinearGradient(0, fy, 0, fy + fh);
+    grad.addColorStop(0, c0); grad.addColorStop(1, c1);
+    g.fillStyle = grad;
+    g.fillRect(fx, fy, fw, fh);
   }
+  g.imageSmoothingEnabled = false;
+  g.drawImage(hudBarsImg, CASE.x, BAR_ROW[kind], CASE.w, CASE.h, 0, 0, W, H);   // casing on top
 }
 
 let G = null; // game state ref

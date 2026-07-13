@@ -62,11 +62,12 @@ button { font-family: inherit; }
 #hud > * { pointer-events: auto; }
 
 /* Animated pixel-art HUD bars (hp / prayer / stamina) sliced from hudbars.png */
-#bars { position: absolute; top: 12px; left: 12px; display: flex; flex-direction: column; gap: 6px; }
-.statbar { position: relative; width: 132px; height: 30px; }
-.statbar canvas { display: block; width: 132px; height: 30px; image-rendering: pixelated; filter: drop-shadow(0 2px 3px #000a); }
-.statbar .lab { position: absolute; left: 10px; top: 0; height: 30px; display: flex; align-items: center; font-weight: bold; font-size: 11px; letter-spacing: .5px; color: #f4e9c8; text-shadow: 0 1px 2px #000, 0 0 4px #000; pointer-events: none; }
-.statbar .val { position: absolute; right: 12px; top: 0; height: 30px; display: flex; align-items: center; font-weight: bold; font-size: 13px; color: #fff; text-shadow: 0 1px 2px #000, 0 0 4px #000; pointer-events: none; }
+#bars { position: absolute; top: 12px; left: 12px; display: flex; flex-direction: column; gap: 5px; }
+.statbar { display: flex; align-items: center; gap: 6px; }
+.statbar .lab { width: 20px; text-align: right; font-weight: bold; font-size: 11px; letter-spacing: .5px; color: #e9dcb4; text-shadow: 0 1px 2px #000, 0 0 4px #000; }
+.statbar .barwrap { position: relative; width: 114px; height: 33px; }
+.statbar canvas { display: block; width: 114px; height: 33px; image-rendering: pixelated; filter: drop-shadow(0 2px 3px #000a); }
+.statbar .val { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; color: #fff; text-shadow: 0 1px 2px #000, 0 1px 1px #000; pointer-events: none; }
 
 #token-hud {
   position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
