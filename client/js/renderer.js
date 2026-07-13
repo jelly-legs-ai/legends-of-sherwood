@@ -666,24 +666,48 @@ export class Renderer {
         const roofL = gilded ? '#a8842e' : stone ? '#6e6a5e' : '#8a4f2a';
         const roofR = gilded ? '#c09a3c' : stone ? '#7a766a' : '#9a5c32';
         const roofBack = gilded ? '#8a6c24' : stone ? '#5e5a50' : '#733f22';
-        const face = (a, c, col, shade) => { ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(c[0], c[1]); ctx.lineTo(apex[0], apex[1]); ctx.closePath(); ctx.fill(); if (shade) { ctx.strokeStyle = '#00000033'; ctx.lineWidth = 1; ctx.stroke(); } };
+        const kind = gilded ? 'tile' : stone ? 'slate' : 'thatch';   // roof material
+        const rgb = (hex) => [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+        const tint = (hex, f) => { const [r, g, bl] = rgb(hex); return `rgb(${Math.min(255, r * f) | 0},${Math.min(255, g * f) | 0},${Math.min(255, bl * f) | 0})`; };
+        const L2 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+        // A hip-roof face is a triangle (eave corner a, eave corner b, apex). We
+        // lay courses parallel to the eave and rake tile/thatch joints down each
+        // course so the roof reads as a textured surface, not a flat gradient.
+        const face = (a, b, col, near) => {
+          ctx.save();
+          ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineTo(apex[0], apex[1]); ctx.closePath();
+          ctx.fillStyle = col; ctx.fill(); ctx.clip();
+          const courses = kind === 'thatch' ? 7 : 5;
+          for (let i = 0; i < courses; i++) {
+            const t0 = i / courses, t1 = (i + 1) / courses;
+            const A0 = L2(a, apex, t0), B0 = L2(b, apex, t0), A1 = L2(a, apex, t1), B1 = L2(b, apex, t1);
+            ctx.fillStyle = tint(col, i % 2 ? 0.9 : 1.07);              // alternating course bands
+            ctx.beginPath(); ctx.moveTo(A0[0], A0[1]); ctx.lineTo(B0[0], B0[1]); ctx.lineTo(B1[0], B1[1]); ctx.lineTo(A1[0], A1[1]); ctx.closePath(); ctx.fill();
+            ctx.strokeStyle = '#0000003a'; ctx.lineWidth = 1.2;         // course shadow (tile lip)
+            ctx.beginPath(); ctx.moveTo(A0[0], A0[1]); ctx.lineTo(B0[0], B0[1]); ctx.stroke();
+            ctx.strokeStyle = near ? '#ffffff1e' : '#ffffff10'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(A0[0], A0[1] + 1.2); ctx.lineTo(B0[0], B0[1] + 1.2); ctx.stroke();
+            const eaveLen = Math.hypot(B0[0] - A0[0], B0[1] - A0[1]);
+            if (kind === 'thatch') {                                    // fine straw striations
+              const n = Math.max(6, Math.round(eaveLen / 5));
+              ctx.strokeStyle = '#0000001a'; ctx.lineWidth = 1;
+              for (let j = 1; j < n; j++) { const f = j / n; const p = L2(A0, B0, f), q = L2(A1, B1, f); ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); }
+            } else {                                                    // staggered tile/slate joints
+              const tiles = Math.max(3, Math.round(eaveLen / 9)), off = i % 2 ? 0.5 : 0;
+              ctx.strokeStyle = '#00000030'; ctx.lineWidth = 1;
+              for (let j = 0; j <= tiles; j++) { const f = (j + off) / tiles; if (f <= 0 || f >= 1) continue; const p = L2(A0, B0, f), q = L2(A1, B1, f); ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); }
+            }
+          }
+          ctx.restore();
+        };
         // draw far faces first, near faces last (painter's order in iso)
-        face(e01, e11, roofBack);          // north/back
-        face(e00, e01, roofL);             // west/left
-        face(e10, e11, roofR);             // east/right
+        face(e01, e11, roofBack, false);   // north/back
+        face(e00, e01, roofL, false);      // west/left
+        face(e10, e11, roofR, false);      // east/right
         face(e00, e10, roofTop, true);     // south/front (toward camera)
-        // ridge highlight
-        ctx.strokeStyle = stone ? '#a8a290aa' : '#d0925caa'; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.moveTo((e00[0] + e10[0]) / 2, (e00[1] + e10[1]) / 2); ctx.lineTo(apex[0], apex[1]); ctx.stroke();
-        // thatch/tile striations on the front face
-        ctx.strokeStyle = '#00000022'; ctx.lineWidth = 1;
-        for (let k = 1; k < 4; k++) {
-          const t = k / 4;
-          ctx.beginPath();
-          ctx.moveTo(e00[0] + (apex[0] - e00[0]) * t, e00[1] + (apex[1] - e00[1]) * t);
-          ctx.lineTo(e10[0] + (apex[0] - e10[0]) * t, e10[1] + (apex[1] - e10[1]) * t);
-          ctx.stroke();
-        }
+        // hip ridges from each eave corner up to the apex
+        ctx.strokeStyle = gilded ? '#ffe9a8cc' : stone ? '#b4ae98aa' : '#d0925caa'; ctx.lineWidth = 1.5;
+        for (const c of [e00, e10, e11, e01]) { ctx.beginPath(); ctx.moveTo(c[0], c[1]); ctx.lineTo(apex[0], apex[1]); ctx.stroke(); }
         ctx.restore();
       }
     }
