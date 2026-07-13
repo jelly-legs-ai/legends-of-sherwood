@@ -29,7 +29,38 @@ function fbm(x, y, s = 0) { return vnoise(x, y, 48, s) * 0.55 + vnoise(x, y, 16,
 // ---- rivers & roads (authored on the 576 grid, scaled to the live world) ------
 const K = WORLD.SCALE || 1;
 const S = (n) => Math.round(n * K);
-const RIVER = [[430, 338], [380, 352], [300, 362], [240, 360], [150, 360], [28, 368]].map(p => [S(p[0]), S(p[1])]);
+// The river system rises in the alpine peaks of the far north-east and works
+// down across the realm: a headwater cascade, a north branch through Northmoor
+// and western Sherwood, the broad lower Trent running west to the sea, a fen
+// river draining south through the Fenwold, and the Elderglade stream. Domain
+// warping (see riverDist) meanders every authored line into natural bends.
+const RIVER_LINES = [
+  { pts: [[430, 338], [380, 352], [300, 362], [240, 360], [150, 360], [28, 368]], w: 0.9 }, // the lower Trent
+  { pts: [[554, 26], [536, 58], [510, 86], [486, 118], [458, 152], [444, 196], [434, 246], [426, 292], [430, 338]], w: 0.6 }, // alpine headwater
+  { pts: [[510, 86], [470, 98], [424, 110], [380, 126], [340, 148], [306, 174], [280, 206], [262, 244], [252, 284], [246, 320], [240, 360]], w: 0.4 }, // north branch
+  { pts: [[434, 246], [452, 288], [468, 328], [478, 370], [486, 414], [480, 460], [470, 508], [462, 548], [458, 578]], w: 0.5 }, // fen river
+  { pts: [[240, 360], [236, 398], [244, 438], [258, 472], [262, 510], [256, 546], [250, 578]], w: 0.3 }, // elder stream
+];
+const RIVERS = RIVER_LINES.map(r => {
+  const pts = r.pts.map(p => [S(p[0]), S(p[1])]);
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const [px, py] of pts) { x0 = Math.min(x0, px); y0 = Math.min(y0, py); x1 = Math.max(x1, px); y1 = Math.max(y1, py); }
+  const w = S(r.w), m = w + 14;
+  return { pts, w, x0: x0 - m, y0: y0 - m, x1: x1 + m, y1: y1 + m };
+});
+// Still pools carved by the rivers — inland fisheries from the meadows to the
+// frozen north. [x, y, radius] on the authored grid.
+const POOLS = [
+  [492, 108, 5],   // alpine tarn (top-tier fishing)
+  [452, 180, 4],   // Grey Peaks tarn
+  [272, 212, 5],   // Northmoor pool
+  [238, 306, 4],   // west Sherwood pool
+  [486, 412, 6],   // Fenwold broadwater
+  [262, 474, 4],   // Elderglade pool
+  [168, 330, 5],   // Barnsdale pond
+  [120, 300, 4],   // west meadows pool
+  [330, 74, 5],    // Wild Lands frozen pool
+].map(([x, y, r]) => [S(x), S(y), S(r)]);
 const ROADS = [
   [[252, 332], [330, 332]],
   [[330, 316], [330, 240], [300, 150]],
@@ -55,9 +86,42 @@ function distToPolyline(px, py, line) {
   }
   return best;
 }
+// Distance to the nearest river bank (negative inside the channel). The sample
+// point is displaced by low-frequency noise before measuring, so the straight
+// authored polylines meander into believable oxbows and bends for free.
+function riverDist(x, y) {
+  const wx = x + (vnoise(x, y, 13, 61) - 0.5) * 6;
+  const wy = y + (vnoise(x, y, 13, 62) - 0.5) * 6;
+  let best = 1e9;
+  for (const r of RIVERS) {
+    if (wx < r.x0 || wx > r.x1 || wy < r.y0 || wy > r.y1) continue;
+    best = Math.min(best, distToPolyline(wx, wy, r.pts) - r.w);
+  }
+  return best;
+}
+// Inside a still pool? Radius wobbles with noise so banks curve naturally.
+function inPool(x, y) {
+  for (const [cx, cy, r] of POOLS) {
+    if (Math.abs(x - cx) > r + 6 || Math.abs(y - cy) > r + 6) continue;
+    if (dist(x, y, cx, cy) < r + (vnoise(x, y, 6, 63) - 0.5) * 3) return true;
+  }
+  return false;
+}
+// Signed distance inland from the sea. The west coast, the whole south coast
+// and the east coast (fading out three quarters of the way up, where the land
+// runs on to the alpine corner) are carved by shoreline noise into headlands,
+// coves and small bays instead of a straight rule.
+function shoreDist(x, y) {
+  const dW = x - (S(14) + (fbm(0, y, 51) - 0.32) * S(30));
+  const dS = (H - 1 - y) - (S(14) + (fbm(x, 0, 52) - 0.32) * S(30));
+  const fade = Math.min(1, Math.max(0, (y - S(128)) / S(56)));
+  const dE = (W - 1 - x) - ((S(14) + (fbm(0, y + 4096, 53) - 0.32) * S(30)) * fade - (1 - fade) * S(40));
+  return Math.min(dW, dS, dE);
+}
 
 // ---- regions -------------------------------------------------------------------
 export function regionAt(x, y) {
+  if (x > S(460) && y < S(112)) return 'ALPINE';   // the high peaks of the far north-east
   if (y < S(96)) return 'WILDLANDS';
   if (dist(x, y, TOWNS.frosthollow.cx, TOWNS.frosthollow.cy) < TOWNS.frosthollow.r + 2) return 'FROSTHOLLOW';
   if (y < S(200)) return 'NORTHMOOR';
@@ -105,27 +169,38 @@ function townTile(x, y) {
 // ---- main tile function ----------------------------------------------------------
 export function tileAt(x, y) {
   if (x < 0 || y < 0 || x >= W || y >= H) return TILE.OCEAN;
-  // coast: west + south ocean with noisy shoreline
-  const coastW = S(18) + fbm(0, y, 3) * 12, coastS = H - S(18) - fbm(x, 0, 4) * 12;
-  if (x < coastW - 6 || y > coastS + 6) return TILE.OCEAN;
+  const sd = shoreDist(x, y);
+  if (sd < 0) {
+    // offshore: the occasional rocky islet breaks the swell near the coast
+    if (sd > -26) {
+      const isl = vnoise(x, y, 9, 56);
+      if (isl > 0.9) return TILE.GRASS;
+      if (isl > 0.865) return TILE.SAND;
+    }
+    return TILE.OCEAN;
+  }
 
   const tt = townTile(x, y);
   if (tt >= 0) return tt;
 
-  const river = distToPolyline(x, y, RIVER);
+  const river = riverDist(x, y);
   let road = 1e9;
   for (const r of ROADS) road = Math.min(road, distToPolyline(x, y, r));
-  if (river < 1.6 && road < 1.2) return TILE.BRIDGE;
-  if (river < 1.6) return TILE.RIVER;
-
-  if (x < coastW) return TILE.SAND;
-  if (y > coastS) return TILE.SAND;
+  if (river < 1.7 && road < 1.4) return TILE.BRIDGE;
+  if (river < 1.7) return TILE.RIVER;
+  if (inPool(x, y)) return TILE.WATER;
 
   if (road < 1.1) return TILE.ROAD;
+  if (sd < 2.5 + vnoise(x, y, 5, 55) * 3) return TILE.SAND;   // beaches trace the coves
 
   const reg = regionAt(x, y);
   const n = fbm(x, y), n2 = fbm(x, y, 31);
   switch (reg) {
+    case 'ALPINE': {
+      if (n > 0.62) return TILE.ROCK;
+      if (n > 0.48) return TILE.SCREE;
+      return n2 > 0.45 ? TILE.SNOW : TILE.TUNDRA;
+    }
     case 'WILDLANDS': return n < 0.35 ? TILE.ICE : TILE.SNOW;
     case 'NORTHMOOR': {
       const coldness = 1 - (y - S(96)) / S(104); // 1 at the Wild Lands edge -> 0 southward
@@ -157,7 +232,7 @@ export function tileAt(x, y) {
 // serious elevation in the Grey Peaks and the frozen north. Quantized to
 // integer block levels; low-frequency so slopes stay gentle and walkable.
 const ELEV = {
-  WILDLANDS: [3, 3], NORTHMOOR: [2, 3], FROSTHOLLOW: [3, 1], PEAKS: [3, 5],
+  ALPINE: [4, 4], WILDLANDS: [3, 3], NORTHMOOR: [2, 3], FROSTHOLLOW: [3, 1], PEAKS: [3, 5],
   SHERWOOD: [1, 2], NOTTINGHAM: [1, 0], LOXLEY: [1, 1], MEADOWS: [0, 2],
   BAY: [0, 1], FENWOLD: [0, 1], ELDERGLADE: [1, 2],
 };
@@ -177,10 +252,9 @@ export function heightAt(x, y) {
   // low-frequency field keeps gradients ~<=1 per tile
   const n = vnoise(x, y, 26, 77) * 0.7 + vnoise(x, y, 9, 78) * 0.3;
   let h = base + n * amp;
-  // shoreline falls smoothly to sea level
-  const coastW = S(18) + 12, coastS = H - S(18) - 12;
-  const shore = Math.min(1, Math.max(0, Math.min(x - coastW, coastS - y) / 26 + 0.4));
-  h *= Math.max(0, shore);
+  // shoreline falls smoothly to sea level (whatever shape the carved coast takes)
+  const shore = Math.min(1, Math.max(0, shoreDist(x, y) / 26 + 0.15));
+  h *= shore;
   // rivers cut a shallow channel; roads ride the land as-is
   if (t === TILE.RIVER || t === TILE.WATER_SWAMP || t === TILE.WATER || t === TILE.BRIDGE) h = Math.max(0, h - 0.8);
   return Math.max(0, Math.min(MAX_ELEV, Math.round(h)));
@@ -197,6 +271,7 @@ const SCATTER = {
   NORTHMOOR: [['frostpine_tree', 0.006], ['tree', 0.004]],
   PEAKS: [['iron_rock', 0.007], ['coal_rock', 0.007], ['silver_rock', 0.0022], ['gold_rock', 0.0015]],
   WILDLANDS: [['sylvanite_rock', 0.0015], ['frostpine_tree', 0.005]],
+  ALPINE: [['frostpine_tree', 0.01], ['silver_rock', 0.003], ['gold_rock', 0.0022], ['sylvanite_rock', 0.0012]],
 };
 const NODE_OK_TILES = new Set([TILE.GRASS, TILE.MEADOW, TILE.FOREST, TILE.DEEPFOREST, TILE.JUNGLE, TILE.SWAMP, TILE.TUNDRA, TILE.SNOW, TILE.SCREE, TILE.DIRT]);
 
@@ -230,6 +305,26 @@ export function computeWorld() {
       if (n) _nodes.set(x + ',' + y, n);
     }
   for (const [type, x, y] of POIS) _nodes.set(x + ',' + y, type); // authored POIs win
+  // Fishing spots must sit ON open water. Authored coordinates are approximate
+  // (the warped rivers meander, pools wobble), so snap each spot to the nearest
+  // water tile within 8 — this guarantees every fishery lands in its pool/river.
+  const SPOT_TYPES = new Set(['net_spot', 'rod_spot', 'harpoon_spot']);
+  const WATERY = new Set([TILE.RIVER, TILE.WATER, TILE.OCEAN, TILE.WATER_SWAMP]);
+  for (const [key, type] of [..._nodes]) {
+    if (!SPOT_TYPES.has(type)) continue;
+    const [px, py] = key.split(',').map(Number);
+    if (WATERY.has(_tiles[py * W + px])) continue;
+    let best = null, bd = 1e9;
+    for (let dy = -8; dy <= 8; dy++) for (let dx = -8; dx <= 8; dx++) {
+      const nx = px + dx, ny = py + dy;
+      if (nx < 1 || ny < 1 || nx >= W - 1 || ny >= H - 1) continue;
+      if (!WATERY.has(_tiles[ny * W + nx])) continue;
+      const d = dx * dx + dy * dy;
+      if (d < bd) { bd = d; best = nx + ',' + ny; }
+    }
+    _nodes.delete(key);
+    if (best && !_nodes.has(best)) _nodes.set(best, type);
+  }
   return { tiles: _tiles, nodes: _nodes };
 }
 

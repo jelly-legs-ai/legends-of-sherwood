@@ -142,6 +142,19 @@ export const POIS = [
   ['campfire', 434, 298],
   // --- bandit camps (fires mark the camps; the company around them is hostile) ---
   ['campfire', 120, 320], ['campfire', 300, 236], ['campfire', 240, 120],
+  // --- river & pool fisheries (snapped onto open water at generation; the
+  //     spot tier climbs with the region's level band) ---
+  ['net_spot', 168, 328], ['rod_spot', 171, 332],          // Barnsdale pond
+  ['net_spot', 120, 299],                                  // west meadows pool
+  ['rod_spot', 237, 304], ['rod_spot', 240, 308],          // west Sherwood pool
+  ['rod_spot', 300, 361],                                  // a deep bend of the Trent
+  ['rod_spot', 280, 205], ['harpoon_spot', 271, 211],      // Northmoor river & pool
+  ['harpoon_spot', 452, 179],                              // Grey Peaks tarn
+  ['harpoon_spot', 491, 107], ['harpoon_spot', 494, 110],  // alpine tarn (top tier)
+  ['rod_spot', 485, 410], ['rod_spot', 488, 414],          // Fenwold broadwater
+  ['harpoon_spot', 470, 506],                              // the deep fen river
+  ['rod_spot', 261, 473], ['rod_spot', 264, 476],          // Elderglade pool
+  ['harpoon_spot', 329, 73], ['harpoon_spot', 332, 76],    // Wild Lands frozen pool
 ].filter(p => p[1] > 0);
 
 // Agility shortcuts: [type, x1, y1, x2, y2] — usable both directions.
