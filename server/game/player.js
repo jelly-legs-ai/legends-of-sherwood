@@ -14,6 +14,7 @@ export class Player {
     this.world = world;
     this.kind = 'player';
     this.name = name;
+    this.wallet = null;              // bound Robinhood-chain sign-in wallet (rh1…); withdrawals go only here
     this.plane = PLANE.OVERWORLD;
     this.x = COMBAT.PLAYER_RESPAWN.x + 0.5; this.y = COMBAT.PLAYER_RESPAWN.y + 0.5;
     this.dir = 2; this.anim = 'idle'; this.animSeq = 0;
@@ -281,7 +282,7 @@ export class Player {
       bank: this.bank, quests: this.quests, kills: this.kills, milestonesPaid: this.milestonesPaid,
       pouch: this.pouch, farm: this.farm, house: this.house, relics: this.relics, dungeonBest: this.dungeonBest,
       task: this.task, x: this.x, y: this.y, hp: this.hp, style: this.style,
-      pets: this.pets, activePet: this.activePet,
+      pets: this.pets, activePet: this.activePet, wallet: this.wallet,
     };
   }
   load(s) {
@@ -292,6 +293,7 @@ export class Player {
       pouch: s.pouch ?? 0, farm: s.farm ?? {}, house: s.house ?? { furniture: {} }, relics: s.relics ?? {},
       dungeonBest: s.dungeonBest ?? 0, task: s.task ?? null, hp: s.hp, style: s.style ?? 'balanced',
       pets: Array.isArray(s.pets) ? s.pets : [], activePet: s.activePet ?? null,
+      wallet: s.wallet ?? this.wallet,
     });
     if (typeof s.x === 'number' && typeof s.y === 'number') { this.x = s.x; this.y = s.y; }
     this.plane = PLANE.OVERWORLD; // always rejoin the overworld

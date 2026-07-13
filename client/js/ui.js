@@ -645,21 +645,10 @@ export function openBank(bank) {
     const info = document.createElement('div');
     info.style.marginBottom = '8px';
     info.innerHTML = `Click items to withdraw. Your pack: click items in the side panel to deposit. <button id="depall">Deposit all</button>
-      <div class="craft-cat" style="margin-top:8px">$LoS vault — balance ${fmt(G.bal || 0)}</div>
-      <div style="display:flex;gap:5px;align-items:center;font-size:12px">
-        <input id="wd-amt" type="number" min="5" placeholder="amount" style="width:76px">
-        <input id="wd-addr" placeholder="rh1… chain address" style="flex:1">
-        <button id="wd-go">Withdraw ⛓</button>
-      </div>
-      <div style="font-size:10.5px;color:#8d7a5b;margin-top:3px">Withdrawals to the Robinhood chain are screened by the Vault Wardens — large or rapid transactions are held for review.</div>`;
+      <div class="craft-cat" style="margin-top:8px">$LoS balance — ${fmt(G.bal || 0)}</div>
+      <div style="font-size:10.5px;color:#8d7a5b;margin-top:3px">To cash out $LoS to your wallet, visit the <b>Grand Exchange</b> in the grounds of Nottingham Castle — the only place withdrawals to the chain are made.</div>`;
     body.appendChild(info);
     info.querySelector('#depall').onclick = () => G.net.send({ t: MSG.BANK, depositAll: 1 });
-    info.querySelector('#wd-go').onclick = () => {
-      const amount = parseInt(info.querySelector('#wd-amt').value) || 0;
-      const address = info.querySelector('#wd-addr').value.trim();
-      if (amount > 0 && address) G.net.send({ t: 'withdraw', amount, address });
-      else toast('Enter an amount and your rh1… address.');
-    };
     const grid = document.createElement('div');
     grid.className = 'bank-grid';
     const entries = Object.entries(bank);
@@ -721,6 +710,23 @@ export function openGE(data) {
     body.appendChild(form);
     form.querySelector('#ge-place').onclick = () => {
       G.net.send({ t: MSG.GE, place: { type: $('#ge-type').value, item: $('#ge-item').value.trim(), qty: +$('#ge-qty').value, price: +$('#ge-price').value } });
+    };
+    // ---- $LoS chain withdrawal: only from the Exchange, only to the sign-in wallet ----
+    const wd = document.createElement('div');
+    wd.style.cssText = 'margin:6px 0 10px;padding:8px;border:1px solid #6b5a34;border-radius:6px;background:#241d10';
+    const shortW = data.wallet ? data.wallet.slice(0, 10) + '…' + data.wallet.slice(-4) : '—';
+    wd.innerHTML = `<div class="craft-cat" style="margin:0 0 5px">⛓ Withdraw $LoS to your wallet</div>
+      <div style="font-size:11px;color:#c9b487;margin-bottom:5px">Paid to your sign-in wallet <b title="${data.wallet || ''}">${shortW}</b> — funds can go to no other account.</div>
+      <div style="display:flex;gap:5px;align-items:center;font-size:12px">
+        <input id="wd-amt" type="number" min="5" placeholder="amount" style="width:90px">
+        <button id="wd-go" ${data.wallet ? '' : 'disabled'}>Withdraw ⛓</button>
+      </div>
+      <div style="font-size:10.5px;color:#8d7a5b;margin-top:3px">Screened by the Vault Wardens — large or rapid transactions are held for review.</div>`;
+    body.appendChild(wd);
+    wd.querySelector('#wd-go').onclick = () => {
+      const amount = parseInt(wd.querySelector('#wd-amt').value) || 0;
+      if (amount > 0) G.net.send({ t: 'withdraw', amount });
+      else toast('Enter an amount to withdraw.');
     };
     const hist = document.createElement('div');
     hist.style.cssText = 'font-size:11px;color:#8d7a4b;margin-bottom:8px';

@@ -56,14 +56,14 @@ npc('alan_a_dale', {
   lines: ['A song for a $LoS? Or news for free — the Colosseum pays fighters in $LoS, real ones.'],
 });
 npc('nottingham_banker', {
-  name: 'Banker Reginald', x: 321, y: 318, banker: true,
+  name: 'Banker Reginald', x: 319, y: 321, banker: true,
   vis: { skin: 'olive', hair: ['plain', 'black'], torso: ['longsleeve', 'charcoal'], legs: ['pants', 'black'] },
   lines: ['The Bank of Nottingham never sleeps. Mostly because of the rats.'],
 });
 npc('ge_clerk', {
-  name: 'Exchange Clerk Hild', x: 340, y: 318, geClerk: true,
+  name: 'Exchange Clerk Hild', x: 330, y: 313, geClerk: true,
   vis: { skin: 'light', hair: ['bangs', 'blonde'], torso: ['longsleeve', 'white'], legs: ['pants', 'black'] },
-  lines: ['Buy low, sell high — all offers settled in $LoS, the only honest coin left in England.'],
+  lines: ['Buy low, sell high — all offers settled in $LoS. And should you wish to cash your $LoS out to the chain, this is the only place it is done — paid straight to the wallet you signed in with.'],
 });
 npc('colosseum_marshal', {
   name: 'Marshal Brand', x: 323, y: 336, marshal: true,

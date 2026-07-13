@@ -180,7 +180,7 @@ export class GrandExchange {
   sync(p) {
     this.world.send(p, {
       t: 'ge', offers: this.playerOffers(p.name), bal: this.world.ledger.balance(p.name),
-      prices: this.history,
+      prices: this.history, wallet: p.wallet || null,
     });
   }
   err(p, m) { this.world.send(p, { t: MSG.MSGBOX, kind: 'ge', m }); return null; }

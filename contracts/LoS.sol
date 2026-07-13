@@ -23,8 +23,8 @@ contract LoS {
     uint8 public constant decimals = 18;
 
     uint256 public totalSupply;
-    /// Hard cap keeps the grind meaningful: 21m tokens, like a proper legend.
-    uint256 public constant MAX_SUPPLY = 21_000_000e18;
+    /// Hard cap: 1,000,000,000 $LoS.
+    uint256 public constant MAX_SUPPLY = 1_000_000_000e18;
 
     address public treasury;          // the game server's custodial bridge / mint authority
     address public pendingTreasury;

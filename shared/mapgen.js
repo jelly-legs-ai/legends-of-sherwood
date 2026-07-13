@@ -81,13 +81,14 @@ function townTile(x, y) {
     // buildings
     for (const b of t.buildings) {
       if (x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) {
+        const stone = b.castle || b.fortified;   // castles & the fortified Exchange are coursed stone
         const onEdge = x === b.x || x === b.x + b.w - 1 || y === b.y || y === b.y + b.h - 1;
         if (onEdge) {
           const mid = { S: [b.x + (b.w >> 1), b.y + b.h - 1], N: [b.x + (b.w >> 1), b.y], E: [b.x + b.w - 1, b.y + (b.h >> 1)], W: [b.x, b.y + (b.h >> 1)] }[b.door];
-          if (mid && mid[0] === x && mid[1] === y) return b.castle ? TILE.FLOOR_STONE : TILE.FLOOR_WOOD; // door
-          return b.castle ? TILE.WALL : TILE.WALL_WOOD;
+          if (mid && mid[0] === x && mid[1] === y) return stone ? TILE.FLOOR_STONE : TILE.FLOOR_WOOD; // door
+          return stone ? TILE.WALL : TILE.WALL_WOOD;
         }
-        return b.castle ? TILE.FLOOR_STONE : TILE.FLOOR_WOOD;
+        return stone ? TILE.FLOOR_STONE : TILE.FLOOR_WOOD;
       }
     }
     const d = dist(x, y, t.cx, t.cy);

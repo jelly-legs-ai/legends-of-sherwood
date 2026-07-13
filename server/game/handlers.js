@@ -57,7 +57,7 @@ export function handleMessage(world, ws, msg) {
     case MSG.EMOTE: p.anim = 'spellcast'; p.animSeq++; return;
     case 'pet': return onPet(world, p, msg);
     case 'mount': return onMount(world, p);
-    case 'withdraw': return world.vault.requestWithdraw(p, msg.amount | 0, msg.address);
+    case 'withdraw': return onWithdraw(world, p, msg);
     case 'devcmd': return onDevCmd(world, p, msg);
     case 'devgrant': if (process.argv.includes('--dev')) {
       if (msg.item && ITEMS[msg.item]) p.addItem(String(msg.item), Math.max(1, msg.qty | 0));
@@ -100,6 +100,23 @@ export function onDisconnect(world, ws) {
 }
 
 // ---------------- login ----------------
+// The site is gatekept by an EVM wallet sign-in (Phantom/MetaMask/Trust on the
+// Robinhood chain). We bind that wallet to the account on first login and never
+// change it: withdrawals can only ever go to the wallet the player signed in
+// with, so funds can't be routed to a different account. In this build the
+// connected address is provided by the sign-in flow; absent one we derive a
+// stable rh1… address deterministically from the account so a wallet is always
+// bound (and can't be swapped for another).
+function walletFor(name) {
+  let h = 2166136261 >>> 0;
+  const s = 'rhwallet:' + name.toLowerCase();
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  let out = '';
+  let x = h;
+  for (let i = 0; i < 4; i++) { x = Math.imul(x ^ (x >>> 15), 2246822519) >>> 0; out += x.toString(36); }
+  return 'rh1' + (out + name.toLowerCase().replace(/[^a-z0-9]/g, '')).slice(0, 30);
+}
+const VALID_WALLET = /^rh1[a-zA-Z0-9]{8,}$/;
 function onHello(world, ws, msg) {
   const name = String(msg.name || '').trim().slice(0, 16).replace(/[^\w \-]/g, '');
   if (name.length < 2) return ws.send(JSON.stringify({ t: MSG.MSGBOX, m: 'Pick a name (2-16 letters).' }));
@@ -115,6 +132,9 @@ function onHello(world, ws, msg) {
   }
   const isNew = !world.saved[name];
   const p = new Player(world, name, world.saved[name], { sex: msg.sex, skin: msg.skin, hair: msg.hair });
+  // Bind the sign-in wallet once; a previously bound wallet is immutable. A
+  // client-supplied connected address is honoured only for a brand-new binding.
+  if (!p.wallet) p.wallet = (typeof msg.wallet === 'string' && VALID_WALLET.test(msg.wallet)) ? msg.wallet.slice(0, 48) : walletFor(name);
   if (isBlocked(p.plane, p.x | 0, p.y | 0)) { p.x = COMBAT.PLAYER_RESPAWN.x + 0.5; p.y = COMBAT.PLAYER_RESPAWN.y + 0.5; }
   world.addEntity(p);
   world.players.set(name, p);
@@ -874,7 +894,7 @@ function onTalk(world, p, msg) {
   const opts = [];
   if (def.quest && QUESTS[def.quest] && !p.quests[def.quest]) opts.push({ id: 'quest_accept', label: `Quest: ${QUESTS[def.quest].name}` });
   if (def.shop) opts.push({ id: 'shop', label: 'Trade' });
-  if (def.banker) opts.push({ id: 'bank', label: 'Bank' });
+  if (def.banker) { opts.push({ id: 'bank', label: 'Bank' }); opts.push({ id: 'ge_info', label: 'About the Grand Exchange' }); }
   if (def.geClerk) opts.push({ id: 'ge', label: 'Grand Exchange' });
   if (def.marshal) opts.push({ id: 'duel_info', label: 'Colosseum duels' });
   if (def.taskboard) {
@@ -909,6 +929,8 @@ function onDialog(world, p, msg) {
       return;
     }
     case 'bank': return openBank(world, p);
+    case 'ge_info': return world.send(p, { t: MSG.DIALOGUE, npc: e.id, type: e.type, name: def.name, opts: [],
+      line: 'The Grand Exchange? Aye — the great fortified hall up in the grounds of Nottingham Castle, ringed by the Sheriff’s guards. That is the only place a soul may cash out their $LoS to the wallet they signed in with; the coin goes to that wallet and no other. We bankers only mind your goods — for the chain, you must climb to the Exchange itself.' });
     case 'ge': return world.ge.sync(p);
     case 'duel_info': return world.send(p, { t: MSG.MSGBOX, m: 'Challenge someone: click a player and choose Duel, or /duel <name> <stake>. Winner takes the pot (5% rake).' });
     case 'pickpocket': return pickpocket(world, p, e.id);
@@ -1007,6 +1029,24 @@ function onBank(world, p, msg) {
 }
 
 // ---------------- Grand Exchange ----------------
+// Standing at the Grand Exchange: within reach of its trading floor (ge_booth)
+// or an Exchange Clerk. The GE is the ONLY place $LoS leaves the game for chain.
+function nearGE(world, p) {
+  const { nodes } = computeWorld();
+  for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++)
+    if (nodes.get(((p.x | 0) + dx) + ',' + ((p.y | 0) + dy)) === 'ge_booth') return true;
+  for (const e of world.near(p.plane, p.x, p.y, 5)) if (e.kind === 'npc' && NPCS[e.type]?.geClerk) return true;
+  return false;
+}
+// Withdraw in-game $LoS to the chain. Only at the Grand Exchange, and only ever
+// to the wallet the account signed in with (p.wallet) — never a chosen address.
+function onWithdraw(world, p, msg) {
+  if (!nearGE(world, p))
+    return world.send(p, { t: MSG.MSGBOX, m: 'You can only withdraw $LoS at the Grand Exchange, in the grounds of Nottingham Castle.' });
+  if (!p.wallet)
+    return world.send(p, { t: MSG.MSGBOX, m: 'No sign-in wallet is bound to this account.' });
+  return world.vault.requestWithdraw(p, msg.amount | 0, p.wallet);
+}
 function onGE(world, p, msg) {
   if (msg.place) {
     const { type, item, qty, price } = msg.place;

@@ -31,6 +31,11 @@ mob('outlaw', { name: 'Outlaw', lvl: 22, life: 52, atk: 13, def: 11, style: 'mel
 mob('sheriffs_guard', { name: "Sheriff's guard", lvl: 28, life: 66, atk: 16, def: 16, style: 'melee', aggro: true,
   vis: { skin: 'light', torso: ['chainmail', 'steel'], legs: ['plate', 'iron'], head: ['mail', 'iron'], weapon: ['spear', 'iron'] },
   drops: [['bones', 1, 1], ['coins', [12, 40], 0.95], ['iron_spear', 1, 0.04], ['crossbow', 1, 0.015], ['iron_bolts', [5, 15], 0.2], ['iron_platebody', 1, 0.02], ['bread', 1, 0.2], ['amber_charm', 1, 0.1]] });
+// Elite castle-guard of the Grand Exchange. Passive (aggro:false) — it only
+// fights when struck — but hits hard, standing watch over the fortified hall.
+mob('ge_guard', { name: 'Exchange guard', lvl: 42, life: 130, atk: 24, def: 26, style: 'melee', shil: 2, respawnMs: 20000,
+  vis: { skin: 'light', torso: ['chainmail', 'steel'], legs: ['plate', 'iron'], head: ['mail', 'iron'], weapon: ['spear', 'iron'] },
+  drops: [['bones', 1, 1], ['coins', [30, 90], 0.95], ['iron_spear', 1, 0.05], ['iron_platebody', 1, 0.03], ['iron_bolts', [8, 20], 0.2], ['amber_charm', 1, 0.12]] });
 mob('poacher', { name: 'Poacher', lvl: 25, life: 58, atk: 14, def: 12, style: 'ranged',
   vis: { skin: 'brown', hair: ['buzzcut', 'black'], torso: ['leather', 'forest'], legs: ['pants', 'charcoal'], weapon: ['bow', 'medium'] },
   drops: [['bones', 1, 1], ['coins', [10, 30], 0.9], ['bronze_arrow', [5, 15], 0.5], ['rabbit_fur', 1, 0.4], ['ash_bow', 1, 0.03]] });

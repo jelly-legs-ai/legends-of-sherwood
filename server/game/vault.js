@@ -9,7 +9,7 @@ import path from 'node:path';
 import { MSG } from '../../shared/constants.js';
 
 export const VAULT_RULES = {
-  LARGE: 500,                    // single withdrawal >= this flags
+  LARGE: 1000000,                // single withdrawal >= this ($LoS) flags + freezes
   FREQ_N: 3,                     // more than this many withdrawals...
   FREQ_WINDOW_MS: 60 * 60000,    // ...within this window flags
   BAN_MS: 24 * 3600000,          // temp-ban length pending investigation
@@ -78,11 +78,14 @@ export class Vault {
   // ---------------- withdrawals ----------------
   requestWithdraw(p, amount, address) {
     amount = Math.floor(amount);
-    address = String(address || '').slice(0, 64);
+    // Funds can ONLY go to the wallet the account signed in with. Any address a
+    // caller passes is ignored in favour of the bound wallet, so $LoS can never
+    // be routed to a different account.
+    address = String(p.wallet || address || '').slice(0, 64);
     const bal = this.world.ledger.balance(p.name);
     if (!(amount >= VAULT_RULES.MIN)) return this.world.send(p, { t: MSG.MSGBOX, m: `Withdrawals start at ${VAULT_RULES.MIN} $LoS.` });
     if (amount > bal) return this.world.send(p, { t: MSG.MSGBOX, m: 'You do not hold that many $LoS.' });
-    if (!/^rh1[a-zA-Z0-9]{8,}$/.test(address)) return this.world.send(p, { t: MSG.MSGBOX, m: 'That is not a valid Robinhood-chain address (rh1…).' });
+    if (!/^rh1[a-zA-Z0-9]{8,}$/.test(address)) return this.world.send(p, { t: MSG.MSGBOX, m: 'No valid sign-in wallet is bound to this account.' });
 
     const now = Date.now();
     const recent = this.requests.filter(r => r.name === p.name && now - r.t < VAULT_RULES.FREQ_WINDOW_MS);

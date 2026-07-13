@@ -647,7 +647,7 @@ export class Renderer {
         const edge = Math.hypot(dx, dy);
         const alpha = Math.max(0, Math.min(1, (edge - 0.4) / 3));
         if (alpha < 0.02) continue;                       // fully inside — skip the roof entirely
-        const stone = b.castle;
+        const stone = b.castle || b.fortified;   // castles & the fortified Grand Exchange
         const wallH = stone ? 56 : 46;
         // top-of-wall screen corners (elevation already folded into screenOf)
         const P = (wx, wy) => { const [sx, sy] = this.screenOf(0, wx, wy); return [sx, sy - wallH]; };
@@ -661,10 +661,11 @@ export class Renderer {
         const e00 = out(c00, mx, myy), e10 = out(c10, mx, myy), e11 = out(c11, mx, myy), e01 = out(c01, mx, myy);
         ctx.save();
         ctx.globalAlpha = alpha;
-        const roofTop = stone ? '#8a8578' : '#b06a3a';       // near-camera face
-        const roofL = stone ? '#6e6a5e' : '#8a4f2a';
-        const roofR = stone ? '#7a766a' : '#9a5c32';
-        const roofBack = stone ? '#5e5a50' : '#733f22';
+        const gilded = b.ge;                                 // the ornate Exchange wears a gilded roof
+        const roofTop = gilded ? '#d8b24a' : stone ? '#8a8578' : '#b06a3a';       // near-camera face
+        const roofL = gilded ? '#a8842e' : stone ? '#6e6a5e' : '#8a4f2a';
+        const roofR = gilded ? '#c09a3c' : stone ? '#7a766a' : '#9a5c32';
+        const roofBack = gilded ? '#8a6c24' : stone ? '#5e5a50' : '#733f22';
         const face = (a, c, col, shade) => { ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(c[0], c[1]); ctx.lineTo(apex[0], apex[1]); ctx.closePath(); ctx.fill(); if (shade) { ctx.strokeStyle = '#00000033'; ctx.lineWidth = 1; ctx.stroke(); } };
         // draw far faces first, near faces last (painter's order in iso)
         face(e01, e11, roofBack);          // north/back
