@@ -175,6 +175,7 @@ function onMove(world, p, msg) {
     p.velT = Date.now();
     p.run = !!msg.run;
     p.pendingAction = null;
+    p.path = null; p.pathGoal = null;
     return;
   }
   const tx = Math.max(0, Math.min(WORLD.W - 1, msg.x | 0)), ty = Math.max(0, Math.min(WORLD.H - 1, msg.y | 0));
@@ -182,56 +183,82 @@ function onMove(world, p, msg) {
   p.vel = null;
   p.pendingAction = null;
   p.path = findPath(p.plane, p.x | 0, p.y | 0, tx, ty);
+  p.pathGoal = p.path ? { x: tx, y: ty } : null;   // remember the true destination for multi-leg routing
   p.target = null;
   p.action = null;
 }
 
-// Bounded A* over a 56x56 window; falls back to straight-line.
+const PATH_DIRS = [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [-1, -1], [1, -1], [-1, 1]];
+// Nearest walkable tile within radius r (spiral out from x,y).
+function nearestWalkable(plane, x, y, r = 8) {
+  if (!isBlocked(plane, x, y)) return [x, y];
+  for (let d = 1; d <= r; d++)
+    for (let dy = -d; dy <= d; dy++) for (let dx = -d; dx <= d; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== d) continue;
+      if (!isBlocked(plane, x + dx, y + dy)) return [x + dx, y + dy];
+    }
+  return null;
+}
+// A* that always respects collisions — no straight-line shortcuts through walls,
+// water, or obstacle nodes. A clear line of sight is a cheap single hop; anything
+// else is routed around. When the exact goal can't be reached inside the search
+// window (a far click, or an unbridged river), it returns the best partial route
+// toward the goal — the player walks a valid path as far as they can and
+// tickPlayer re-paths from there, so long journeys cross bridges and thread
+// building doorways one leg at a time instead of floating through them.
 export function findPath(plane, sx, sy, tx, ty) {
-  if (isBlocked(plane, tx, ty)) {
-    // aim at the nearest walkable neighbour instead
-    let ok = null;
-    for (const [dx, dy] of [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [-1, -1], [1, -1], [-1, 1]])
-      if (!isBlocked(plane, tx + dx, ty + dy)) { ok = [tx + dx, ty + dy]; break; }
-    if (!ok) return null;
-    tx = ok[0]; ty = ok[1];
+  sx |= 0; sy |= 0; tx |= 0; ty |= 0;
+  if (sx === tx && sy === ty) return null;
+  if (isBlocked(plane, tx, ty)) {                       // snap unwalkable targets (walls, water, node tiles)
+    const s = nearestWalkable(plane, tx, ty, 8);
+    if (!s) return null;
+    tx = s[0]; ty = s[1];
+    if (sx === tx && sy === ty) return null;
   }
-  const R = 44;
-  if (Math.abs(tx - sx) > R || Math.abs(ty - sy) > R) return [{ x: tx, y: ty }]; // long hauls steer straight
-  const x0 = Math.min(sx, tx) - 10, y0 = Math.min(sy, ty) - 10;
-  const w = Math.abs(tx - sx) + 21, h = Math.abs(ty - sy) + 21;
+  // clear straight shot across open ground → one hop
+  if (lineWalkable(plane, sx + 0.5, sy + 0.5, tx + 0.5, ty + 0.5)) return [{ x: tx, y: ty }];
+  // clamp a far goal into a bounded window; the leftover distance is covered by
+  // successive re-paths (see tickPlayer), so cost per click stays bounded.
+  const CAP = 110, M = 22;
+  let ax = tx, ay = ty;
+  if (Math.abs(tx - sx) > CAP) ax = sx + Math.sign(tx - sx) * CAP;
+  if (Math.abs(ty - sy) > CAP) ay = sy + Math.sign(ty - sy) * CAP;
+  const x0 = Math.min(sx, ax) - M, y0 = Math.min(sy, ay) - M;
+  const w = Math.abs(ax - sx) + M * 2 + 1, h = Math.abs(ay - sy) + M * 2 + 1;
   const key = (x, y) => (y - y0) * w + (x - x0);
-  const open = [{ x: sx, y: sy, g: 0, f: 0 }];
+  const heur = (x, y) => Math.hypot(ax - x, ay - y);
+  const open = [{ x: sx, y: sy, g: 0, f: heur(sx, sy) }];
   const came = new Map(), gs = new Map([[key(sx, sy), 0]]), closed = new Set();
-  let found = false;
-  let guard = 0;
-  while (open.length && guard++ < 20000) {
+  let found = false, best = { x: sx, y: sy, h: heur(sx, sy) }, guard = 0;
+  const GMAX = Math.min(140000, w * h * 4);
+  while (open.length && guard++ < GMAX) {
     let bi = 0;
     for (let i = 1; i < open.length; i++) if (open[i].f < open[bi].f) bi = i;
-    const cur = open[bi];
-    open[bi] = open[open.length - 1]; open.pop();
+    const cur = open[bi]; open[bi] = open[open.length - 1]; open.pop();
     const ck = key(cur.x, cur.y);
     if (closed.has(ck)) continue;
     closed.add(ck);
-    if (cur.x === tx && cur.y === ty) { found = true; break; }
-    for (const [dx, dy] of [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [-1, -1], [1, -1], [-1, 1]]) {
+    const hh = heur(cur.x, cur.y); if (hh < best.h) best = { x: cur.x, y: cur.y, h: hh };
+    if (cur.x === ax && cur.y === ay) { found = true; break; }
+    for (const [dx, dy] of PATH_DIRS) {
       const nx = cur.x + dx, ny = cur.y + dy;
       if (nx < x0 || ny < y0 || nx >= x0 + w || ny >= y0 + h) continue;
       const k = key(nx, ny);
       if (closed.has(k)) continue;
       if (isBlocked(plane, nx, ny)) continue;
-      if (dx && dy && (isBlocked(plane, cur.x + dx, cur.y) || isBlocked(plane, cur.x, cur.y + dy))) continue;
+      if (dx && dy && (isBlocked(plane, cur.x + dx, cur.y) || isBlocked(plane, cur.x, cur.y + dy))) continue;   // no corner-cutting
       const g = gs.get(ck) + (dx && dy ? 1.41 : 1);
       if (g < (gs.get(k) ?? Infinity)) {
         gs.set(k, g);
         came.set(k, cur);
-        open.push({ x: nx, y: ny, g, f: g + Math.hypot(tx - nx, ty - ny) });
+        open.push({ x: nx, y: ny, g, f: g + heur(nx, ny) });
       }
     }
   }
-  if (!found) return [{ x: tx, y: ty }];
+  const goal = found ? { x: ax, y: ay } : best;
+  if (goal.x === sx && goal.y === sy) return null;      // hemmed in — nowhere useful to go
   const path = [];
-  let cur = { x: tx, y: ty };
+  let cur = { x: goal.x, y: goal.y };
   while (cur && !(cur.x === sx && cur.y === sy)) { path.unshift({ x: cur.x, y: cur.y }); cur = came.get(key(cur.x, cur.y)); }
   return smoothPath(plane, sx, sy, path);
 }

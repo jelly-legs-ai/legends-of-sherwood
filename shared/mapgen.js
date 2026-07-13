@@ -270,8 +270,8 @@ export function heightAt(x, y) {
   // shoreline falls smoothly to sea level (whatever shape the carved coast takes)
   const shore = Math.min(1, Math.max(0, shoreDist(x, y) / 26 + 0.15));
   h *= shore;
-  // rivers cut a shallow channel; roads ride the land as-is
-  if (t === TILE.RIVER || t === TILE.WATER_SWAMP || t === TILE.WATER || t === TILE.BRIDGE) h = Math.max(0, h - 0.8);
+  // rivers cut a shallow channel; a bridge deck stays level with its road banks
+  if (t === TILE.RIVER || t === TILE.WATER_SWAMP || t === TILE.WATER) h = Math.max(0, h - 0.8);
   return Math.max(0, Math.min(MAX_ELEV, Math.round(h)));
 }
 

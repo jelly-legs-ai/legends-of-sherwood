@@ -1,10 +1,11 @@
 // Legends of Sherwood — client entry: login, game state, input, main loop.
-import { MSG, PLANE, WILDERNESS_Y, REGIONS } from '/shared/constants.js';
-import { computeWorld, regionAt, dungeonFloor } from '/shared/mapgen.js';
+import { MSG, PLANE, WILDERNESS_Y, REGIONS, TILE } from '/shared/constants.js';
+import { computeWorld, regionAt, dungeonFloor, worldTile } from '/shared/mapgen.js';
 import { QUESTS } from '/shared/data/quests.js';
 import { ITEMS } from '/shared/data/items.js';
 import { MOBS } from '/shared/data/mobs.js';
-import { SPELLS } from '/shared/data/skills.js';
+import { NPCS } from '/shared/data/npcs.js';
+import { SPELLS, NODES } from '/shared/data/skills.js';
 import { Net } from './net.js';
 import { loadManifest, composite, drawChar } from './sprites.js';
 import { loadMedia } from './media.js';
@@ -315,9 +316,9 @@ function clickEntity(ent, e, menu) {
       if (stake > 0) send({ t: MSG.DUEL, challenge: ent.name, stake });
     }]);
   }
-  if (!opts.length) return;
-  if (menu || opts.length > 1 && ent.k === 'player') ctxWithWalk(e, opts);
-  else opts[0][1]();
+  if (menu || opts.length > 1 && ent.k === 'player') ctxWithWalk(e, opts, examineEntity(ent));
+  else if (opts.length) opts[0][1]();
+  else if (menu) ctxWithWalk(e, [], examineEntity(ent));
 }
 function clickGround(e, menu) {
   const [tx, ty] = R.tileFromScreen(e.clientX, e.clientY);
@@ -353,22 +354,84 @@ function clickGround(e, menu) {
   if (menu) {
     const opts = [['🚶 Walk here', () => send({ t: MSG.MOVE, x, y, run: false })], ['🏃 Run here', () => send({ t: MSG.MOVE, x, y, run: true })]];
     if (nodeType) opts.unshift([actionLabel(nodeType), () => send({ t: MSG.ACTION, x: nodeX, y: nodeY, seed: G.selectedSeed })]);
-    ctxWithWalk(e, opts);
+    ctxWithWalk(e, opts, nodeType ? examineNode(nodeType) : examineTile(x, y));
     return;
   }
   send({ t: MSG.MOVE, x, y, run: true });
   clickMarker = { x: tx, y: ty, t0: performance.now() };
 }
-function ctxWithWalk(e, opts) { UI.ctxMenu(e.clientX, e.clientY, opts); }
+// Every world right-click menu ends with Examine (flavour text) then Cancel.
+function ctxWithWalk(e, opts, examine) {
+  const full = [...opts];
+  if (examine) full.push(['🔍 Examine', () => UI.chatLine(`<span class="sys">${examine}</span>`)]);
+  full.push(['✖ Cancel', () => { }]);
+  UI.ctxMenu(e.clientX, e.clientY, full);
+}
+// The node's proper display name — trees gain a trailing "tree" (Oak -> Oak tree).
+function nodeDisplayName(type) {
+  const n = NODES[type];
+  if (!n) return type.replace(/_/g, ' ');
+  let name = n.name;
+  if (type.includes('tree') && !/tree/i.test(name)) name += ' tree';
+  return name;
+}
+const SKILL_VERB = { woodcutting: ['🪓', 'Chop'], mining: ['⛏', 'Mine'], hunter: ['🪤', 'Trap'], archaeology: ['🗿', 'Excavate'], runecrafting: ['✨', 'Craft runes at'], farming: ['🌱', 'Tend'], agility: ['🤸', 'Traverse'] };
 function actionLabel(type) {
-  if (type.includes('tree')) return '🪓 Chop';
-  if (type.includes('rock')) return '⛏ Mine';
-  if (type.includes('spot')) return '🎣 Fish';
-  if (type.includes('altar')) return '✨ Use altar';
-  if (type.includes('stall')) return '🖐 Steal';
-  if (type === 'bank_booth') return '🏦 Bank';
-  if (type === 'ge_booth') return '⚖ Exchange';
-  return '✋ Use';
+  const n = NODES[type];
+  if (!n) return '✋ Use';
+  const name = nodeDisplayName(type);
+  if (type.includes('spot')) { const g = /net/.test(type) ? 'net' : /rod/.test(type) ? 'rod' : 'harpoon'; return `🎣 Fish (${g})`; }
+  if (n.stall) return `🖐 Steal from ${name}`;
+  if (n.altar || n.rune) return `✨ ${n.rune ? 'Craft runes at' : 'Pray at'} ${name}`;
+  if (n.bank) return '🏦 Bank';
+  if (n.ge) return '⚖ Exchange';
+  if (n.house) return '🏠 Enter house portal';
+  if (n.dungeon) return '⚔ Descend the Depths';
+  if (n.obelisk) return '✦ Commune with the obelisk';
+  if (n.bench) return '🔧 Restore at the bench';
+  if (n.patch) return `🌱 Farm the ${name}`;
+  if (n.station) return `🔥 Use ${name}`;
+  if (n.shortcut) return `🤸 Cross the ${name}`;
+  const v = SKILL_VERB[n.skill];
+  return v ? `${v[0]} ${v[1]} ${name}` : `✋ Use ${name}`;
+}
+// Short flavour lines for Examine.
+function examineNode(type) {
+  const n = NODES[type];
+  if (!n) return 'You see nothing of interest.';
+  const name = nodeDisplayName(type);
+  const req = n.lvl > 1 ? ` It needs ${n.skill} level ${n.lvl}.` : '';
+  if (type.includes('tree')) return `${name}. A hatchet will fell it for ${ITEMS[n.yield]?.name || 'logs'}.${req}`;
+  if (type.includes('rock')) return `${name}. A pickaxe will chip out ${ITEMS[n.yield]?.name || 'ore'}.${req}`;
+  if (type.includes('spot')) return `A shimmer of fish beneath the surface.${req}`;
+  if (n.stall) return `${name}. Light fingers could lift its wares.${req}`;
+  if (n.altar || n.rune) return `${name}. Rune essence hums with power here.${req}`;
+  if (n.station || n.bench) return `${name}. A place to ply an honest craft.`;
+  if (n.bank) return 'A bank booth — your goods are safe here.';
+  if (n.ge) return 'The Grand Exchange — buy, sell, and cash out $LoS.';
+  return `${name}.${req}`;
+}
+const TILE_DESC = {
+  [TILE.OCEAN]: 'The open sea, cold and deep.', [TILE.WATER]: 'A still pool of water.', [TILE.RIVER]: 'Fast-running river water.',
+  [TILE.WATER_SWAMP]: 'Stagnant fenwater, dark and reeking.', [TILE.SAND]: 'Soft coastal sand.', [TILE.GRASS]: 'Green grass underfoot.',
+  [TILE.MEADOW]: 'A flowering meadow.', [TILE.DIRT]: 'Bare, trodden earth.', [TILE.FOREST]: 'The forest floor.', [TILE.DEEPFOREST]: 'Deep, shadowed woodland.',
+  [TILE.SWAMP]: 'Squelching swamp ground.', [TILE.JUNGLE]: 'Dense wildwood undergrowth.', [TILE.ROCK]: 'Bare mountain rock.', [TILE.SCREE]: 'Loose mountain scree.',
+  [TILE.TUNDRA]: 'Frozen tundra.', [TILE.SNOW]: 'Deep, crisp snow.', [TILE.ICE]: 'Treacherous ice.', [TILE.ROAD]: 'A well-worn road.', [TILE.BRIDGE]: 'A sturdy bridge across the water.',
+  [TILE.FARM]: 'Ploughed farmland.',
+};
+function examineTile(x, y) {
+  const t = worldTile(x, y);
+  return TILE_DESC[t] || 'You see nothing of interest.';
+}
+function examineEntity(ent) {
+  if (ent.k === 'mob') { const m = MOBS[ent.type]; return `${ent.name}. A level ${ent.lvl} ${m?.aggro ? 'and hostile ' : ''}creature.`; }
+  if (ent.k === 'npc') { const d = NPCS[ent.type]; return `${ent.name}. ${d?.tutor ? 'A master worth learning from.' : d?.shop ? 'A trader with wares to sell.' : d?.quest ? 'They seem to have a task in mind.' : 'A soul of Sherwood.'}`; }
+  if (ent.k === 'item') { const it = ITEMS[ent.item]; return `${it?.name || ent.item}. ${it?.examine || 'Left lying on the ground.'}`; }
+  if (ent.k === 'player') return `${ent.name}. A fellow adventurer${ent.cb ? ` of combat level ${ent.cb}` : ''}.`;
+  if (ent.k === 'chest') return `${ent.name}. ${ent.locked ? 'Locked tight — a key or lockpick is needed.' : 'It might hold treasure.'}`;
+  if (ent.k === 'geode') return `${ent.name}. Crack it open for gems.`;
+  if (ent.k === 'shil') return 'A glint of $LoS on the ground.';
+  return 'You see nothing of interest.';
 }
 let clickMarker = null;
 

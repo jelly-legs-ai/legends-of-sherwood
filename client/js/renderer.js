@@ -440,6 +440,45 @@ function fallAnim(kind) {
 
 function hashXY(x, y) { let h = (x * 73856093) ^ (y * 19349663); h = (h ^ (h >> 13)) * 0x5bd1e995; return ((h ^ (h >> 15)) >>> 0) / 4294967296; }
 
+// A timber bridge deck spanning the river at bank level: the walking surface is
+// the tile diamond itself (so players stand ON it), with the channel water
+// drawn below, support piers plunging into it, deck thickness on the near
+// faces, and a guard rail along the two far edges.
+function drawBridge(g, lx, ly, x, y, plane) {
+  const hw = TW / 2, hh = TH / 2, TK = 6, PIER = 17;
+  const N = [lx, ly - hh], E = [lx + hw, ly], S = [lx, ly + hh], W = [lx - hw, ly];
+  const cont = (nx, ny) => { const t = tileAtPlane(plane, nx, ny); return t === TILE.BRIDGE || t === TILE.ROAD; };
+  // support piers plunge from the deck corners down into the channel water
+  const pier = (px, topY) => { g.fillStyle = '#2a1c0e'; g.fillRect(px - 2.5, topY, 5, PIER); g.fillStyle = '#402c16'; g.fillRect(px - 2.5, topY, 2, PIER); };
+  pier(W[0] + 6, W[1]); pier(E[0] - 6, E[1]); pier(lx, S[1] - 1);
+  // deck thickness on the two camera-facing edges
+  const faceQuad = (a, b, col) => { g.fillStyle = col; g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.lineTo(b[0], b[1] + TK); g.lineTo(a[0], a[1] + TK); g.closePath(); g.fill(); };
+  faceQuad(W, S, '#573a1c'); faceQuad(S, E, '#684622');
+  // deck top planks
+  g.fillStyle = '#7d5327';
+  g.beginPath(); g.moveTo(N[0], N[1]); g.lineTo(E[0], E[1]); g.lineTo(S[0], S[1]); g.lineTo(W[0], W[1]); g.closePath(); g.fill();
+  g.save(); g.beginPath(); g.moveTo(N[0], N[1]); g.lineTo(E[0], E[1]); g.lineTo(S[0], S[1]); g.lineTo(W[0], W[1]); g.closePath(); g.clip();
+  // plank seams run across the crossing so you walk over the boards
+  const alongX = cont(x - 1, y) || cont(x + 1, y);
+  g.strokeStyle = '#00000038'; g.lineWidth = 1;
+  for (let i = 1; i < 7; i++) {
+    const t2 = i / 7;
+    if (alongX) { g.beginPath(); g.moveTo(N[0] + (W[0] - N[0]) * t2, N[1] + (W[1] - N[1]) * t2); g.lineTo(E[0] + (S[0] - E[0]) * t2, E[1] + (S[1] - E[1]) * t2); g.stroke(); }
+    else { g.beginPath(); g.moveTo(N[0] + (E[0] - N[0]) * t2, N[1] + (E[1] - N[1]) * t2); g.lineTo(W[0] + (S[0] - W[0]) * t2, W[1] + (S[1] - W[1]) * t2); g.stroke(); }
+  }
+  g.restore();
+  g.strokeStyle = '#9a6a34'; g.lineWidth = 1;   // lit far edges
+  g.beginPath(); g.moveTo(W[0], W[1]); g.lineTo(N[0], N[1]); g.lineTo(E[0], E[1]); g.stroke();
+  // guard rail along the two far (up-screen) edges: top rail + posts
+  const railH = 9;
+  const rail = (a, b) => {
+    g.strokeStyle = '#4a3016'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(a[0], a[1] - railH); g.lineTo(b[0], b[1] - railH); g.stroke();
+    for (let i = 0; i <= 3; i++) { const px = a[0] + (b[0] - a[0]) * (i / 3), py = a[1] + (b[1] - a[1]) * (i / 3); g.beginPath(); g.moveTo(px, py); g.lineTo(px, py - railH); g.stroke(); }
+  };
+  rail(W, N); rail(N, E);
+}
+
 // Smooth value noise (bilinear over a 5-tile lattice): neighbouring tiles get
 // near-identical shades, so terrain reads as continuous ground, not a grid.
 function smoothNoise(x, y) {
@@ -515,7 +554,11 @@ function chunkCanvas(plane, cx, cy) {
         continue;
       }
     }
-    if (!WALLS.has(t)) {
+    if (t === TILE.BRIDGE) {
+      // channel water below, then a timber deck on piers at bank level
+      g.drawImage(tileTexture(TILE.RIVER, (shade * 8) | 0), lx - TW / 2, ly - TH / 2 + 9);
+      drawBridge(g, lx, ly, x, y, plane);
+    } else if (!WALLS.has(t)) {
       const isWater = WATERS.has(t);
       for (let k = drop; k >= 1; k--) {
         // elevated water pours over the cliff: the drop column is falling water

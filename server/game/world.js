@@ -16,6 +16,7 @@ import { tickCombat, mobAttack } from './combat.js';
 import { createStore } from './store.js';
 import { Vault } from './vault.js';
 import { loadCustomEvents, loadTokenConfig, loadEconConfig } from './admin.js';
+import { findPath } from './handlers.js';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -475,9 +476,19 @@ export class World {
       const before = p.x + ',' + p.y;
       this.moveEntity(p, nx, ny, speed, dt);
       moved = before !== p.x + ',' + p.y;
-      if (moved) p.path = null;
+      if (moved) { p.path = null; p.pathGoal = null; }
     } else if (p.path && p.path.length) {
       moved = this.followPath(p, this.moveSpeed(p), dt);
+      // Finished this leg but not yet at the real destination? Route the next
+      // leg around whatever obstacle stopped us (bridges, building doors, coves).
+      if ((!p.path || !p.path.length) && p.pathGoal) {
+        const g = p.pathGoal;
+        const dg = Math.hypot((g.x + 0.5) - p.x, (g.y + 0.5) - p.y);
+        if (dg <= 1.4) p.pathGoal = null;                          // arrived
+        else if (g.lastD !== undefined && dg > g.lastD - 0.4) p.pathGoal = null; // no progress — give up
+        else if ((g.tries = (g.tries || 0) + 1) > 80) p.pathGoal = null;         // safety cap
+        else { g.lastD = dg; p.path = findPath(p.plane, p.x | 0, p.y | 0, g.x, g.y); if (!p.path) p.pathGoal = null; }
+      }
     }
     if (moved) {
       p.anim = 'walk';
