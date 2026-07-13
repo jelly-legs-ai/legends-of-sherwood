@@ -786,7 +786,7 @@ export class World {
 
   // ---------------- AOI snapshots ----------------
   describe(e) {
-    const d = { id: e.id, k: e.kind, x: +e.x.toFixed(2), y: +e.y.toFixed(2), dir: e.dir || 2, anim: e.anim || 'idle', seq: e.animSeq || 0 };
+    const d = { id: e.id, k: e.kind, x: +e.x.toFixed(2), y: +e.y.toFixed(2), dir: e.dir ?? 2, anim: e.anim || 'idle', seq: e.animSeq || 0 };
     if (e.kind === 'player') Object.assign(d, { name: e.name, hp: e.hp, mhp: e.maxHp, vis: e.visual(), cb: e.combatLevel(), skull: e.plane === 0 && e.y < WILDERNESS_Y, ...this.rideState(e) });
     else if (e.kind === 'mob') { const m = MOBS[e.type]; Object.assign(d, { type: e.type, name: m.name, lvl: e.lvl, hp: e.hp, mhp: e.maxHp, vis: m.vis, critter: m.critter, sheet: m.sheet, tint: m.tint, boss: m.boss, scale: m.scale }); }
     else if (e.kind === 'geode') Object.assign(d, { name: `Gem geode (${e.gem})`, gem: e.gem, gemRow: e.gemRow, gemCol: e.gemCol, lvl: e.lvl });
@@ -815,7 +815,7 @@ export class World {
         seen.add(e.id);
         if (!p.known.has(e.id)) { p.known.add(e.id); enter.push(this.describe(e)); }
         else {
-          const u = [e.id, +e.x.toFixed(2), +e.y.toFixed(2), e.dir || 2, e.anim || 'idle', e.animSeq || 0, e.hp !== undefined ? e.hp : -1];
+          const u = [e.id, +e.x.toFixed(2), +e.y.toFixed(2), e.dir ?? 2, e.anim || 'idle', e.animSeq || 0, e.hp !== undefined ? e.hp : -1];
           if (e.visDirty) { u.push(e.visual()); e.visDirty = false; }
           up.push(u);
         }
