@@ -8,7 +8,7 @@ import { MOBS } from '/shared/data/mobs.js';
 import { PETS } from '/shared/data/pets.js';
 import { SPELLS, PRAYERS } from '/shared/data/skills.js';
 import { loadMedia, MEDIA, drawCreature, drawFxSprite } from './media.js';
-import { loadManifest, composite, drawChar, drawOversize, critterSprite, ANIMS } from './sprites.js';
+import { loadManifest, composite, drawChar, drawOversize, drawHeldShield, shieldBehind, critterSprite, ANIMS } from './sprites.js';
 import { itemIcon } from './icons.js';
 
 const $ = (s) => document.querySelector(s);
@@ -355,6 +355,10 @@ function preview(sel) {
     // IS how it looks in-game.
     if (it.pet && PETS[it.pet]) {
       previewCritterDef(g, PETS[it.pet], () => compSel === sel);
+    } else if (it.aura) {
+      previewAura(g, it.aura, () => compSel === sel);
+    } else if (it.mount) {
+      previewMount(g, it.mount, () => compSel === sel);
     } else if (it.vis && it.vis.layer) {
       previewEquipped(g, it, () => compSel === sel);
     } else {
@@ -372,8 +376,7 @@ function preview(sel) {
   if (sel.kind === 'spell') {
     const s = SPELLS[sel.id];
     info.textContent = JSON.stringify(s, null, 1);
-    const spec = s.proj?.startsWith('sheet:') ? s.proj.slice(6) : null;
-    if (spec) { const loop = (now) => { g.clearRect(0, 0, 260, 200); drawFxSprite(g, spec, (now % 1600) / 1600, 130, 100, 170); if (compSel === sel) raf = requestAnimationFrame(loop); }; raf = requestAnimationFrame(loop); }
+    previewSpell(g, s, () => compSel === sel);
     return;
   }
   if (sel.kind === 'creature' || sel.kind === 'pet') {
@@ -467,22 +470,114 @@ function previewEquipped(g, it, alive) {
   vis[it.vis.layer] = [it.vis.sheet || it.vis.type, it.vis.color];
   const isWeapon = it.vis.layer === 'weapon';
   const actAnim = !isWeapon ? 'walk'
-    : ['bow', 'crossbow'].includes(it.vis.type) ? 'shoot'
-      : it.vis.type === 'staff' ? 'spellcast' : 'slash';
+    : it.vis.type === 'bow' ? 'shoot'
+      : ['staff', 'crossbow'].includes(it.vis.type) ? 'thrust' : 'slash';   // staves & crossbows use the thrust rows (that's where their art lives)
   const comp = composite(vis);
   const loop = (now) => {
     g.clearRect(0, 0, 260, 200);
     g.imageSmoothingEnabled = false;
+    const shieldCol = vis.shield && vis.shield[1];
     const wf = Math.floor(now / 110) % ANIMS.walk.frames;
+    if (shieldCol && shieldBehind(2)) drawHeldShield(g, shieldCol, 2, 78, 172, 2);
     drawChar(g, comp, 'walk', 2, wf, 78, 172, 2);
     drawOversize(g, comp, vis, 'walk', 2, wf, 78, 172, 2);
+    if (shieldCol && !shieldBehind(2)) drawHeldShield(g, shieldCol, 2, 78, 172, 2);
     const ai = ANIMS[actAnim] || ANIMS.slash;
     const af = Math.floor(now / ai.ms) % ai.frames;
+    if (shieldCol && shieldBehind(2)) drawHeldShield(g, shieldCol, 2, 186, 172, 2);
     drawChar(g, comp, actAnim, 2, af, 186, 172, 2);
     drawOversize(g, comp, vis, actAnim, 2, af, 186, 172, 2);
+    if (shieldCol && !shieldBehind(2)) drawHeldShield(g, shieldCol, 2, 186, 172, 2);
+    // signature bloom for a glowing rare/unique weapon
+    if (isWeapon && it.vis.glow) for (const cx of [78, 186]) {
+      g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.5 + 0.3 * Math.sin(now / 300);
+      const gy = 172 - 64, gr = g.createRadialGradient(cx, gy, 0, cx, gy, 40);
+      gr.addColorStop(0, it.vis.glow); gr.addColorStop(1, it.vis.glow + '00');
+      g.fillStyle = gr; g.beginPath(); g.arc(cx, gy, 40, 0, 7); g.fill(); g.restore();
+    }
     if (alive()) raf = requestAnimationFrame(loop);
   };
   raf = requestAnimationFrame(loop);
+}
+
+const BASE_VIS = { sex: 'male', skin: 'light', hair: ['plain', 'dark_brown'], torso: ['tunic', 'green'], legs: ['pants', 'brown'], feet: ['boots', 'brown'] };
+// An aura worn on a character: the looping elemental FX around an idle figure.
+function previewAura(g, aura, alive) {
+  const comp = composite(BASE_VIS);
+  const loop = (now) => {
+    g.clearRect(0, 0, 260, 200);
+    g.imageSmoothingEnabled = false;
+    const f = Math.floor(now / 650) % ANIMS.idle.frames;
+    drawChar(g, comp, 'idle', 2, f, 130, 176, 2.2);
+    g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.9;
+    drawFxSprite(g, aura.fx, ((now) % 1600) / 1600, 130, 120, 150, 0, aura.tint);
+    g.restore();
+    if (alive()) raf = requestAnimationFrame(loop);
+  };
+  raf = requestAnimationFrame(loop);
+}
+// A mount ridden by a character: the beast with a seated rider, exactly as in-game.
+function previewMount(g, mount, alive) {
+  const comp = composite(BASE_VIS);
+  const loop = (now) => {
+    g.clearRect(0, 0, 260, 200);
+    g.imageSmoothingEnabled = false;
+    const bob = mount.fly ? Math.sin(now / 320) * 3 + 10 : 0;
+    const fake = { id: 7, dir: 2, hp: 1, tint: mount.tint, animStart: 0, anim: 'walk' };
+    const mh = drawCreature(g, mount.sheet, fake, 'walk', now, 130, 176 - bob, 1.5);
+    const lift = (mh ? mh * 0.42 : 15) + bob;
+    drawChar(g, comp, 'idle', 2, 0, 130, 176 - lift, 2);
+    g.save(); g.beginPath(); g.rect(130 - 46, 176 - lift - 8, 92, 46); g.clip();
+    drawCreature(g, mount.sheet, fake, 'walk', now, 130, 176 - bob, 1.5);
+    g.restore();
+    if (alive()) raf = requestAnimationFrame(loop);
+  };
+  raf = requestAnimationFrame(loop);
+}
+// Every spell previews its full cast: a staff-caster on the left, the projectile
+// (sheet or elemental orb) arcing to a dummy, then an impact burst — or the
+// teleport channel / self heal for non-damage spells.
+const SPELL_ORB = { air: '#cfe8f8', earth: '#b08a4c', water: '#6ab0e0', fire: '#ffb02a', nature: '#7fd05f', holy: '#fff3b0', blood: '#ff5a5a' };
+function previewSpell(g, s, alive) {
+  const sheet = s.proj && s.proj.startsWith('sheet:') ? s.proj.slice(6) : null;
+  const orb = SPELL_ORB[s.proj] || '#c08aff';
+  const caster = { sex: 'male', skin: 'light', hair: ['plain', 'dark_brown'], torso: ['robe', 'blue'], legs: ['pants', 'blue'], weapon: ['staff', 'light'] };
+  const comp = composite(caster);
+  const cast = ANIMS.thrust;
+  const loop = (now) => {
+    g.clearRect(0, 0, 260, 200);
+    g.imageSmoothingEnabled = false;
+    const cf = Math.floor((now % (cast.frames * cast.ms)) / cast.ms);
+    drawChar(g, comp, 'thrust', 3, cf, 58, 172, 1.9);
+    drawOversize(g, comp, caster, 'thrust', 3, cf, 58, 172, 1.9);
+    const cyc = (now % 1400) / 1400;
+    if (s.teleport) {
+      drawFxSprite(g, 'anima', cyc, 150, 120, 150);
+    } else if (s.heal || s.self) {
+      g.save(); g.globalCompositeOperation = 'lighter';
+      drawFxSprite(g, 'aura_charged', cyc, 70, 150, 100, 0, '#7fd05f');
+      g.restore();
+    } else {
+      const t = Math.min(1, cyc * 1.45);
+      const x = 92 + (214 - 92) * t, y = 118 - Math.sin(t * Math.PI) * 20;
+      if (t < 1) {
+        if (sheet) { if (!drawFxSprite(g, sheet, cyc, x, y, 60, 0)) orbAt(g, x, y, orb); }
+        else orbAt(g, x, y, orb);
+      } else {
+        g.save(); g.globalCompositeOperation = 'lighter';
+        if (!drawFxSprite(g, 'vfx_impact', (cyc - 0.69) / 0.31, 214, 118, 74, 0, orb)) {
+          g.fillStyle = orb; for (let i = 0; i < 8; i++) { const a = i / 8 * 7; g.beginPath(); g.arc(214 + Math.cos(a) * 13, 118 + Math.sin(a) * 13, 3, 0, 7); g.fill(); }
+        }
+        g.restore();
+      }
+    }
+    if (alive()) raf = requestAnimationFrame(loop);
+  };
+  raf = requestAnimationFrame(loop);
+}
+function orbAt(g, x, y, col) {
+  g.save(); g.shadowColor = col; g.shadowBlur = 10; g.fillStyle = col;
+  g.beginPath(); g.arc(x, y, 7, 0, 7); g.fill(); g.restore();
 }
 
 connect();

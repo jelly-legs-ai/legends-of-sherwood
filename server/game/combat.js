@@ -18,6 +18,9 @@ function activePet(world, p) {
 }
 
 function roll(attRoll, defRoll) { return Math.random() < COMBAT.ACCURACY(attRoll, defRoll); }
+// The casting pose: staff wielders raise and jab the staff (thrust art carries
+// the staff); bare-handed rune casters use the arms-raised spellcast pose.
+const magicCastAnim = (p) => ITEMS[p.equip.weapon?.id]?.kind === 'staff' ? 'thrust' : 'spellcast';
 
 export function playerAttackRolls(p) {
   const b = p.bonuses();
@@ -88,8 +91,8 @@ export function tickCombat(world, p, now) {
       p.target = null; return;
     }
     if (w?.usesAmmo) { ammo.qty--; if (ammo.qty <= 0) delete p.equip.ammo; p.invDirty(); }
-    p.anim = 'shoot'; p.animSeq++;
-    world.fx(p.plane, p.x, p.y, FX.ARROW, { tx: t.x, ty: t.y, from: p.id, to: t.id });
+    p.anim = w?.kind === 'crossbow' ? 'thrust' : 'shoot'; p.animSeq++;   // crossbows aim-fire (thrust), bows draw (shoot)
+    world.fx(p.plane, p.x, p.y, FX.ARROW, { tx: t.x, ty: t.y, from: p.id, to: t.id, metal: ITEMS[ammo?.id]?.color, bolt: w?.ammoKind === 'bolt' });
     setTimeout(() => resolveHit(world, p, t, 'ranged'), 300);
   } else if (style === 'magic') {
     // staff auto-attacks use the best affordable damage spell
@@ -329,7 +332,7 @@ export function useAbility(world, p, abilityId) {
     case 'accBoost': p.effects.haste = now + 8000; world.fx(p.plane, p.x, p.y, FX.SPARK, { id: p.id }); break;
     case 'bigshot': p.effects.bigshot = ab.mult; world.fx(p.plane, p.x, p.y, FX.CRIT, { id: p.id }); break;
     case 'aoe': {
-      p.anim = p.combatStyle() === 'ranged' ? 'shoot' : p.combatStyle() === 'magic' ? 'spellcast' : 'slash';
+      p.anim = p.combatStyle() === 'ranged' ? 'shoot' : p.combatStyle() === 'magic' ? magicCastAnim(p) : 'slash';
       p.animSeq++;
       let hits = 0;
       for (const e of world.near(p.plane, p.x, p.y, 3.2)) {

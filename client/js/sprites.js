@@ -73,7 +73,8 @@ export function composite(vis) {
   if (vis.torso) layers.push(gearFile('torso/' + vis.torso[0], sex, vis.torso[1]));
   if (vis.hands) layers.push(gearFile('hands/gloves', sex, vis.hands[1]));
   if (vis.head) layers.push(gearFile('head/' + vis.head[0], sex, vis.head[1]));
-  if (vis.shield) layers.push(gearFile('shield/heater', sex, vis.shield[1]));
+  // NB: the free LPC heater-shield sheet is all but empty (no per-pose art), so
+  // shields are drawn procedurally at render time via drawHeldShield() instead.
   if (wep?.fg) layers.push(wep.fg);
   if (wep?.perAnim) c.oversize = wep.perAnim; // spear overlays drawn at render time
 
@@ -89,7 +90,15 @@ export function composite(vis) {
       if (!im.complete || !im.naturalWidth) continue;
       const h = Math.min(H, im.naturalHeight);
       const src = spec.tint ? tinted(im, spec.tint) : im;
-      ctx.drawImage(src, 0, 0, 832, h, 0, 0, 832, h);
+      if (spec.dagger) {
+        // shrink each 64px weapon cell toward the grip so the blade reads short
+        const scl = 0.66, pxp = 32, pyp = 40;
+        for (let ry = 0; ry * FRAME < h; ry++)
+          for (let cx2 = 0; cx2 < 13; cx2++) {
+            const dx = cx2 * FRAME, dy = ry * FRAME;
+            ctx.drawImage(src, dx, dy, FRAME, FRAME, dx + pxp - pxp * scl, dy + pyp - pyp * scl, FRAME * scl, FRAME * scl);
+          }
+      } else ctx.drawImage(src, 0, 0, 832, h, 0, 0, 832, h);
       // Legacy 21-row sheets (bows, staves, quivers, tools) have no idle rows —
       // synthesize idle art from their walk frame 0 so held items never vanish
       // while standing, and layer order is preserved.
@@ -112,7 +121,7 @@ export function composite(vis) {
 }
 // Hue-shift a sheet toward a metal tint, preserving shading + alpha. Lets one
 // LPC tool/weapon sheet represent every metal tier (gold sylvan pickaxes etc).
-const METAL_TINT = { copper: '#b87333', bronze: '#c98f57', steel: '#e2e7ee', brass: '#d8b45e', silver: '#eef2f8', gold: '#e8c84e' };
+const METAL_TINT = { copper: '#b87333', bronze: '#c98f57', iron: '#8d94a0', steel: '#e2e7ee', brass: '#d8b45e', silver: '#eef2f8', gold: '#e8c84e', dark: '#6a6480', walnut: '#9a6a3c', normal: null, wood: null };
 const tintCache = new Map();
 function tinted(im, tint) {
   const key = im.src + '|' + tint;
@@ -129,20 +138,33 @@ function tinted(im, tint) {
   tintCache.set(key, c);
   return c;
 }
+// Daggers reuse the sword sheets but are shrunk toward the hand at bake time so
+// they read as short blades, not full swords.
+const isDagger = (type) => type === 'dagger';
 function weaponFiles(type, color, sex = 'male') {
-  const w = manifest.weapons[type];
+  const w = manifest.weapons[isDagger(type) ? 'sword' : type];
   if (!w) return null;
-  const out = { perAnim: w.perAnim || null, color };
+  const out = { perAnim: w.perAnim || null, color, dagger: isDagger(type) };
+  // neutral fallback (steel) so an unknown colour tints a grey blade, never brass
+  const neutral = (dict) => dict && (dict.steel || dict.iron || Object.values(dict).find(Boolean));
   if (w.sexed) {                                                                    // tools (axe/pickaxe): single sheet, tint per metal
     const f = w.sexed[sex] || Object.values(w.sexed).find(Boolean);
     out.fg = f && METAL_TINT[color] ? { f, tint: METAL_TINT[color] } : f;
   } else if (w.fg || w.bg) {
     const exact = w.fg?.[color];
-    const fb = Object.values(w.fg || {}).find(Boolean);
+    const fb = neutral(w.fg);
     out.fg = exact || (fb && METAL_TINT[color] ? { f: fb, tint: METAL_TINT[color] } : fb);
-    out.bg = w.bg?.[color] || (w.bg && Object.values(w.bg).find(Boolean));
+    const exBg = w.bg?.[color];
+    const fbBg = neutral(w.bg);
+    out.bg = exBg || (fbBg && METAL_TINT[color] ? { f: fbBg, tint: METAL_TINT[color] } : fbBg);
   }
+  // flag the composite layers so the baker knows to scale daggers down
+  if (out.dagger) { out.fg = tagDagger(out.fg); out.bg = tagDagger(out.bg); }
   return (out.fg || out.bg || out.perAnim) ? out : null;
+}
+function tagDagger(spec) {
+  if (!spec) return spec;
+  return typeof spec === 'string' ? { f: spec, dagger: true } : { ...spec, dagger: true };
 }
 
 // Draw a composited character. dir: 0 up,1 left,2 down,3 right.
@@ -164,20 +186,71 @@ export function drawOversize(ctx, comp, vis, anim, dir, frame, sx, sy, scale = 1
   let f = frame;
   if (!set && anim === 'idle' && comp.oversize.walk) { set = comp.oversize.walk; f = 0; } // held at rest
   if (!set) return;
+  const type = (vis.weapon && vis.weapon[0]) || '';
   const color = (vis.weapon && vis.weapon[1]) || 'steel';
+  const shrink = isDagger(type) ? 0.66 : 1;
   for (const part of ['bg', 'fg']) {
     const dict = set[part] || {};
-    const file = dict[color] || Object.values(dict).find(Boolean);
+    // exact metal art if the sheet has it, else tint a neutral sheet to the tier
+    const exact = dict[color];
+    const fallback = dict.steel || dict.tool || Object.values(dict).find(Boolean);
+    const file = exact || fallback;
     if (!file) continue;
     const im = img(file);
     if (!im.complete || !im.naturalWidth) continue;
+    const src = (!exact && METAL_TINT[color]) ? tinted(im, METAL_TINT[color]) : im;
     const fs = im.naturalHeight / 4;
     const cols = Math.floor(im.naturalWidth / fs);
     const a = ANIMS[anim === 'idle' ? 'walk' : anim] || ANIMS.idle;
     const ff = Math.min(f, Math.min(a.frames, cols) - 1);
-    const S = fs * scale;
-    ctx.drawImage(im, ff * fs, dir * fs, fs, fs, sx - S / 2, sy - (fs / 2 + 20) * scale, S, S);
+    const S = fs * scale * shrink;
+    ctx.drawImage(src, ff * fs, dir * fs, fs, fs, sx - S / 2, sy - (fs / 2 + 20) * scale, S, S);
   }
+}
+
+// A procedural heater shield worn on the off-hand. The LPC shield sheet ships
+// empty, so we draw the shield ourselves — a metal-tiered kite/heater with rim,
+// boss and a cross, positioned and sized per facing (edge-on from the sides).
+const SHIELD_PAL = {
+  copper: ['#c98f57', '#8a5a30', '#eec394'], bronze: ['#b5814e', '#7a5228', '#e0b483'],
+  iron: ['#9ba0aa', '#5e636e', '#c8ccd4'], steel: ['#c2c8d2', '#828894', '#eef2f8'],
+  brass: ['#d0ad55', '#94781f', '#f0dc92'], silver: ['#d4dae6', '#8f97a8', '#f4f8ff'],
+  gold: ['#e2c24e', '#9a7a1e', '#fff0b0'],
+};
+// Whether the shield sits behind the body (facing away / near-shoulder occluded)
+export function shieldBehind(dir) { return dir === 0 || dir === 3; }
+export function drawHeldShield(ctx, color, dir, sx, sy, scale = 1) {
+  const pal = SHIELD_PAL[color] || SHIELD_PAL.steel;
+  const S = scale, cy = sy - 30 * S;
+  let cx, w;
+  if (dir === 2) { cx = sx + 11 * S; w = 15 * S; }       // toward camera: full face, off (left) arm
+  else if (dir === 0) { cx = sx - 11 * S; w = 14 * S; }  // facing away: full face on the back
+  else if (dir === 1) { cx = sx - 13 * S; w = 6.5 * S; } // facing left: edge-on
+  else { cx = sx + 13 * S; w = 6.5 * S; }                // facing right: edge-on
+  const h = 20 * S;
+  const heater = () => {
+    ctx.beginPath();
+    ctx.moveTo(cx - w / 2, cy - h / 2);
+    ctx.quadraticCurveTo(cx, cy - h / 2 - 1.5 * S, cx + w / 2, cy - h / 2);
+    ctx.lineTo(cx + w / 2, cy + h * 0.05);
+    ctx.quadraticCurveTo(cx + w * 0.42, cy + h * 0.45, cx, cy + h / 2);
+    ctx.quadraticCurveTo(cx - w * 0.42, cy + h * 0.45, cx - w / 2, cy + h * 0.05);
+    ctx.closePath();
+  };
+  ctx.save();
+  heater(); ctx.fillStyle = pal[1]; ctx.fill();                 // base / shadow
+  ctx.save(); heater(); ctx.clip();
+  ctx.fillStyle = pal[0]; ctx.fillRect(cx - w / 2, cy - h / 2, w * 0.62, h);   // lit left face
+  ctx.fillStyle = pal[2]; ctx.fillRect(cx - w / 2, cy - h / 2, w * 0.22, h);   // highlight edge
+  if (w > 9 * S) {                                             // cross emblem only on the broad face
+    ctx.strokeStyle = pal[2]; ctx.lineWidth = 1.6 * S;
+    ctx.beginPath(); ctx.moveTo(cx, cy - h * 0.34); ctx.lineTo(cx, cy + h * 0.30); ctx.moveTo(cx - w * 0.28, cy - h * 0.06); ctx.lineTo(cx + w * 0.28, cy - h * 0.06); ctx.stroke();
+  }
+  ctx.restore();
+  heater(); ctx.strokeStyle = '#1b1410'; ctx.lineWidth = 1.5 * S; ctx.stroke();  // rim
+  ctx.fillStyle = pal[2]; ctx.beginPath(); ctx.arc(cx, cy - h * 0.06, 2 * S, 0, 7); ctx.fill();  // boss
+  ctx.strokeStyle = '#1b1410'; ctx.lineWidth = 0.8 * S; ctx.stroke();
+  ctx.restore();
 }
 
 // ---------------------------------------------------------------------------

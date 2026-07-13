@@ -5,7 +5,7 @@ import { WORLD, TILE, PLANE, WILDERNESS_Y } from '/shared/constants.js';
 import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV } from '/shared/mapgen.js';
 import { REGIONS } from '/shared/constants.js';
 import { HOUSE, TOWNS } from '/shared/data/world.js';
-import { composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS, itemIcon, proc } from './sprites.js';
+import { composite, drawChar, drawOversize, drawHeldShield, shieldBehind, critterSprite, nodeSprite, ANIMS, itemIcon, proc } from './sprites.js';
 import { MOBS } from '/shared/data/mobs.js';
 import { drawCreature, drawChest, drawGeode, drawSheetCell, drawFxSprite, MEDIA, mimg } from './media.js';
 
@@ -1057,8 +1057,24 @@ export class Renderer {
       }
     } else if (!sheetH && e.vis) {
       const comp = composite(e.vis);
+      const shieldCol = e.vis.shield && e.vis.shield[1];
+      if (shieldCol && shieldBehind(e.dir)) drawHeldShield(ctx, shieldCol, e.dir, sx, ry, scale);
       drawChar(ctx, comp, rAnim, e.dir, rFrame, sx, ry, scale);
       drawOversize(ctx, comp, e.vis, rAnim, e.dir, rFrame, sx, ry, scale);
+      if (shieldCol && !shieldBehind(e.dir)) drawHeldShield(ctx, shieldCol, e.dir, sx, ry, scale);
+      // a signature bloom around a glowing (rare/unique) weapon
+      const gcol = e.vis.weapon && e.vis.weapon[2];
+      if (gcol) {
+        const gy = ry - 34 * scale, pulse = 0.6 + 0.25 * Math.sin(now / 300 + e.id);
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = pulse;
+        const gr = ctx.createRadialGradient(sx, gy, 0, sx, gy, 24 * scale);
+        gr.addColorStop(0, gcol); gr.addColorStop(1, gcol + '00');
+        ctx.fillStyle = gr;
+        ctx.beginPath(); ctx.arc(sx, gy, 24 * scale, 0, 7); ctx.fill();
+        ctx.restore();
+      }
       // re-draw the mount's lower body over the rider's legs (seated occlusion)
       if (mounted) {
         ctx.save();

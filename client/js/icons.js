@@ -181,14 +181,35 @@ export function itemIcon(id) {
       g.restore();
     }
   } else if (name.includes('staff')) {
+    // Staves stage up in power: a plain sphere for the apprentice, an ever
+    // larger, more ornate elemental crystal in metal claws for the archdruid.
+    const tier = name.includes('archdruid') ? 3 : name.includes('druid') ? 2 : name.includes('friar') ? 1 : 0;
+    const oc = ['#9fd8ef', '#8fd0c0', '#7fd05f', '#ffd75e'][tier];
+    const r = [3.2, 3.9, 4.7, 5.7][tier];
     diag(g, () => {
       shaft(g, -10, 14);
-      const oc = name.includes('archdruid') ? '#ffd75e' : name.includes('druid') ? '#7fd05f' : '#9fd8ef';
-      g.shadowColor = oc; g.shadowBlur = 6;
-      g.fillStyle = oc; g.beginPath(); g.arc(0, -13, 4, 0, 7); g.fill();
-      g.shadowBlur = 0;
-      g.strokeStyle = INK; g.lineWidth = 1; g.beginPath(); g.arc(0, -13, 4, 0, 7); g.stroke();
-      px(g, -1.6, -15, 1.6, 1.6, '#ffffffcc');
+      const cy = -13;
+      // metal claws cradling the crystal (higher tiers)
+      if (tier >= 2) {
+        g.strokeStyle = tier === 3 ? '#e8cc66' : '#9a8a5a'; g.lineWidth = 1.6; g.lineCap = 'round';
+        for (const dx of [-1, 1]) { g.beginPath(); g.moveTo(dx * r * 0.9, cy + r * 0.7); g.quadraticCurveTo(dx * r * 1.1, cy - r * 0.3, dx * r * 0.4, cy - r); g.stroke(); }
+        g.fillStyle = tier === 3 ? '#c8a83c' : '#7a6a44'; g.beginPath(); g.arc(0, cy + r * 0.8, 2, 0, 7); g.fill();
+      }
+      g.shadowColor = oc; g.shadowBlur = 4 + tier * 2.5;
+      if (tier >= 2) { // faceted crystal
+        g.fillStyle = oc;
+        g.beginPath(); g.moveTo(0, cy - r); g.lineTo(r * 0.82, cy - r * 0.2); g.lineTo(r * 0.5, cy + r); g.lineTo(-r * 0.5, cy + r); g.lineTo(-r * 0.82, cy - r * 0.2); g.closePath(); g.fill();
+        g.shadowBlur = 0; g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
+        g.strokeStyle = '#ffffffa0'; g.lineWidth = 0.7;
+        g.beginPath(); g.moveTo(-r * 0.82, cy - r * 0.2); g.lineTo(0, cy); g.lineTo(r * 0.82, cy - r * 0.2); g.moveTo(0, cy - r); g.lineTo(0, cy); g.stroke();
+      } else { // glowing sphere
+        g.fillStyle = oc; g.beginPath(); g.arc(0, cy, r, 0, 7); g.fill();
+        g.shadowBlur = 0; g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
+        if (tier === 1) { g.strokeStyle = '#c9b06a'; g.lineWidth = 1; g.beginPath(); g.arc(0, cy, r + 1.2, 0.2, 2.9); g.stroke(); }
+      }
+      px(g, -1.4, cy - r * 0.5, 1.5, 1.5, '#ffffffdd');
+      // radiant sparkle for the top-tier crystal
+      if (tier === 3) { g.strokeStyle = '#fff3b0'; g.lineWidth = 0.8; for (const a of [0, 1.6, 3.1, 4.7]) { g.beginPath(); g.moveTo(Math.cos(a) * (r + 2), cy + Math.sin(a) * (r + 2)); g.lineTo(Math.cos(a) * (r + 4), cy + Math.sin(a) * (r + 4)); g.stroke(); } }
     });
   } else if (name.includes('rune')) {
     if (name === 'rune_essence') {

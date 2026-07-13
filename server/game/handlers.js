@@ -367,6 +367,17 @@ function doNode(world, p, type, node, x, y, msg) {
   if (node.tool && !p.hasTool(node.tool)) return world.send(p, { t: MSG.MSGBOX, m: `You need a ${node.tool.replace(/_/g, ' ')}.` });
   if (p.freeSlots() === 0 && !node.stall) return world.send(p, { t: MSG.MSGBOX, m: 'Your pack is full.' });
 
+  // announce the attempt once, as the player sets to work on the node
+  if (!node.stall) {
+    const nm = node.name.toLowerCase();
+    const begin = node.skill === 'mining' ? `You swing your pickaxe at the ${nm}.`
+      : node.skill === 'woodcutting' ? `You swing your hatchet at the ${nm}.`
+      : node.skill === 'fishing' ? (node.tool === 'harpoon' ? `You ready your harpoon at the ${nm}.` : node.tool === 'small_fishing_net' ? `You cast your net into the ${nm}.` : `You cast your line into the ${nm}.`)
+      : node.skill === 'archaeology' ? `You carefully excavate the ${nm}.`
+      : `You begin working the ${nm}.`;
+    world.send(p, { t: MSG.MSGBOX, m: begin });
+  }
+
   const interval = node.stall ? 1500 : 2200;
   p.action = {
     type, x, y, next: now + interval,

@@ -2,6 +2,8 @@
 import { FX } from '/shared/constants.js';
 import { drawFxSprite, drawGoldNumber } from './media.js';
 
+// arrow/bolt heads glint with their metal; the shaft stays wood
+const AMMO_TINT = { copper: '#c87a3a', bronze: '#bd8a52', iron: '#9198a2', steel: '#cfd6de', brass: '#d8b45e', silver: '#e6ecf5', gold: '#e8c84e' };
 const PROJ_STYLE = {
   arrow: { color: '#e8ddc0', trail: '#7a5a34', len: 20 },
   air: { color: '#cfe8f8', trail: '#9ad2e8', orb: 4 },
@@ -28,6 +30,7 @@ export class Fx {
         this.projectiles.push({
           x0: from ? from.rx : msg.x, y0: from ? from.ry - 0.6 : msg.y, x1: msg.tx, y1: msg.ty,
           toId: msg.to, t0: now, dur: sheet ? 420 : 320, style, sheet,
+          headCol: msg.fx === FX.ARROW ? (AMMO_TINT[msg.metal] || '#e8ddc0') : null, bolt: !!msg.bolt,
         });
         break;
       }
@@ -127,19 +130,20 @@ export class Fx {
         const big = p.sheet.startsWith('twisted');
         if (drawFxSprite(ctx, p.sheet, t, sx, sy, big ? 130 : 64, big ? 0 : ang)) continue;
       }
-      if (st.len) { // a real arrow: shaft + head + fletching
+      if (st.len) { // a real arrow/bolt: shaft + metal head + fletching
         ctx.save();
         ctx.translate(sx, sy);
         ctx.rotate(ang);
-        const L = st.len, h = L / 2;
+        const L = p.bolt ? 13 : st.len, h = L / 2;      // bolts are stubby quarrels
+        const head = p.headCol || st.color;
         // shaft
-        ctx.strokeStyle = st.trail; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+        ctx.strokeStyle = st.trail; ctx.lineWidth = p.bolt ? 2.2 : 1.6; ctx.lineCap = 'round';
         ctx.beginPath(); ctx.moveTo(-h, 0); ctx.lineTo(h - 3, 0); ctx.stroke();
         // arrowhead (filled triangle at the leading end)
-        ctx.fillStyle = st.color;
+        ctx.fillStyle = head;
         ctx.beginPath(); ctx.moveTo(h + 2, 0); ctx.lineTo(h - 4, -2.6); ctx.lineTo(h - 4, 2.6); ctx.closePath(); ctx.fill();
         // fletching (two feathers at the tail)
-        ctx.strokeStyle = st.color; ctx.lineWidth = 1.4;
+        ctx.strokeStyle = p.bolt ? '#c9c2b0' : head; ctx.lineWidth = 1.4;
         ctx.beginPath();
         ctx.moveTo(-h, 0); ctx.lineTo(-h - 3, -2.4);
         ctx.moveTo(-h, 0); ctx.lineTo(-h - 3, 2.4);

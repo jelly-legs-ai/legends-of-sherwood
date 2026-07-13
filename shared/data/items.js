@@ -22,7 +22,7 @@ for (const m of METALS) {
   const s = T(m.lvl);
   def(`${m.id}_dagger`, { name: `${m.name} dagger`, slot: 'weapon', kind: 'dagger', style: 'melee', anim: 'slash',
     speed: 1800, req: { attack: m.lvl }, bonus: { acc: s * 0.7 | 0, str: s * 0.55 | 0 }, value: m.val,
-    vis: { layer: 'weapon', type: 'sword', color: m.color } });
+    vis: { layer: 'weapon', type: 'dagger', color: m.color } });
   def(`${m.id}_sword`, { name: `${m.name} sword`, slot: 'weapon', kind: 'sword', style: 'melee', anim: 'slash',
     speed: 2400, req: { attack: m.lvl }, bonus: { acc: s, str: s * 0.9 | 0 }, value: m.val * 2,
     vis: { layer: 'weapon', type: 'sword', color: m.color } });
@@ -30,26 +30,36 @@ for (const m of METALS) {
     speed: 3000, req: { attack: m.lvl, strength: Math.max(1, m.lvl - 2) }, twoHand: true,
     bonus: { acc: s * 1.1 | 0, str: s * 1.25 | 0 }, value: m.val * 2.4 | 0,
     vis: { layer: 'weapon', type: 'spear', color: m.color } });
-  def(`${m.id}_helm`, { name: `${m.name} helm`, slot: 'head', req: { defence: m.lvl },
-    bonus: { def: s * 0.5 | 0 }, value: m.val * 1.4 | 0,
-    vis: { layer: 'head', sheet: m.lvl >= 60 ? 'greathelm' : m.lvl >= 20 ? 'kettle' : 'mail', color: m.color } });
+  // --- PLATE line: the sylvan-style full plate, dyed to every metal tier.
+  // Heavier defence than chainmail, and costs more bars at the anvil.
+  def(`${m.id}_helm`, { name: `${m.name} full helm`, slot: 'head', req: { defence: m.lvl },
+    bonus: { def: s * 0.55 | 0 }, value: m.val * 1.6 | 0,
+    vis: { layer: 'head', sheet: 'greathelm', color: m.color } });
   def(`${m.id}_platebody`, { name: `${m.name} platebody`, slot: 'torso', req: { defence: m.lvl },
-    bonus: { def: s * 1.2 | 0 }, value: m.val * 3,
-    vis: { layer: 'torso', sheet: m.lvl >= 20 ? 'plate' : 'chainmail', color: m.color } });
+    bonus: { def: s * 1.25 | 0 }, value: m.val * 3.2 | 0,
+    vis: { layer: 'torso', sheet: 'plate', color: m.color } });
   def(`${m.id}_platelegs`, { name: `${m.name} platelegs`, slot: 'legs', req: { defence: m.lvl },
-    bonus: { def: s * 0.9 | 0 }, value: m.val * 2.2 | 0,
+    bonus: { def: s * 0.95 | 0 }, value: m.val * 2.4 | 0,
     vis: { layer: 'legs', sheet: 'plate', color: m.color } });
-  def(`${m.id}_boots`, { name: `${m.name} boots`, slot: 'feet', req: { defence: m.lvl },
-    bonus: { def: s * 0.3 | 0 }, value: m.val,
+  def(`${m.id}_boots`, { name: `${m.name} plate boots`, slot: 'feet', req: { defence: m.lvl },
+    bonus: { def: s * 0.32 | 0 }, value: m.val,
     vis: { layer: 'feet', sheet: 'armour', color: m.color } });
   def(`${m.id}_gauntlets`, { name: `${m.name} gauntlets`, slot: 'hands', req: { defence: m.lvl },
-    bonus: { def: s * 0.25 | 0, str: 1 }, value: m.val,
+    bonus: { def: s * 0.28 | 0, str: 1 }, value: m.val,
     vis: { layer: 'hands', sheet: 'gloves', color: m.color } });
   def(`${m.id}_shield`, { name: `${m.name} heater shield`, slot: 'shield', req: { defence: m.lvl },
     bonus: { def: s * 0.8 | 0 }, value: m.val * 1.8 | 0,
     vis: { layer: 'shield', sheet: 'heater', color: m.color } });
+  // --- CHAINMAIL line: the iron-helm/iron-body models, dyed per tier. Lighter,
+  // cheaper to craft, a touch less defensive than plate.
+  def(`${m.id}_coif`, { name: `${m.name} chainmail coif`, slot: 'head', req: { defence: m.lvl },
+    bonus: { def: s * 0.42 | 0 }, value: m.val * 1.1 | 0,
+    vis: { layer: 'head', sheet: 'mail', color: m.color } });
+  def(`${m.id}_chainbody`, { name: `${m.name} chainmail`, slot: 'torso', req: { defence: m.lvl },
+    bonus: { def: s * 1.0 | 0 }, value: m.val * 2.4 | 0,
+    vis: { layer: 'torso', sheet: 'chainmail', color: m.color } });
   def(`${m.id}_arrow`, { name: `${m.name} arrow`, slot: 'ammo', stack: true, req: {},
-    bonus: { rstr: s * 0.8 | 0 }, value: Math.max(1, m.val / 8 | 0), ammoTier: m.lvl, ammoKind: 'arrow' });
+    bonus: { rstr: s * 0.8 | 0 }, value: Math.max(1, m.val / 8 | 0), ammoTier: m.lvl, ammoKind: 'arrow', color: m.color });
   def(`${m.id}_bar`, { name: `${m.name} bar`, stack: false, value: m.val, material: true });
   def(`${m.id}_pickaxe`, { name: `${m.name} pickaxe`, slot: 'weapon', kind: 'pickaxe', style: 'melee', anim: 'slash',
     speed: 3000, req: { attack: Math.max(1, m.lvl - 4) }, tool: 'pickaxe', toolTier: m.lvl,
@@ -84,7 +94,9 @@ export const CROSSBOWS = [
 ];
 for (const cb of CROSSBOWS) {
   const s = T(cb.lvl);
-  def(cb.id, { name: cb.name, slot: 'weapon', kind: 'crossbow', style: 'ranged', anim: 'shoot', speed: 3600,
+  // Crossbows aim-fire with the thrust pose — the LPC crossbow art lives on the
+  // thrust rows, not the (empty) bow-shoot rows, so this keeps it in-hand.
+  def(cb.id, { name: cb.name, slot: 'weapon', kind: 'crossbow', style: 'ranged', anim: 'thrust', speed: 3600,
     twoHand: true, req: { ranged: cb.lvl }, bonus: { racc: s * 1.25 | 0, rstr: s * 0.25 | 0 }, value: cb.val,
     usesAmmo: true, ammoKind: 'bolt', vis: { layer: 'weapon', type: 'crossbow', color: 'wood' } });
 }
@@ -95,12 +107,12 @@ for (const m of METALS) {
   const s = T(m.lvl);
   def(`${m.id}_mace`, { name: `${m.name} mace`, slot: 'weapon', kind: 'mace', style: 'melee', anim: 'slash',
     speed: 2600, req: { attack: m.lvl }, bonus: { acc: s * 0.85 | 0, str: s * 1.1 | 0 }, value: m.val * 2.2 | 0,
-    vis: { layer: 'weapon', type: 'mace', color: 'steel' } });
+    vis: { layer: 'weapon', type: 'mace', color: m.color } });
   def(`${m.id}_bolts`, { name: `${m.name} bolts`, slot: 'ammo', stack: true, req: {},
-    bonus: { rstr: s * 1.05 | 0 }, value: Math.max(1, m.val / 6 | 0), ammoTier: m.lvl, ammoKind: 'bolt' });
+    bonus: { rstr: s * 1.05 | 0 }, value: Math.max(1, m.val / 6 | 0), ammoTier: m.lvl, ammoKind: 'bolt', color: m.color });
   if (m.lvl >= 20) def(`${m.id}_waraxe`, { name: `${m.name} waraxe`, slot: 'weapon', kind: 'waraxe', style: 'melee', anim: 'slash',
     speed: 3400, twoHand: true, req: { attack: m.lvl, strength: m.lvl }, bonus: { acc: s * 0.9 | 0, str: s * 1.45 | 0 }, value: m.val * 3.2 | 0,
-    vis: { layer: 'weapon', type: 'waraxe', color: 'steel' } });
+    vis: { layer: 'weapon', type: 'waraxe', color: m.color } });
 }
 
 export const LEATHERS = [
@@ -356,13 +368,21 @@ export const RARE_SWORDS = [
   ['hellrender', 'Hellrender', 92, 36, 1, 'gold'],
   ['dragonbane_greatsword', 'Dragonbane greatsword', 95, 39, 1, 'gold'],
 ];
+// A signature aura colour per rare blade so each reads as its own weapon in the
+// world, not a plain steel sword (the LPC body shares one sword sheet).
+const SWORD_GLOW = {
+  blade_of_the_burrow: '#c98f57', tidebreaker_cutlass: '#5fa8dc', fanged_ripper: '#c0402a',
+  gollux_greatblade: '#d8b45e', glacier_edge: '#8fe0ff', tyrants_cleaver: '#ff6a2a',
+  rexfang_saber: '#e0b93c', abyssal_edge: '#c05aff', aracnyx_talon: '#7fe07f',
+  glacial_reaver: '#9fe8ff', hellrender: '#ff4a2a', dragonbane_greatsword: '#ffd75e',
+};
 for (const [id, name, lvl, icon, twoHand, color] of RARE_SWORDS) {
   const s = T(lvl);
   def(id, { name, slot: 'weapon', kind: 'sword', style: 'melee', anim: 'slash',
     speed: twoHand ? 2800 : 2200, twoHand: !!twoHand, req: { attack: lvl },
     bonus: { acc: Math.round(s * (twoHand ? 1.15 : 1.25)), str: Math.round(s * (twoHand ? 1.5 : 1.1)) },
     value: 900 + lvl * lvl * 6, unique: lvl >= 78, micon: ['rareSwords', icon],
-    vis: { layer: 'weapon', type: 'sword', color } });
+    vis: { layer: 'weapon', type: 'sword', color, glow: SWORD_GLOW[id] } });
 }
 
 // Skill tomes: rare boss/chest drops; reading one grants a burst of XP.
@@ -404,7 +424,7 @@ for (const [id, name, speed, fly, sheet, val, tint] of MOUNTS)
 // Unique boss drops
 def('sheriffs_blade', { name: "The Sheriff's blade", slot: 'weapon', kind: 'sword', style: 'melee', anim: 'slash',
   speed: 2200, req: { attack: 70 }, bonus: { acc: 92, str: 88 }, value: 45000, unique: true,
-  vis: { layer: 'weapon', type: 'sword', color: 'gold' } });
+  vis: { layer: 'weapon', type: 'sword', color: 'gold', glow: '#ffe27a' } });
 def('gisbornes_cowl', { name: "Gisborne's cowl", slot: 'head', req: { ranged: 70 }, bonus: { def: 30, racc: 34 }, value: 38000, unique: true,
   vis: { layer: 'head', sheet: 'hood', color: 'black' } });
 def('fenwyrm_scale', { name: 'Fenwyrm scale', value: 9000, material: true, unique: true });

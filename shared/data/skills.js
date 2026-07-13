@@ -104,9 +104,12 @@ export const RECIPES = [
 ];
 // Smithing: forging (generated per metal — offsets from the metal's base level)
 import { METALS } from './items.js';
+// [item, level offset, bars, xp]. Plate pieces cost more bars than the chain
+// equivalents (a full helm 2 vs a coif 1; a platebody 3 vs a chainmail 2).
 const FORGE = [
-  ['dagger', 0, 1, 30], ['sword', 2, 1, 50], ['spear', 3, 1, 55], ['helm', 4, 1, 45],
-  ['boots', 1, 1, 35], ['gauntlets', 1, 1, 35], ['platelegs', 6, 2, 75], ['platebody', 8, 3, 110],
+  ['dagger', 0, 1, 30], ['sword', 2, 1, 50], ['spear', 3, 1, 55],
+  ['coif', 3, 1, 40], ['chainbody', 6, 2, 85],
+  ['helm', 4, 2, 55], ['boots', 1, 1, 35], ['gauntlets', 1, 1, 35], ['platelegs', 6, 2, 75], ['platebody', 8, 3, 110],
   ['shield', 5, 2, 70], ['pickaxe', 2, 1, 50], ['hatchet', 2, 1, 50], ['mace', 2, 2, 60],
 ];
 for (const m of METALS) {
