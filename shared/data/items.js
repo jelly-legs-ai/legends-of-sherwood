@@ -334,6 +334,9 @@ def('coins', { name: 'Copper coins', stack: true, value: 1, tradeable: true, exa
 // Keys & misc
 def('dungeon_key', { name: 'Abyssal key', value: 0, tradeable: false });
 def('marians_letter', { name: "Marian's letter", value: 0, tradeable: false, quest: true });
+def('johns_whistle', { name: "John's carved whistle", value: 0, tradeable: false, quest: true, examine: 'A boy\'s whittling — the note still carries.' });
+def('scarlet_cloak', { name: 'Scarlet cloak', value: 0, tradeable: false, quest: true, examine: 'Dyed madder-red by Maud of Blidworth.' });
+def('aldwins_letter', { name: "Aldwin's letter", value: 0, tradeable: false, quest: true, examine: 'Flour-dusted words from uncle to nephew.' });
 def('convoy_strongbox', { name: 'Convoy strongbox', value: 0, tradeable: false, quest: true });
 
 // ---------------------------------------------------------------------------

@@ -61,7 +61,7 @@ const POOLS = [
   [120, 300, 4],   // west meadows pool
   [330, 74, 5],    // Wild Lands frozen pool
 ].map(([x, y, r]) => [S(x), S(y), S(r)]);
-const ROADS = [
+const ROAD_LINES = [
   [[252, 332], [330, 332]],
   [[330, 316], [330, 240], [300, 150]],
   [[252, 336], [200, 368], [176, 396], [110, 412], [60, 420]],   // coast road skirting the Gulf of Barnsdale
@@ -72,7 +72,35 @@ const ROADS = [
   [[210, 352], [196, 358]],              // lane into Edwinstowe
   [[420, 420], [400, 410]],              // causeway to Wyckham-on-Fen
   [[440, 300], [434, 296]],              // track up to Greywatch
-].map(line => line.map(p => [S(p[0]), S(p[1])]));
+  // ---- hamlet sub-roads: the little places tie into the greater web ----
+  [[252, 332], [210, 300], [176, 272], [150, 250]],   // Loxley → Hathersage
+  [[150, 250], [149, 278], [150, 300]],               // Hathersage → the air-altar meadow track
+  [[196, 358], [176, 320], [160, 284], [150, 250]],   // Edwinstowe → Hathersage
+  [[252, 332], [240, 318], [228, 304], [222, 296]],   // Loxley → Blidworth
+  [[222, 296], [248, 294], [276, 296]],               // Blidworth → the Sherwood camp
+  [[326, 268], [298, 278], [276, 296]],               // Ollerton Crossroads → the Sherwood camp
+  [[398, 390], [386, 380]],                           // Papplewick spur onto the fen road
+  [[300, 150], [276, 128], [252, 106], [240, 86]],    // Frosthollow → the Hooded Howe (into the Wild Lands)
+  [[240, 86], [288, 72], [322, 76]],                  // Wild Lands trail: the Howe → the frozen pool
+];
+const ROADS = ROAD_LINES.map(line => {
+  const pts = line.map(p => [S(p[0]), S(p[1])]);
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const [px, py] of pts) { x0 = Math.min(x0, px); y0 = Math.min(y0, py); x1 = Math.max(x1, px); y1 = Math.max(y1, py); }
+  return { pts, x0: x0 - 9, y0: y0 - 9, x1: x1 + 9, y1: y1 + 9 };
+});
+// Road distance with the sample point noise-displaced, so the dead-straight
+// authored routes wander and kink like real cart tracks.
+function roadDist(x, y) {
+  const wx = x + (vnoise(x, y, 17, 65) - 0.5) * 5;
+  const wy = y + (vnoise(x, y, 17, 66) - 0.5) * 5;
+  let best = 1e9;
+  for (const r of ROADS) {
+    if (wx < r.x0 || wx > r.x1 || wy < r.y0 || wy > r.y1) continue;
+    best = Math.min(best, distToPolyline(wx, wy, r.pts));
+  }
+  return best;
+}
 function distToPolyline(px, py, line) {
   let best = 1e9;
   for (let i = 0; i < line.length - 1; i++) {
@@ -153,11 +181,17 @@ export function regionAt(x, y) {
 function dist(x1, y1, x2, y2) { const dx = x1 - x2, dy = y1 - y2; return Math.sqrt(dx * dx + dy * dy); }
 
 // ---- towns ---------------------------------------------------------------------
+// Settlement grounds are organic blobs, not circles: the radius bulges outward
+// with noise (never inward, so buildings and walls always stay on town ground).
+function townRadius(t, x, y) {
+  return t.r + Math.max(0, (vnoise(x, y, 13, 71) - 0.42)) * t.r * 0.8;
+}
 function townTile(x, y) {
+  // buildings first — across ALL towns, so one settlement's bulging ground can
+  // never swallow a neighbour's cottages
   for (const key in TOWNS) {
     const t = TOWNS[key];
-    if (Math.abs(x - t.cx) > t.r + 12 || Math.abs(y - t.cy) > t.r + 12) continue;
-    // buildings
+    if (Math.abs(x - t.cx) > t.r + 14 || Math.abs(y - t.cy) > t.r + 14) continue;
     for (const b of t.buildings) {
       if (x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) {
         const stone = b.castle || b.fortified;   // castles & the fortified Exchange are coursed stone
@@ -170,13 +204,18 @@ function townTile(x, y) {
         return stone ? TILE.FLOOR_STONE : TILE.FLOOR_WOOD;
       }
     }
+  }
+  for (const key in TOWNS) {
+    const t = TOWNS[key];
+    if (Math.abs(x - t.cx) > t.r * 1.5 + 6 || Math.abs(y - t.cy) > t.r * 1.5 + 6) continue;
     const d = dist(x, y, t.cx, t.cy);
-    if (t.walled && Math.abs(d - t.r) < 0.6) {
-      // city wall with 4 gates
-      if (Math.abs(x - t.cx) < 2 || Math.abs(y - t.cy) < 2) return TILE.ROAD; // gates on axes
+    const rr = townRadius(t, x, y);
+    if (t.walled && Math.abs(d - rr) < 0.9) {
+      // city wall following the organic boundary, with 4 gates on the axes
+      if (Math.abs(x - t.cx) < 2 || Math.abs(y - t.cy) < 2) return TILE.ROAD;
       return TILE.WALL;
     }
-    if (d < t.r) return key === 'frosthollow' ? TILE.SNOW : TILE.DIRT;
+    if (d < rr) return t.snowy ? TILE.SNOW : TILE.DIRT;
   }
   return -1;
 }
@@ -199,8 +238,7 @@ export function tileAt(x, y) {
   if (tt >= 0) return tt;
 
   const river = riverDist(x, y);
-  let road = 1e9;
-  for (const r of ROADS) road = Math.min(road, distToPolyline(x, y, r));
+  const road = roadDist(x, y);
   if (river < 1.7 && road < 1.4) return TILE.BRIDGE;
   if (river < 1.7) return TILE.RIVER;
   if (inPool(x, y)) return TILE.WATER;

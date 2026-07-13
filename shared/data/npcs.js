@@ -300,6 +300,66 @@ npc('alderman_fitzwalter', {
   lines: ['Mind your boots on the castle approach. Mud is for the lower town.', 'The Sheriff dines with the Prince\'s men tonight. Heavy purses, heavier locks.'],
 });
 
+// ---------------- Hathersage (Little John's home village) ---------------------
+npc('mason_gudrun', {
+  name: 'Mason Gudrun', x: 146, y: 244, tutor: 'mining',
+  shop: [['copper_pickaxe', 25], ['iron_pickaxe', 150], ['hammer', 12], ['tinderbox', 10]],
+  vis: gear({ skin: 'light', hair: ['braid', 'ginger'] }, 'leather_body', 'studded_chaps', 'steel_gauntlets', 'leather_boots', 'iron_pickaxe'),
+  lines: ['Hathersage stone built half of Nottingham — and the Sheriff still taxes the dust.', 'Big John? Knew him when he was only Little.'],
+});
+npc('widow_annis', {
+  name: 'Widow Annis', x: 155, y: 245, quest: 'johns_keepsake',
+  vis: gear({ skin: 'taupe', hair: ['bun', 'gray'], torso: ['longsleeve', 'charcoal'], legs: ['skirt', 'black'] }, 'leather_boots'),
+  lines: ['My boy ran to the greenwood years back. They call him Little John now — little!'],
+});
+
+// ---------------- Blidworth (Will Scarlet's kin) --------------------------------
+npc('tom_blidworth', {
+  name: "Tom o'Blidworth", x: 218, y: 293, quest: 'the_scarlet_thread',
+  vis: gear({ skin: 'light', hair: ['plain', 'ginger'], torso: ['tunic', 'red'] }, 'studded_chaps', 'leather_boots', 'iron_dagger'),
+  lines: ["Will Scarlet's my cousin. Fastest blade in the shire — second-quickest temper."],
+});
+npc('dyer_maud', {
+  name: 'Dyer Maud', x: 226, y: 293,
+  shop: [['needle', 5], ['soft_leather', 30], ['peasant_shirt', 4], ['outlaw_tunic', 12]],
+  vis: gear({ skin: 'brown', hair: ['bangs', 'black'], torso: ['longsleeve', 'red'], legs: ['skirt', 'charcoal'] }, 'leather_boots'),
+  lines: ["Madder root and fox-glove — that's how you get a scarlet worth the name."],
+});
+
+// ---------------- Ollerton Crossroads (the Wayfarer Inn) ------------------------
+npc('innkeep_osbert', {
+  name: 'Innkeeper Osbert', x: 322, y: 263, quest: 'word_on_the_road',
+  shop: [['bread', 8], ['hearty_stew', 150], ['cooked_trout', 30]],
+  vis: gear({ skin: 'light', hair: ['balding_fallback', 'gray'], beard: 'gray', torso: ['longsleeve', 'white'] }, 'leather_boots'),
+  lines: ['Every road in the shire passes my door — and every rumour with it.'],
+});
+npc('ostler_daw', {
+  name: 'Ostler Daw', x: 334, y: 268, wander: 3, pickpocket: { lvl: 15, xp: 35, loot: [['coins', [5, 15]]] },
+  vis: gear({ skin: 'brown', hair: ['bedhead', 'black'], torso: ['longsleeve', 'brown'] }, 'leather_boots'),
+  lines: ['Horses talk more sense than most travellers.'],
+});
+
+// ---------------- Papplewick (the mill of Much's uncle) -------------------------
+npc('miller_aldwin', {
+  name: 'Miller Aldwin', x: 394, y: 385, quest: 'the_millers_due',
+  shop: [['barley', 10], ['bread', 8], ['barley_seed', 8]],
+  vis: gear({ skin: 'light', hair: ['plain', 'gray'], beard: 'gray', torso: ['longsleeve', 'white'] }, 'leather_boots'),
+  lines: ['Much is my nephew — good lad, dreadful miller.', 'The Sheriff takes a tithe of every sack. The rats take the rest.'],
+});
+
+// ---------------- The Hooded Howe (outlaw refuge in the Wild Lands) -------------
+npc('quartermaster_wulf', {
+  name: 'Quartermaster Wulf', x: 236, y: 82, quest: 'the_long_watch',
+  shop: [['iron_arrow', 8], ['hearty_stew', 150], ['harpoon', 45]],
+  vis: gear({ skin: 'light', hair: ['buzzcut', 'black'], beard: 'black' }, 'studded_coif', 'studded_body', 'studded_chaps', 'leather_boots', 'steel_spear'),
+  lines: ["This far north the King's law freezes solid. Ours keeps us warm."],
+});
+npc('lookout_edda', {
+  name: 'Lookout Edda', x: 247, y: 87,
+  vis: gear({ skin: 'light', hair: ['braid', 'blonde'] }, 'ranger_coif', 'ranger_body', 'ranger_chaps', 'leather_boots', 'quiver', 'yew_bow'),
+  lines: ['Dragon weather coming off the scar. Keep your fires low and your blades ready.'],
+});
+
 // Positions were authored on the 576 grid — remap to the scaled world,
 // keeping NPCs inside buildings glued to their building.
 import { remapPoint } from './world.js';

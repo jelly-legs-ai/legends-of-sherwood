@@ -135,6 +135,65 @@ export const QUESTS = {
     rewards: { coins: 1200, shillings: 8, items: { hearty_stew: 3 }, xp: { agility: 3000, fishing: 2000 } },
     outro: '"The north accepts you. May your fires never gutter."',
   },
+
+  // ---- the hamlet storylines: little threads of the greater legend ----
+  johns_keepsake: {
+    name: "John's Keepsake", giver: 'widow_annis', level: 5,
+    intro: 'Before my boy fled to the greenwood he carved this whistle. Take it to him — they call him Little John now — and tell him his mother still waits on Sundays.',
+    steps: [
+      { type: 'talk', npc: 'little_john', hint: 'Carry the whistle to Little John at the Sherwood camp.', give: { johns_whistle: 1 }, take: { johns_whistle: 1 } },
+      { type: 'talk', npc: 'widow_annis', hint: 'Bring word back to Widow Annis in Hathersage.' },
+    ],
+    rewards: { coins: 250, shillings: 2, xp: { agility: 600, constitution: 400 } },
+    outro: '"He laughed, you say? Then he is still my John." She presses warm bread into your hands.',
+  },
+
+  the_scarlet_thread: {
+    name: 'The Scarlet Thread', giver: 'tom_blidworth', level: 10,
+    intro: "Cousin Will's cloak is more patch than cloth. Maud needs three fox furs for a scarlet worth the family name — the fox trails run through Sherwood and the meadows.",
+    steps: [
+      { type: 'collect', item: 'fox_fur', count: 3, consume: true, hint: 'Trap 3 fox furs (fox trails in Sherwood and the meadows).' },
+      { type: 'talk', npc: 'will_scarlet', hint: 'Deliver the finished scarlet cloak to Will Scarlet at the camp.', give: { scarlet_cloak: 1 }, take: { scarlet_cloak: 1 } },
+      { type: 'talk', npc: 'tom_blidworth', hint: 'Tell Tom how his cousin liked it.' },
+    ],
+    rewards: { coins: 400, shillings: 3, xp: { hunter: 1200, crafting: 600 } },
+    outro: '"Red as a robin\'s breast! The Sheriff will see him coming a mile off — which is rather the point."',
+  },
+
+  word_on_the_road: {
+    name: 'Word on the Road', giver: 'innkeep_osbert', level: 8,
+    intro: "A guest talked too loud last night: the Sheriff moves a pay wagon down the north road within the week. Robin will pay well for that word — but it must never be written down.",
+    steps: [
+      { type: 'talk', npc: 'robin_hood', hint: 'Carry the word to Robin Hood in Loxley — memorised, never written.' },
+      { type: 'talk', npc: 'innkeep_osbert', hint: "Slip back to the Wayfarer Inn with Robin's reply." },
+    ],
+    rewards: { coins: 300, shillings: 2, xp: { thieving: 800, agility: 500 } },
+    outro: '"Not a scrap of paper between us — that\'s how honest folk stay honest. First ale\'s on the house, always."',
+  },
+
+  the_millers_due: {
+    name: "The Miller's Due", giver: 'miller_aldwin', level: 6,
+    intro: "The Sheriff's tithe-men emptied my grain store to the boards. Bring me five barley so I can seed the spring — and carry a letter to shame my nephew Much into visiting.",
+    steps: [
+      { type: 'collect', item: 'barley', count: 5, consume: true, hint: 'Bring Miller Aldwin 5 barley (grow it, or trade with Much in Loxley).' },
+      { type: 'talk', npc: 'much_the_miller', hint: "Carry Aldwin's letter to Much in Loxley.", give: { aldwins_letter: 1 }, take: { aldwins_letter: 1 } },
+      { type: 'talk', npc: 'miller_aldwin', hint: 'Return to Papplewick with news of Much.' },
+    ],
+    rewards: { coins: 350, shillings: 2, xp: { farming: 900, cooking: 500 } },
+    outro: '"Seed in the ground and family at the table — the Sheriff can\'t tax either. Well. He\'ll try."',
+  },
+
+  the_long_watch: {
+    name: 'The Long Watch', giver: 'quartermaster_wulf', level: 55,
+    intro: "Every outlaw who can't pay the Sheriff's price ends up here, where only the cold collects. The revenants press our walls each night. Stand the watch with us.",
+    steps: [
+      { type: 'kill', mob: 'revenant_knight', count: 4, hint: 'Banish 4 revenant knights prowling the Wild Lands.' },
+      { type: 'collect', item: 'hearty_stew', count: 2, consume: true, hint: 'Bring 2 hearty stews for the watch pot.' },
+      { type: 'talk', npc: 'quartermaster_wulf', hint: 'Report to Quartermaster Wulf at the Hooded Howe.' },
+    ],
+    rewards: { coins: 1500, shillings: 12, items: { iron_arrow: 100 }, xp: { attack: 3500, constitution: 2000 } },
+    outro: '"The watch holds because folk like you stand it. There\'s always a fire for you at the Howe."',
+  },
 };
 
 // Repeatable task-board tasks (Taskmaster Gil, Nottingham): rotated by server.

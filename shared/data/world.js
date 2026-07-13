@@ -38,7 +38,7 @@ export const TOWNS = {
     ],
   },
   frosthollow: {
-    name: 'Frosthollow', cx: 300, cy: 130, r: 13,
+    name: 'Frosthollow', cx: 300, cy: 130, r: 13, snowy: true,
     buildings: [
       { x: 292, y: 121, w: 6, h: 5, door: 'S', name: 'Frosthollow Bank' },
       { x: 303, y: 121, w: 6, h: 5, door: 'S', name: 'Alpine Lodge' },
@@ -71,6 +71,42 @@ export const TOWNS = {
     name: 'Greywatch Outpost', cx: 434, cy: 296, r: 7,
     buildings: [
       { x: 431, y: 291, w: 5, h: 4, door: 'S', name: 'Greywatch Tower', castle: true },
+    ],
+  },
+  // --- the little places of the legend: hamlets tied to the Merry Men ---
+  hathersage: {   // Little John's home village — quarrymen and masons
+    name: 'Hathersage', cx: 150, cy: 248, r: 9,
+    buildings: [
+      { x: 144, y: 242, w: 5, h: 4, door: 'S', name: 'Quarry Cottage' },
+      { x: 153, y: 243, w: 5, h: 4, door: 'S', name: "Mason's Yard" },
+    ],
+  },
+  blidworth: {    // Will Scarlet's kin — dyers among the greenwood
+    name: 'Blidworth', cx: 222, cy: 296, r: 8,
+    buildings: [
+      { x: 217, y: 291, w: 5, h: 4, door: 'S', name: 'Scarlet Cottage' },
+      { x: 225, y: 292, w: 5, h: 4, door: 'S', name: "Dyer's Shed" },
+    ],
+  },
+  ollerton: {     // the crossroads inn where every rumour changes hands
+    name: 'Ollerton Crossroads', cx: 326, cy: 267, r: 9,
+    buildings: [
+      { x: 320, y: 261, w: 6, h: 5, door: 'S', name: 'The Wayfarer Inn' },
+      { x: 331, y: 262, w: 4, h: 4, door: 'S', name: 'Stable' },
+    ],
+  },
+  papplewick: {   // the mill of Much's uncle, astride the fen road
+    name: 'Papplewick', cx: 398, cy: 389, r: 8,
+    buildings: [
+      { x: 392, y: 383, w: 6, h: 5, door: 'S', name: 'Papplewick Mill' },
+      { x: 401, y: 384, w: 4, h: 4, door: 'S', name: 'Grain Store' },
+    ],
+  },
+  hooded_howe: {  // the outlaws' last refuge, deep in the Wild Lands
+    name: 'The Hooded Howe', cx: 240, cy: 86, r: 9, snowy: true,
+    buildings: [
+      { x: 234, y: 80, w: 6, h: 5, door: 'S', name: "Outlaws' Refuge" },
+      { x: 243, y: 81, w: 4, h: 4, door: 'S', name: 'Watch Hut' },
     ],
   },
 };
@@ -142,6 +178,13 @@ export const POIS = [
   ['campfire', 434, 298],
   // --- bandit camps (fires mark the camps; the company around them is hostile) ---
   ['campfire', 120, 320], ['campfire', 300, 236], ['campfire', 240, 120],
+  // --- the hamlets of the legend ---
+  ['iron_rock', 157, 252], ['iron_rock', 159, 254], ['copper_rock', 155, 255], ['coal_rock', 161, 251],  // Hathersage quarry
+  ['anvil', 147, 250], ['furnace', 149, 251],
+  ['loom', 219, 299], ['tanning_rack', 222, 300], ['campfire', 226, 297],                                // Blidworth dyers
+  ['range', 322, 270], ['campfire', 330, 269],                                                           // the Wayfarer Inn
+  ['range', 394, 392], ['allotment', 402, 392], ['allotment', 405, 392], ['herb_patch', 399, 393],       // Papplewick mill
+  ['campfire', 240, 89], ['range', 237, 88], ['tanning_rack', 245, 88],                                  // the Hooded Howe
   // --- river & pool fisheries (snapped onto open water at generation; the
   //     spot tier climbs with the region's level band) ---
   ['net_spot', 168, 328], ['rod_spot', 171, 332],          // Barnsdale pond
@@ -224,6 +267,8 @@ export const SPAWNS = [
   { mob: 'farm_dog', x: 196, y: 360, r: 4, n: 1 }, { mob: 'alpaca', x: 190, y: 372, r: 4, n: 3 },
   { mob: 'cow', x: 250, y: 350, r: 6, n: 3 }, { mob: 'sheep', x: 256, y: 352, r: 6, n: 4 },   // Loxley allotments
   { mob: 'sheep', x: 62, y: 426, r: 5, n: 3 }, { mob: 'pig_farm', x: 58, y: 424, r: 4, n: 2 }, // Bay
+  { mob: 'sheep', x: 145, y: 255, r: 4, n: 3 },   // Hathersage fold
+  { mob: 'cow', x: 405, y: 394, r: 4, n: 2 },     // Papplewick pasture
   // ---- bandit camps & outposts (tight clusters around their campfires) ----
   { mob: 'bandit', x: 120, y: 320, r: 4, n: 5 }, { mob: 'marauder', x: 122, y: 322, r: 4, n: 3 },
   { mob: 'outlaw', x: 300, y: 236, r: 4, n: 5 }, { mob: 'marauder', x: 302, y: 238, r: 4, n: 3 },
