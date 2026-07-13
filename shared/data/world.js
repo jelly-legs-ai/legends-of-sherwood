@@ -101,7 +101,7 @@ export const POIS = [
   ['range', 320, 342], ['chapel_altar', 322, 334], ['furnace', 344, 330], ['anvil', 345, 332], ['loom', 342, 334], ['tanning_rack', 347, 334],
   // --- Bay ---
   ['bank_booth', 44, 412], ['range', 54, 412],
-  ['net_spot', 40, 434], ['net_spot', 44, 436], ['rod_spot', 50, 436], ['harpoon_spot', 56, 438],
+  ['net_spot', 26, 436], ['net_spot', 24, 442], ['rod_spot', 22, 448], ['harpoon_spot', 24, 455],
   ['allotment', 60, 424], ['essence_rock', 62, 415],
   // --- Frosthollow ---
   ['bank_booth', 294, 123], ['range', 305, 123], ['furnace', 296, 138], ['anvil', 294, 138],
@@ -112,7 +112,7 @@ export const POIS = [
   ['saxon_barrow', 340, 370], ['iron_rock', 356, 296], ['iron_rock', 358, 298], ['coal_rock', 360, 300],
   ['dungeon_entrance', 362, 288],
   // --- Meadows ---
-  ['air_altar', 150, 300], ['roman_ruin', 120, 360], ['rabbit_run', 200, 330], ['rabbit_run', 210, 344],
+  ['air_altar', 150, 300], ['roman_ruin', 178, 386], ['rabbit_run', 200, 330], ['rabbit_run', 210, 344],
   ['rabbit_run', 190, 320], ['herb_patch', 160, 320], ['allotment', 158, 316], ['allotment', 162, 316],
   // --- Fenwold ---
   ['water_altar', 420, 430], ['fen_totem', 0, 0],
@@ -176,7 +176,7 @@ export const SPAWNS = [
   { mob: 'rabbit', x: 205, y: 335, r: 14, n: 8 }, { mob: 'rabbit', x: 175, y: 360, r: 14, n: 6 },
   { mob: 'goblin', x: 222, y: 300, r: 12, n: 6 }, { mob: 'goblin', x: 195, y: 385, r: 14, n: 6 },
   { mob: 'boar', x: 180, y: 300, r: 16, n: 6 }, { mob: 'boar', x: 150, y: 270, r: 16, n: 6 },
-  { mob: 'bandit', x: 140, y: 340, r: 16, n: 6 }, { mob: 'bandit', x: 100, y: 380, r: 14, n: 5 },
+  { mob: 'bandit', x: 140, y: 340, r: 16, n: 6 }, { mob: 'bandit', x: 185, y: 398, r: 10, n: 5 },
   { mob: 'goblin_archer', x: 120, y: 300, r: 14, n: 5 }, { mob: 'bandit', x: 165, y: 420, r: 14, n: 5 },
   { mob: 'gull_harpy', x: 70, y: 450, r: 16, n: 6 }, { mob: 'gull_harpy', x: 45, y: 490, r: 14, n: 5 },
   { mob: 'smuggler', x: 84, y: 470, r: 14, n: 5 }, { mob: 'smuggler', x: 60, y: 510, r: 14, n: 5 },
@@ -200,8 +200,8 @@ export const SPAWNS = [
   // Elderglade Wildwood (levels 35-60)
   { mob: 'wildwood_panther', x: 260, y: 490, r: 20, n: 6 }, { mob: 'wildwood_panther', x: 300, y: 470, r: 16, n: 5 },
   { mob: 'druid_shade', x: 240, y: 470, r: 16, n: 5 }, { mob: 'druid_shade', x: 215, y: 500, r: 14, n: 5 },
-  { mob: 'vine_horror', x: 300, y: 500, r: 18, n: 5 }, { mob: 'vine_horror', x: 330, y: 520, r: 14, n: 4 },
-  { mob: 'minotaur', x: 275, y: 522, r: 12, n: 2 },
+  { mob: 'vine_horror', x: 300, y: 500, r: 18, n: 5 }, { mob: 'vine_horror', x: 330, y: 516, r: 12, n: 4 },
+  { mob: 'minotaur', x: 275, y: 518, r: 10, n: 2 },
   // Grey Peaks (levels 40-70)
   { mob: 'mountain_goat', x: 450, y: 320, r: 20, n: 7 }, { mob: 'mountain_goat', x: 470, y: 350, r: 16, n: 6 },
   { mob: 'eyrie_hawk', x: 480, y: 280, r: 18, n: 5 }, { mob: 'eyrie_hawk', x: 512, y: 300, r: 16, n: 5 },
@@ -255,7 +255,7 @@ export const SPAWNS = [
   { mob: 'lost_spirit', x: 342, y: 368, r: 6, n: 2 },
   // Elderglade deep & Wild Lands
   { mob: 'gloom_moth', x: 292, y: 486, r: 14, n: 4 }, { mob: 'gloom_moth', x: 226, y: 508, r: 12, n: 3 },
-  { mob: 'web_stalker', x: 316, y: 532, r: 10, n: 2 }, { mob: 'web_stalker', x: 214, y: 78, r: 10, n: 2 },
+  { mob: 'web_stalker', x: 316, y: 520, r: 10, n: 2 }, { mob: 'web_stalker', x: 214, y: 78, r: 10, n: 2 },
   { mob: 'royal_moth', x: 262, y: 62, r: 14, n: 3 }, { mob: 'frost_wight', x: 322, y: 66, r: 14, n: 3 },
 ];
 
@@ -272,7 +272,7 @@ export const BOSS_SPAWNS = [
   { mob: 'frogger', x: 428, y: 508 },          // Fenwold lily pool
   { mob: 'pengu', x: 328, y: 118 },            // icefloe north of Frosthollow
   { mob: 'gollux', x: 486, y: 244 },           // Grey Peaks cave mouth
-  { mob: 'dino_tri', x: 540, y: 264 },         // high crag plateau
+  { mob: 'dino_tri', x: 530, y: 266 },         // high crag plateau
   { mob: 'dino_rex', x: 388, y: 52 },          // Wild Lands wastes
   { mob: 'ice_beast', x: 178, y: 40 },         // deep Wild Lands glacier
   { mob: 'dragon_tyrant', x: 300, y: 16 },     // the far northern scar

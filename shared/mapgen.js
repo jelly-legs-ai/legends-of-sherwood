@@ -64,7 +64,7 @@ const POOLS = [
 const ROADS = [
   [[252, 332], [330, 332]],
   [[330, 316], [330, 240], [300, 150]],
-  [[252, 336], [150, 380], [60, 420]],
+  [[252, 336], [200, 368], [176, 396], [110, 412], [60, 420]],   // coast road skirting the Gulf of Barnsdale
   [[252, 340], [252, 440], [270, 470]],
   [[344, 336], [420, 420]],
   [[346, 330], [440, 300]],
@@ -107,15 +107,30 @@ function inPool(x, y) {
   }
   return false;
 }
-// Signed distance inland from the sea. The west coast, the whole south coast
-// and the east coast (fading out three quarters of the way up, where the land
-// runs on to the alpine corner) are carved by shoreline noise into headlands,
-// coves and small bays instead of a straight rule.
+// Signed distance inland from the sea. The continent's outline follows the
+// authored World-example sketch: per-edge carve-depth profiles (control points
+// on the 576 grid, linearly interpolated) shape the deep Gulf of Barnsdale in
+// the west, leave Robin Hood's Bay on its peninsula with a small harbour
+// indent, wobble the south coast, and run the east ocean all the way up to the
+// alpine corner. Shoreline noise on top breaks every reach into coves and
+// headlands.
+const WEST_COAST = [[0, 8], [150, 10], [195, 14], [260, 35], [300, 70], [330, 110], [355, 155], [370, 165], [385, 148], [400, 80], [412, 30], [425, 30], [440, 28], [455, 16], [500, 12], [576, 12]];
+const SOUTH_COAST = [[0, 16], [60, 26], [120, 40], [180, 30], [240, 42], [300, 32], [360, 40], [420, 30], [470, 44], [520, 26], [576, 20]];
+const EAST_COAST = [[0, 0], [95, 4], [110, 8], [150, 22], [200, 32], [235, 26], [270, 22], [300, 30], [330, 26], [360, 44], [380, 49], [400, 40], [430, 26], [460, 34], [480, 20], [510, 14], [540, 12], [576, 16]];
+function profileAt(prof, v) {
+  const a = v / K;                             // back to authored coordinates
+  for (let i = 1; i < prof.length; i++) {
+    if (a <= prof[i][0]) {
+      const [v0, d0] = prof[i - 1], [v1, d1] = prof[i];
+      return S(d0 + (d1 - d0) * ((a - v0) / (v1 - v0 || 1)));
+    }
+  }
+  return S(prof[prof.length - 1][1]);
+}
 function shoreDist(x, y) {
-  const dW = x - (S(14) + (fbm(0, y, 51) - 0.32) * S(30));
-  const dS = (H - 1 - y) - (S(14) + (fbm(x, 0, 52) - 0.32) * S(30));
-  const fade = Math.min(1, Math.max(0, (y - S(128)) / S(56)));
-  const dE = (W - 1 - x) - ((S(14) + (fbm(0, y + 4096, 53) - 0.32) * S(30)) * fade - (1 - fade) * S(40));
+  const dW = x - (profileAt(WEST_COAST, y) + (fbm(0, y, 51) - 0.5) * S(14));
+  const dS = (H - 1 - y) - (profileAt(SOUTH_COAST, x) + (fbm(x, 0, 52) - 0.5) * S(14));
+  const dE = (W - 1 - x) - (profileAt(EAST_COAST, y) + (fbm(0, y + 4096, 53) - 0.5) * S(14));
   return Math.min(dW, dS, dE);
 }
 

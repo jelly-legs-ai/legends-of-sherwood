@@ -370,6 +370,74 @@ function foamFrames() {
   return _foam;
 }
 
+// ---- waterfalls -------------------------------------------------------------------
+// A river tile standing above its downhill neighbour spills over the edge: the
+// cliff column below it is painted as falling water instead of earth, and the
+// live overlay streams white water down it, misting at the lip and churning
+// into plunge foam at the pool below.
+function skirtPath(g) {
+  g.beginPath(); g.moveTo(-1, 16); g.lineTo(32, 33); g.lineTo(65, 16); g.lineTo(65, 48); g.lineTo(32, 65); g.lineTo(-1, 48); g.closePath();
+}
+const _fallStatic = new Map();     // dark level -> canvas
+function fallStatic(dark = 0) {
+  let c = _fallStatic.get(dark);
+  if (c) return c;
+  c = document.createElement('canvas'); c.width = 64; c.height = 64;
+  const g = c.getContext('2d');
+  g.save(); skirtPath(g); g.clip();
+  const grad = g.createLinearGradient(0, 14, 0, 64);
+  grad.addColorStop(0, '#5488b8'); grad.addColorStop(0.5, '#3f6f9f'); grad.addColorStop(1, '#305a85');
+  g.fillStyle = grad; g.fillRect(0, 0, 64, 64);
+  g.strokeStyle = '#ffffff26'; g.lineWidth = 2;   // standing streak hints
+  for (let i = 0; i < 6; i++) {
+    const x = 6 + i * 10;
+    const yTop = 16 + (x <= 32 ? x / 2 : (64 - x) / 2);
+    g.beginPath(); g.moveTo(x, yTop); g.lineTo(x, 64); g.stroke();
+  }
+  if (dark) { g.globalCompositeOperation = 'source-atop'; g.fillStyle = `rgba(10,8,20,${Math.min(0.5, dark * 0.14)})`; g.fillRect(0, 0, 64, 64); g.globalCompositeOperation = 'source-over'; }
+  g.restore();
+  _fallStatic.set(dark, c);
+  return c;
+}
+const _fallAnim = new Map();       // 'mid' | 'base' -> [4 frames]
+function fallAnim(kind) {
+  let fr = _fallAnim.get(kind);
+  if (fr) return fr;
+  fr = [];
+  for (let f = 0; f < 4; f++) {
+    const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+    const g = c.getContext('2d');
+    g.save(); skirtPath(g); g.clip();
+    // falling streaks, phase-shifted downward each frame so the water pours
+    for (let i = 0; i < 9; i++) {
+      const x = 3 + i * 7 + (i % 2 ? 2 : 0);
+      const yTop = 16 + (x <= 32 ? x / 2 : (64 - x) / 2);
+      const len = 10 + (i % 3) * 8;
+      const y0 = yTop + ((f * 12 + i * 17) % 48);
+      g.strokeStyle = i % 3 === 0 ? 'rgba(255,255,255,0.55)' : 'rgba(210,235,250,0.35)';
+      g.lineWidth = i % 3 === 0 ? 2 : 1.4;
+      g.beginPath(); g.moveTo(x, y0); g.lineTo(x, Math.min(64, y0 + len)); g.stroke();
+      if (y0 + len > 64) {   // wrap the streak back to the lip
+        g.beginPath(); g.moveTo(x, yTop); g.lineTo(x, yTop + (y0 + len - 64) * 0.6); g.stroke();
+      }
+    }
+    g.fillStyle = 'rgba(255,255,255,0.18)';   // mist at the lip
+    g.fillRect(0, 16, 64, 5);
+    if (kind === 'base') {                     // churning plunge foam
+      const rnd = mulberry(977 + f * 31);
+      for (let i = 0; i < 10; i++) {
+        const x = 4 + rnd() * 56, y = 44 + rnd() * 18;
+        g.fillStyle = `rgba(240,250,255,${0.22 + rnd() * 0.35})`;
+        g.beginPath(); g.arc(x, y, 2 + rnd() * 3, 0, 7); g.fill();
+      }
+    }
+    g.restore();
+    fr.push(c);
+  }
+  _fallAnim.set(kind, fr);
+  return fr;
+}
+
 function hashXY(x, y) { let h = (x * 73856093) ^ (y * 19349663); h = (h ^ (h >> 13)) * 0x5bd1e995; return ((h ^ (h >> 15)) >>> 0) / 4294967296; }
 
 // Smooth value noise (bilinear over a 5-tile lattice): neighbouring tiles get
@@ -448,12 +516,14 @@ function chunkCanvas(plane, cx, cy) {
       }
     }
     if (!WALLS.has(t)) {
+      const isWater = WATERS.has(t);
       for (let k = drop; k >= 1; k--) {
-        const fill = tileTexture(TILE.DIRT, ((shade * 8) | 0) + k, k);
+        // elevated water pours over the cliff: the drop column is falling water
+        const fill = isWater ? fallStatic(k) : tileTexture(TILE.DIRT, ((shade * 8) | 0) + k, k);
         g.drawImage(fill, lx - TW / 2, ly - TH / 2 + k * ESTEP);
       }
       g.drawImage(tileTexture(t, (shade * 8) | 0), lx - TW / 2, ly - TH / 2);
-      if (WATERS.has(t)) {
+      if (isWater) {
         // record for the live shimmer overlay + note which edges lap onto land
         let em = 0;
         const dirs = [[0, -1], [-1, 0], [1, 0], [0, 1]];
@@ -461,7 +531,7 @@ function chunkCanvas(plane, cx, cy) {
           const nt = tileAtPlane(plane, x + dirs[k2][0], y + dirs[k2][1]);
           if (!WATERS.has(nt) && nt !== TILE.BRIDGE) em |= 1 << k2;
         }
-        water.push({ lx, ly, t, ph: (x * 7 + y * 13) % 64, em });
+        water.push({ lx, ly, t, ph: (x * 7 + y * 13) % 64, em, drop });
       }
     }
     // dungeon rock: flat dark tile (no tall prism, so corridors stay readable),
@@ -682,11 +752,16 @@ export class Renderer {
         const foam = foamFrames();
         for (const w of cc.water) {
           const sx = cox + w.lx - TW / 2, sy = coy + w.ly - TH / 2;
-          if (sx < -TW || sy < -TH || sx > W || sy > H) continue;
+          if (sx < -TW || sy < -TH - (w.drop || 0) * ESTEP || sx > W || sy > H) continue;
           ctx.drawImage(waterAnim(w.t)[((now / 260 + w.ph) | 0) & 3], sx, sy);
           if (w.em) {
             const f2 = ((now / 430 + w.ph) | 0) & 1;
             for (let e = 0; e < 4; e++) if (w.em & (1 << e)) ctx.drawImage(foam[e][f2], sx, sy);
+          }
+          if (w.drop) {   // pouring waterfall down the cliff face
+            const ff = ((now / 130 + w.ph) | 0) & 3;
+            for (let k = 1; k <= w.drop; k++)
+              ctx.drawImage(fallAnim(k === w.drop ? 'base' : 'mid')[ff], sx, sy + k * ESTEP);
           }
         }
       }
