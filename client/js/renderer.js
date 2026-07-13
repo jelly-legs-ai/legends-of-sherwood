@@ -458,6 +458,7 @@ export class Renderer {
 
   drawNode(ctx, node, now) {
     const [sx, sy] = this.screenOf(0, node.x + 0.5, node.y + 0.5);
+    if (node.type === 'ge_desk') { this.drawGEDesk(ctx, sx, sy); return; }
     if (node.type === 'hotspot') {
       ctx.strokeStyle = '#c77ce766'; ctx.setLineDash([4, 4]);
       ctx.strokeRect(sx - 14, sy - 20, 28, 22);
@@ -474,6 +475,32 @@ export class Renderer {
     // gentle bob for fishing spots
     const bob = /spot/.test(type) ? Math.sin(now / 400 + node.x) * 2 : 0;
     ctx.drawImage(spr, sx - 32, sy - 64 + bob);
+  }
+  // The Grand Exchange's circular teller desk: a polished wooden counter the four
+  // clerks work from, drawn as an isometric ring with a gilded scales emblem.
+  drawGEDesk(ctx, sx, sy) {
+    const rx = 58, ry = 31, h = 18, topY = sy - h;
+    ctx.save();
+    ctx.fillStyle = '#00000033'; ctx.beginPath(); ctx.ellipse(sx, sy + 3, rx + 3, ry + 3, 0, 0, 7); ctx.fill();
+    // outer side band (front half, from bottom ellipse up to the top ellipse)
+    ctx.fillStyle = '#49300f';
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, rx, ry, 0, 0, Math.PI);
+    ctx.ellipse(sx, topY, rx, ry, 0, Math.PI, 0, true);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#2c1c0a'; ctx.lineWidth = 1;              // vertical staves
+    for (let a = 0.18; a < Math.PI; a += 0.26) { const x = sx + Math.cos(a) * rx; ctx.beginPath(); ctx.moveTo(x, sy + Math.sin(a) * ry); ctx.lineTo(x, topY + Math.sin(a) * ry); ctx.stroke(); }
+    // polished top surface
+    const g = ctx.createRadialGradient(sx, topY - 4, 4, sx, topY, rx);
+    g.addColorStop(0, '#9a6a34'); g.addColorStop(1, '#6b451f');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(sx, topY, rx, ry, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#33200f'; ctx.lineWidth = 1.6; ctx.stroke();
+    ctx.strokeStyle = '#b98a45'; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(sx, topY, rx - 9, ry - 5, 0, 0, 7); ctx.stroke();
+    // gilded scales emblem
+    ctx.fillStyle = '#0000004d'; ctx.font = 'bold 22px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('⚖', sx + 1, topY + 1);
+    ctx.fillStyle = '#e8c84e'; ctx.fillText('⚖', sx, topY);
+    ctx.restore();
   }
 
   drawEntity(ctx, e, now, state) {

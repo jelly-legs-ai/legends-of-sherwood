@@ -1033,9 +1033,11 @@ function onBank(world, p, msg) {
 // or an Exchange Clerk. The GE is the ONLY place $LoS leaves the game for chain.
 function nearGE(world, p) {
   const { nodes } = computeWorld();
-  for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++)
-    if (nodes.get(((p.x | 0) + dx) + ',' + ((p.y | 0) + dy)) === 'ge_booth') return true;
-  for (const e of world.near(p.plane, p.x, p.y, 5)) if (e.kind === 'npc' && NPCS[e.type]?.geClerk) return true;
+  for (let dy = -5; dy <= 5; dy++) for (let dx = -5; dx <= 5; dx++) {
+    const n = nodes.get(((p.x | 0) + dx) + ',' + ((p.y | 0) + dy));
+    if (n === 'ge_desk' || n === 'ge_booth') return true;
+  }
+  for (const e of world.near(p.plane, p.x, p.y, 6)) if (e.kind === 'npc' && NPCS[e.type]?.geClerk) return true;
   return false;
 }
 // Withdraw in-game $LoS to the chain. Only at the Grand Exchange, and only ever

@@ -17,13 +17,14 @@ export const TOWNS = {
     ],
   },
   nottingham: {
-    name: 'Nottingham', cx: 330, cy: 330, r: 22, walled: true,
+    name: 'Nottingham', cx: 330, cy: 330, r: 30, walled: true,
     buildings: [
-      { x: 316, y: 318, w: 7, h: 6, door: 'S', name: 'Bank of Nottingham' },
-      // The Grand Exchange: a single ornate, heavily fortified stone hall in the
-      // grounds of Nottingham Castle — the only place $LoS is cashed out to chain.
-      { x: 325, y: 310, w: 12, h: 6, door: 'S', name: 'Grand Exchange', ge: true, fortified: true },
-      { x: 316, y: 340, w: 6, h: 5, door: 'N', name: 'The Trip to Jerusalem Inn' },
+      { x: 303, y: 322, w: 7, h: 6, door: 'S', name: 'Bank of Nottingham' },
+      // The Grand Exchange: a single vast, heavily fortified stone hall in the
+      // grounds of Nottingham Castle — high player traffic, and the only place
+      // $LoS is cashed out to chain. Four tellers work a circular desk at centre.
+      { x: 316, y: 311, w: 28, h: 18, door: 'S', name: 'Grand Exchange', ge: true, fortified: true },
+      { x: 305, y: 340, w: 6, h: 5, door: 'N', name: 'The Trip to Jerusalem Inn' },
       { x: 337, y: 340, w: 7, h: 5, door: 'N', name: 'Museum of Antiquities' },
       { x: 326, y: 302, w: 9, h: 7, door: 'S', name: 'Nottingham Castle', castle: true },
     ],
@@ -84,7 +85,7 @@ export const POIS = [
   ['net_spot', 248, 358], ['rod_spot', 256, 358], ['rod_spot', 262, 358],
   ['house_portal', 240, 330], ['loom', 258, 327], ['tanning_rack', 246, 341],
   // --- Nottingham ---
-  ['bank_booth', 319, 320], ['ge_booth', 330, 312], ['museum_bench', 339, 342],
+  ['bank_booth', 305, 324], ['ge_desk', 330, 320], ['museum_bench', 339, 342],
   ['bakery_stall', 328, 330], ['fur_stall', 331, 330], ['silver_stall', 334, 330], ['gem_stall', 337, 330],
   ['range', 320, 342], ['chapel_altar', 322, 334], ['furnace', 344, 330], ['anvil', 345, 332], ['loom', 342, 334], ['tanning_rack', 347, 334],
   // --- Bay ---
@@ -163,7 +164,8 @@ export const SPAWNS = [
   { mob: 'goblin_raider', x: 246, y: 282, r: 14, n: 6 }, { mob: 'brown_bear', x: 292, y: 252, r: 16, n: 4 },
   { mob: 'sheriffs_guard', x: 340, y: 310, r: 14, n: 6 }, { mob: 'sheriffs_guard', x: 352, y: 336, r: 12, n: 5 },
   // Grand Exchange garrison — elite guards ring the fortified hall (passive unless attacked)
-  { mob: 'ge_guard', x: 330, y: 309, r: 2, n: 3 }, { mob: 'ge_guard', x: 330, y: 317, r: 3, n: 4 },
+  { mob: 'ge_guard', x: 330, y: 331, r: 3, n: 4 },   // south approach & doors
+  { mob: 'ge_guard', x: 313, y: 319, r: 2, n: 2 }, { mob: 'ge_guard', x: 346, y: 319, r: 2, n: 2 }, // flanks
   { mob: 'elder_treant_sapling', x: 258, y: 268, r: 10, n: 4 }, { mob: 'brown_bear', x: 330, y: 270, r: 14, n: 4 },
   // Fenwold swamp (levels 25-50)
   { mob: 'marsh_leech', x: 430, y: 440, r: 20, n: 8 }, { mob: 'marsh_leech', x: 405, y: 470, r: 16, n: 6 },
