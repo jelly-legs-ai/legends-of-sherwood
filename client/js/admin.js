@@ -428,6 +428,7 @@ function preview(sel) {
     const loop = (now) => {
       g.clearRect(0, 0, 260, 200);
       g.imageSmoothingEnabled = false;
+      fake.dir = dirState;   // let the direction buttons steer the facing
       if (system === 'sheet') {
         fake.anim = anim;
         fake.hp = anim === 'death' ? 0 : 1;

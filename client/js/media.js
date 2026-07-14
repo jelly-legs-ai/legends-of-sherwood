@@ -101,11 +101,11 @@ function drawFrame(ctx, def, m, e, a, now, sx, sy, scale, fi) {
     sxx = (fi % cols) * fw; syy = Math.floor(fi / cols) * fw;
     if (m.rows <= 1 || !m.rows) { fh = m.h; syy = 0; }          // single-row strips keep native height
   }
-  // Content-aware sizing: many packs centre a small sprite in a big cell
-  // (bovine boar = 20px of art in a 128px cell). Boost tiny sprites so their
-  // VISIBLE art is at least ~44px * mob scale, and anchor to the real feet.
+  // Content-aware sizing: many packs centre a tiny sprite in a big cell (a
+  // reindeer is ~26px of art in a 128px cell). Boost so the VISIBLE art reaches
+  // roughly player height (~62px) * mob scale, and anchor to the real feet.
   const art = def.art;
-  const boost = art ? Math.min(4.5, Math.max(1, 44 / (fh * art.h))) : 1;
+  const boost = art ? Math.min(5, Math.max(1, 62 / (fh * art.h))) : 1;
   const S = fw * scale * boost;
   const drawH = fh * scale * boost;
   const dx = sx - S / 2;
@@ -113,8 +113,13 @@ function drawFrame(ctx, def, m, e, a, now, sx, sy, scale, fi) {
   if (art) dy = sy + 6 * scale - drawH * (1 - art.b);          // content bottom on the anchor
   else if (fw >= 160) dy = sy + S * 0.10 - S;                  // big beasts: centred cells
   else dy = sy + 6 * scale - drawH;
-  // side-view strips face left in most packs; mirror when moving east
-  const flip = def.kind === 'strips' && e.dir === 3;
+  // Facing. Directional grids (rows = facings) already pick the right row and
+  // must never mirror. Single-view sheets have no left/right art, so we mirror
+  // horizontally to face the target: side-view strips face left by default
+  // (flip when heading east); front-facing sequential grids face right by
+  // default (flip when heading west) so bosses turn toward whoever they fight.
+  const rowMajor = def.kind === 'grid' && m.cols;
+  const flip = (def.kind === 'strips' && e.dir === 3) || (rowMajor && e.dir === 1);
   ctx.save();
   if (flip) { ctx.translate(sx * 2, 0); ctx.scale(-1, 1); }
   if (e.hp <= 0 && !def.anims.death) ctx.globalAlpha = 0.55;
