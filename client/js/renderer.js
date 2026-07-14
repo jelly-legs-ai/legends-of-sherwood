@@ -20,6 +20,7 @@ const TILE_COLOR = {
   [TILE.SWAMP]: ['#556446', '#49573c'], [TILE.JUNGLE]: ['#3e7034', '#35612c'], [TILE.ROCK]: ['#7d7a70', '#6e6b62'],
   [TILE.SCREE]: ['#948f80', '#858072'], [TILE.TUNDRA]: ['#a8ab88', '#999c7a'], [TILE.SNOW]: ['#e8edf0', '#dbe2e8'],
   [TILE.ICE]: ['#c2dcec', '#b2cfe2'], [TILE.ROAD]: ['#b09a6a', '#a08a5c'], [TILE.BRIDGE]: ['#8a6d42', '#7a5f38'],
+  [TILE.PATH]: ['#9fa0a0', '#8a8b8c'],
   [TILE.FLOOR_WOOD]: ['#96713d', '#875f35'], [TILE.FLOOR_STONE]: ['#8d8878', '#7d7868'], [TILE.WALL]: ['#6e6a5e', '#565248'],
   [TILE.WALL_WOOD]: ['#6b4f2a', '#553f22'], [TILE.FARM]: ['#7a5f3c', '#6d5435'],
   [TILE.LAVA_ROCK]: ['#4a3a38', '#403230'], [TILE.ARENA]: ['#c9b06a', '#baa25e'], [TILE.WATER_SWAMP]: ['#3d5348', '#35493f'],
@@ -60,6 +61,7 @@ const MATS = {
   [TILE.SWAMP]:       { top: ['#5a6a49', '#4a583d'], sp: ['#6f8258', '#3c4a30', '#7d9464'], skirt: ['#453d28', '#2a2416'], kind: 'swamp' },
   [TILE.DIRT]:        { top: ['#9d8052', '#8a6f45'], sp: ['#b09263', '#75603c', '#c2a878'], skirt: ['#6b4f2b', '#3f2d1a'], kind: 'dirt' },
   [TILE.ROAD]:        { top: ['#b49d6d', '#a08a5c'], sp: ['#c7b183', '#8a7448', '#d4c298'], skirt: ['#6b4f2b', '#3f2d1a'], kind: 'road' },
+  [TILE.PATH]:        { top: ['#9fa0a0', '#8a8b8c'], sp: ['#b6b7b8', '#74757a', '#c8c9cc'], skirt: ['#5b574b', '#3c392f'], kind: 'cobble' },
   [TILE.FARM]:        { top: ['#83643f', '#6d5435'], sp: ['#977850', '#5c452a', '#a8895e'], skirt: ['#5c432a', '#382a18'], kind: 'farm' },
   [TILE.SAND]:        { top: ['#ddc684', '#cbb26e'], sp: ['#ecd9a0', '#b89d5c', '#f4e6b8'], skirt: ['#b89d5c', '#8a744a'], kind: 'sand' },
   [TILE.ARENA]:       { top: ['#dfc88a', '#cdb474'], sp: ['#eedca6', '#ba9f60', '#f6e8bc'], skirt: ['#b89d5c', '#8a744a'], kind: 'sand' },
@@ -186,6 +188,23 @@ function paintBlock(g, t, rnd) {
       g.beginPath(); g.moveTo(10, 11); g.lineTo(54, 21); g.stroke();
       g.beginPath(); g.moveTo(12, 22); g.lineTo(52, 12); g.stroke();
       break;
+    case 'cobble': {
+      // set stone in a herringbone-ish grid along the iso axes, each stone
+      // shaded so the street reads as laid cobbles rather than flat grey
+      const ax = [16, 8], ay = [8, -8];   // the two iso step vectors (half-tile)
+      for (let u = -1; u <= 4; u++) for (let v = -2; v <= 3; v++) {
+        const cx = 32 + (u - 1.5) * ax[0] * 0.5 + (v) * ay[0] * 0.5;
+        const cy = 16 + (u - 1.5) * ax[1] * 0.5 + (v) * ay[1] * 0.5;
+        if (cx < 2 || cx > 62 || cy < 1 || cy > 31) continue;
+        const r = rnd();
+        g.fillStyle = r > 0.72 ? m.sp[2] : r > 0.4 ? m.sp[0] : m.top[1];
+        g.beginPath(); g.moveTo(cx, cy - 3); g.lineTo(cx + 5, cy); g.lineTo(cx, cy + 3); g.lineTo(cx - 5, cy); g.closePath(); g.fill();
+        g.strokeStyle = '#00000030'; g.lineWidth = 0.7; g.stroke();
+      }
+      // a few pale mortar glints
+      g.fillStyle = '#ffffff20'; for (let i = 0; i < 6; i++) g.fillRect((rnd() * 60) | 0, 4 + (rnd() * 24 | 0), 1, 1);
+      break;
+    }
     case 'farm':
       speck(g, rnd, 30, m.sp);
       g.strokeStyle = '#00000033'; g.lineWidth = 2;
@@ -1308,6 +1327,7 @@ export function worldMapCanvas() {
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
     const t = tiles[y * WORLD.W + x];
     if (t === TILE.ROAD || t === TILE.BRIDGE) { bg.fillStyle = '#c6ac74'; bg.fillRect(x, y, 1, 1); continue; }
+    if (t === TILE.PATH) { bg.fillStyle = '#c4c2bc'; bg.fillRect(x, y, 1, 1); continue; }
     const col = TILE_COLOR[t] || ['#f0f', '#a0a'];
     bg.fillStyle = mixColor(col[0], col[1], smoothNoise(x, y));
     bg.fillRect(x, y, 1, 1);

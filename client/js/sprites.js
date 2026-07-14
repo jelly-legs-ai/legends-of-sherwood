@@ -959,6 +959,108 @@ export function nodeSprite(type, off = false) {
       case 'rope_swing': { px(g, 30, 10, 3, 44, '#a8895c'); px(g, 26, 52, 10, 4, '#6e522f'); break; }
       case 'ice_traverse': { g.fillStyle = '#cfe8f8aa'; g.beginPath(); g.moveTo(10, 66); g.lineTo(32, 40); g.lineTo(54, 66); g.fill(); break; }
       case 'archery_butt': { g.fillStyle = '#e8dcc0'; g.beginPath(); g.arc(32, 48, 14, 0, 7); g.fill(); g.fillStyle = '#c03a3a'; g.beginPath(); g.arc(32, 48, 9, 0, 7); g.fill(); g.fillStyle = '#e8dcc0'; g.beginPath(); g.arc(32, 48, 4, 0, 7); g.fill(); px(g, 28, 62, 10, 6, '#6e522f'); break; }
+      // ---- town furniture -------------------------------------------------------
+      case 'well': {
+        // round stone kerb, twin posts, a peaked shingle roof and a bucket
+        g.fillStyle = '#6e6862'; g.beginPath(); g.ellipse(32, 60, 15, 7, 0, 0, 7); g.fill();
+        g.fillStyle = '#8a847c'; g.beginPath(); g.ellipse(32, 57, 14, 6.5, 0, 0, 7); g.fill();
+        g.fillStyle = '#2a2620'; g.beginPath(); g.ellipse(32, 56, 9, 4.2, 0, 0, 7); g.fill();   // dark shaft
+        g.strokeStyle = '#4a453e'; g.lineWidth = 1;
+        for (let a = 0; a < 7; a++) { const an = a / 7 * 6.28; g.beginPath(); g.moveTo(32 + Math.cos(an) * 10, 57 + Math.sin(an) * 4.6); g.lineTo(32 + Math.cos(an) * 14, 57 + Math.sin(an) * 6.4); g.stroke(); }
+        px(g, 20, 30, 3, 26, '#6e522f'); px(g, 41, 30, 3, 26, '#6e522f');
+        g.fillStyle = '#8a3a2a'; g.beginPath(); g.moveTo(32, 14); g.lineTo(48, 32); g.lineTo(16, 32); g.closePath(); g.fill();
+        g.fillStyle = '#a04a34'; g.beginPath(); g.moveTo(32, 16); g.lineTo(44, 31); g.lineTo(20, 31); g.closePath(); g.fill();
+        for (let i = 0; i < 4; i++) { g.strokeStyle = '#7a2e20'; g.beginPath(); g.moveTo(20 + i * 3, 31); g.lineTo(24 + i * 3, 22); g.stroke(); }
+        px(g, 30, 20, 4, 2, '#5a4327'); // winch axle
+        px(g, 29, 42, 6, 6, '#5a4327'); px(g, 30, 43, 4, 4, '#3a2d1a'); // bucket
+        g.strokeStyle = '#e8dcc0'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(32, 22); g.lineTo(32, 42); g.stroke();
+        break;
+      }
+      case 'fountain': {
+        // two-tier stone basin with a spout and rippling water
+        g.fillStyle = '#7a7468'; g.beginPath(); g.ellipse(32, 60, 18, 8, 0, 0, 7); g.fill();
+        g.fillStyle = '#9a948a'; g.beginPath(); g.ellipse(32, 58, 16, 7, 0, 0, 7); g.fill();
+        g.fillStyle = '#5a8fb0'; g.beginPath(); g.ellipse(32, 57, 13, 5.4, 0, 0, 7); g.fill();
+        g.fillStyle = '#8fc4dc'; g.beginPath(); g.ellipse(30, 55.5, 7, 2.6, 0, 0, 7); g.fill();
+        g.fillStyle = '#7a7468'; g.beginPath(); g.ellipse(32, 48, 6, 3, 0, 0, 7); g.fill(); px(g, 30, 36, 4, 13, '#8a847c'); // pillar
+        g.fillStyle = '#9a948a'; g.beginPath(); g.ellipse(32, 40, 9, 4, 0, 0, 7); g.fill();
+        g.fillStyle = '#6aa8c8'; g.beginPath(); g.ellipse(32, 39, 6, 2.4, 0, 0, 7); g.fill();
+        g.shadowColor = '#bfe0f0'; g.shadowBlur = 5; g.strokeStyle = '#cfeaf6'; g.lineWidth = 1.4;
+        g.beginPath(); g.moveTo(32, 30); g.quadraticCurveTo(26, 40, 24, 50); g.moveTo(32, 30); g.quadraticCurveTo(38, 40, 40, 50); g.stroke();
+        px(g, 31, 26, 2, 6, '#cfeaf6'); g.shadowBlur = 0;
+        break;
+      }
+      case 'lamp_post': {
+        px(g, 30, 24, 3, 40, '#2e2c2a'); px(g, 26, 62, 11, 3, '#26241f');       // post + base
+        g.strokeStyle = '#2e2c2a'; g.lineWidth = 2; g.beginPath(); g.moveTo(31, 26); g.lineTo(38, 22); g.stroke();
+        g.shadowColor = '#ffcf6a'; g.shadowBlur = 10;
+        g.fillStyle = '#3a3630'; px(g, 27, 18, 10, 12, '#3a3630');               // lantern housing
+        g.fillStyle = '#ffdf8a'; px(g, 29, 20, 6, 8, '#ffdf8a');                 // glowing glass
+        g.fillStyle = '#fff3c0'; px(g, 30, 21, 3, 5, '#fff3c0');
+        g.shadowBlur = 0; g.fillStyle = '#26241f'; px(g, 27, 15, 10, 3, '#26241f'); px(g, 30, 12, 4, 3, '#26241f'); // cap
+        break;
+      }
+      case 'park_bench': {
+        for (const lx of [22, 42]) { px(g, lx, 52, 3, 12, '#3a3630'); }          // iron legs
+        g.fillStyle = '#7a5a34'; px(g, 18, 50, 28, 4, '#7a5a34'); px(g, 18, 50, 28, 1.4, '#9a734a'); // seat
+        for (let i = 0; i < 5; i++) px(g, 20 + i * 5.4, 40, 3, 11, '#7a5a34');   // back slats
+        px(g, 18, 39, 28, 2, '#5a4327'); px(g, 18, 39, 28, 0.8, '#9a734a');      // top rail
+        g.strokeStyle = '#2a2620'; g.lineWidth = 0.6; g.strokeRect(18, 50, 28, 4);
+        break;
+      }
+      case 'flower_bed': {
+        g.fillStyle = '#5a4327'; px(g, 16, 52, 32, 12, '#5a4327'); px(g, 16, 52, 32, 2, '#6e522f'); // planter box
+        px(g, 16, 62, 32, 2, '#3e2f1a');
+        g.fillStyle = '#3f6028'; px(g, 18, 48, 28, 8, '#3f6028');                // foliage
+        const cols = ['#e05a6a', '#ffd75e', '#e08adc', '#7ac8f0', '#ff9b4a'];
+        for (let i = 0; i < 10; i++) { const fx = 20 + (i % 5) * 5.4, fy = 46 + ((i / 5) | 0) * 5; g.fillStyle = cols[i % cols.length]; g.beginPath(); g.arc(fx, fy, 1.8, 0, 7); g.fill(); px(g, fx - 0.5, fy - 0.5, 1, 1, '#fff6c0'); }
+        break;
+      }
+      case 'barrel': {
+        g.fillStyle = '#6e522f'; px(g, 24, 42, 16, 24, '#6e522f');
+        g.fillStyle = '#7d6238'; px(g, 26, 42, 12, 24, '#7d6238');
+        g.fillStyle = '#8a6d42'; px(g, 27, 43, 4, 22, '#8a6d42');
+        g.fillStyle = '#3a2d1a'; for (const by of [45, 53, 62]) px(g, 24, by, 16, 2, '#3a2d1a');
+        g.fillStyle = '#9a7a48'; g.beginPath(); g.ellipse(32, 42, 8, 3, 0, 0, 7); g.fill();
+        g.fillStyle = '#5a4327'; g.beginPath(); g.ellipse(32, 42, 5, 1.8, 0, 0, 7); g.fill();
+        break;
+      }
+      case 'crate': {
+        g.fillStyle = '#7d6238'; px(g, 23, 44, 18, 20, '#7d6238');
+        g.fillStyle = '#6e522f'; px(g, 23, 44, 18, 2, '#8a6d42'); px(g, 23, 62, 18, 2, '#5a4327');
+        g.strokeStyle = '#5a4327'; g.lineWidth = 1.4;
+        g.strokeRect(23, 44, 18, 20); g.beginPath(); g.moveTo(23, 44); g.lineTo(41, 64); g.moveTo(41, 44); g.lineTo(23, 64); g.stroke();
+        break;
+      }
+      case 'market_cart': {
+        g.fillStyle = '#6e522f'; px(g, 16, 46, 32, 12, '#6e522f'); px(g, 16, 46, 32, 2, '#8a6d42'); // bed
+        g.fillStyle = '#3a2d1a'; g.beginPath(); g.arc(23, 60, 5, 0, 7); g.fill(); g.beginPath(); g.arc(41, 60, 5, 0, 7); g.fill();
+        g.fillStyle = '#5a4327'; g.beginPath(); g.arc(23, 60, 2, 0, 7); g.fill(); g.beginPath(); g.arc(41, 60, 2, 0, 7); g.fill();
+        px(g, 18, 26, 3, 20, '#5a4327'); px(g, 43, 26, 3, 20, '#5a4327'); // awning posts
+        g.fillStyle = '#a34a3a'; px(g, 14, 24, 36, 6, '#a34a3a');
+        for (let i = 0; i < 6; i++) px(g, 15 + i * 6, 24, 3, 6, '#c86a52');
+        g.fillStyle = '#e0b93c'; g.beginPath(); g.arc(24, 44, 2.4, 0, 7); g.fill(); // wares
+        g.fillStyle = '#c03a3a'; g.beginPath(); g.arc(30, 45, 2.4, 0, 7); g.fill();
+        g.fillStyle = '#6fc04a'; g.beginPath(); g.arc(36, 44, 2.4, 0, 7); g.fill();
+        g.fillStyle = '#e8a84c'; g.beginPath(); g.arc(42, 45, 2.4, 0, 7); g.fill();
+        break;
+      }
+      case 'signpost': {
+        px(g, 30, 30, 3, 34, '#6e522f');
+        g.fillStyle = '#7d6238'; px(g, 20, 32, 22, 8, '#7d6238'); px(g, 20, 32, 22, 1.4, '#9a734a');
+        g.beginPath(); g.moveTo(42, 32); g.lineTo(47, 36); g.lineTo(42, 40); g.closePath(); g.fill();
+        g.strokeStyle = '#4a3a1c'; g.lineWidth = 1; g.strokeRect(20, 32, 22, 8);
+        g.strokeStyle = '#e8dcc0'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(23, 36); g.lineTo(38, 36); g.stroke();
+        break;
+      }
+      case 'hay_bale': {
+        g.fillStyle = '#c9a83c'; g.beginPath(); g.ellipse(32, 56, 15, 10, 0, 0, 7); g.fill();
+        g.fillStyle = '#d8ba52'; g.beginPath(); g.ellipse(30, 53, 12, 8, 0, 0, 7); g.fill();
+        g.strokeStyle = '#a8862e'; g.lineWidth = 0.8;
+        for (let i = -2; i <= 2; i++) { g.beginPath(); g.ellipse(32, 56, 15 - Math.abs(i) * 2, 10, 0, 0, 7); g.stroke(); }
+        g.strokeStyle = '#8a6d1d'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(22, 48); g.lineTo(24, 64); g.moveTo(42, 48); g.lineTo(40, 64); g.stroke();
+        break;
+      }
       default: { px(g, 26, 50, 12, 12, '#8a8474'); }
     }
   });

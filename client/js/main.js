@@ -347,14 +347,15 @@ function clickGround(e, menu) {
     UI.openHouse(G.houseFurniture);
     return;
   }
-  if (nodeType && !menu) {
+  const decor = nodeType && DECOR[nodeType];   // town furniture is examine-only
+  if (nodeType && !decor && !menu) {
     send({ t: MSG.ACTION, x: nodeX, y: nodeY, seed: G.selectedSeed });
     return;
   }
   if (menu) {
     const opts = [['🚶 Walk here', () => send({ t: MSG.MOVE, x, y, run: false })], ['🏃 Run here', () => send({ t: MSG.MOVE, x, y, run: true })]];
-    if (nodeType) opts.unshift([actionLabel(nodeType), () => send({ t: MSG.ACTION, x: nodeX, y: nodeY, seed: G.selectedSeed })]);
-    ctxWithWalk(e, opts, nodeType ? examineNode(nodeType) : examineTile(x, y));
+    if (nodeType && !decor) opts.unshift([actionLabel(nodeType), () => send({ t: MSG.ACTION, x: nodeX, y: nodeY, seed: G.selectedSeed })]);
+    ctxWithWalk(e, opts, decor || (nodeType ? examineNode(nodeType) : examineTile(x, y)));
     return;
   }
   send({ t: MSG.MOVE, x, y, run: true });
@@ -368,6 +369,19 @@ function ctxWithWalk(e, opts, examine) {
   UI.ctxMenu(e.clientX, e.clientY, full);
 }
 // The node's proper display name — trees gain a trailing "tree" (Oak -> Oak tree).
+// Purely decorative town furniture: examine-only, no gather action.
+const DECOR = {
+  well: 'A stone village well. The water is cold and sweet.',
+  fountain: 'A carved fountain — its waters catch the light.',
+  lamp_post: 'A wrought-iron lamp, lit against the dark.',
+  park_bench: 'A sturdy bench, worn smooth by weary travellers.',
+  flower_bed: 'A tended bed of wildflowers brightening the square.',
+  barrel: 'A stout oak barrel, hooped and sealed tight.',
+  crate: 'A wooden crate of market goods.',
+  market_cart: "A trader's cart, its striped awning shading the wares.",
+  signpost: 'A weathered signpost pointing the way.',
+  hay_bale: 'A bale of sweet-smelling hay.',
+};
 function nodeDisplayName(type) {
   const n = NODES[type];
   if (!n) return type.replace(/_/g, ' ');
@@ -417,7 +431,7 @@ const TILE_DESC = {
   [TILE.MEADOW]: 'A flowering meadow.', [TILE.DIRT]: 'Bare, trodden earth.', [TILE.FOREST]: 'The forest floor.', [TILE.DEEPFOREST]: 'Deep, shadowed woodland.',
   [TILE.SWAMP]: 'Squelching swamp ground.', [TILE.JUNGLE]: 'Dense wildwood undergrowth.', [TILE.ROCK]: 'Bare mountain rock.', [TILE.SCREE]: 'Loose mountain scree.',
   [TILE.TUNDRA]: 'Frozen tundra.', [TILE.SNOW]: 'Deep, crisp snow.', [TILE.ICE]: 'Treacherous ice.', [TILE.ROAD]: 'A well-worn road.', [TILE.BRIDGE]: 'A sturdy bridge across the water.',
-  [TILE.FARM]: 'Ploughed farmland.',
+  [TILE.FARM]: 'Ploughed farmland.', [TILE.PATH]: 'A neatly cobbled street.',
 };
 function examineTile(x, y) {
   const t = worldTile(x, y);

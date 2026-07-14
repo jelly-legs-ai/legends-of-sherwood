@@ -186,6 +186,85 @@ function dist(x1, y1, x2, y2) { const dx = x1 - x2, dy = y1 - y2; return Math.sq
 function townRadius(t, x, y) {
   return t.r + Math.max(0, (vnoise(x, y, 13, 71) - 0.42)) * t.r * 0.8;
 }
+
+// ---- streets & town furniture ---------------------------------------------------
+// Every building's door is joined to a central cobbled plaza by a street, and the
+// square is dressed with deterministic furniture (a well/fountain, benches, lamp
+// posts, flower beds, market stalls, barrels & a signpost). Streets are painted
+// as TILE.PATH within the town ground; furniture is emitted as decorative nodes
+// (see TOWN_PROPS, merged into computeWorld) so both sides render it identically.
+const STREET_TILES = new Set();
+const PLAZAS = [];       // { cx, cy, r }
+const TOWN_PROPS = [];   // [type, x, y]
+function doorOutside(b) {
+  const mid = { S: [b.x + (b.w >> 1), b.y + b.h - 1], N: [b.x + (b.w >> 1), b.y], E: [b.x + b.w - 1, b.y + (b.h >> 1)], W: [b.x, b.y + (b.h >> 1)] }[b.door] || [b.x + (b.w >> 1), b.y + b.h - 1];
+  const d = { S: [0, 1], N: [0, -1], E: [1, 0], W: [-1, 0] }[b.door] || [0, 1];
+  return [mid[0] + d[0], mid[1] + d[1]];
+}
+function inAnyBuilding(x, y) {
+  for (const key in TOWNS) for (const b of TOWNS[key].buildings)
+    if (x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) return true;
+  return false;
+}
+function rasterStreet(x0, y0, x1, y1) {
+  const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) * 2 + 1;
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps, cx = x0 + (x1 - x0) * t, cy = y0 + (y1 - y0) * t;
+    // a 2-wide street: the centre tile plus its lower/right neighbour
+    for (const [ox, oy] of [[0, 0], [1, 0], [0, 1]]) STREET_TILES.add(`${Math.round(cx) + ox},${Math.round(cy) + oy}`);
+  }
+}
+function buildTownFurniture() {
+  for (const key in TOWNS) {
+    const t = TOWNS[key];
+    const cx = t.cx, cy = t.cy;
+    const big = t.r >= S(20);
+    const plazaR = big ? 4 : t.r >= S(12) ? 3 : 2;
+    PLAZAS.push({ cx, cy, r: plazaR });
+    for (const b of t.buildings) { const [dx, dy] = doorOutside(b); rasterStreet(dx, dy, cx, cy); }
+    // deterministic furniture ---------------------------------------------------
+    const rnd = (s) => vnoise(cx + s * 7, cy - s * 5, 3, 41 + s);
+    const occupied = new Set();
+    const put = (type, x, y) => {
+      x = Math.round(x); y = Math.round(y);
+      const k = `${x},${y}`;
+      if (occupied.has(k) || inAnyBuilding(x, y)) return;
+      if (dist(x, y, cx, cy) > t.r) return;       // keep it on town ground
+      occupied.add(k); TOWN_PROPS.push([type, x, y]);
+    };
+    // centrepiece: a fountain in the cities, a village well otherwise
+    put(t.walled || big ? 'fountain' : 'well', cx, cy);
+    // a ring of benches, lamp posts and flower beds around the square
+    const ring = plazaR + 1, spots = big ? 12 : 8;
+    const RING = ['park_bench', 'lamp_post', 'flower_bed', 'lamp_post', 'flower_bed', 'park_bench', 'lamp_post', 'flower_bed'];
+    for (let i = 0; i < spots; i++) {
+      const a = (i / spots) * Math.PI * 2;
+      put(RING[i % RING.length], cx + Math.cos(a) * ring, cy + Math.sin(a) * (ring - 0.5));
+    }
+    // lamp posts marching along each street, and a barrel/crate by a couple of doors
+    for (let bi = 0; bi < t.buildings.length; bi++) {
+      const b = t.buildings[bi];
+      const [dx, dy] = doorOutside(b);
+      const midx = (dx + cx) / 2, midy = (dy + cy) / 2;
+      put('lamp_post', midx + (dx < cx ? -1 : 1), midy);
+      if (bi % 2 === 0) put(rnd(bi) > 0.5 ? 'barrel' : 'crate', dx + (dx < cx ? -1 : 1), dy + 1);
+    }
+    // market stalls + a signpost for the bigger settlements
+    if (big) {
+      put('market_cart', cx - ring - 1, cy - 1);
+      put('market_cart', cx + ring + 1, cy + 1);
+      put('hay_bale', cx - 1, cy + ring + 1);
+    }
+    put('signpost', cx + (rnd(9) > 0.5 ? ring + 1 : -ring - 1), cy - ring);
+  }
+}
+buildTownFurniture();
+function townPath(x, y) {
+  if (STREET_TILES.has(`${x},${y}`)) return true;
+  for (const p of PLAZAS) if (Math.abs(x - p.cx) <= p.r && Math.abs(y - p.cy) <= p.r && dist(x, y, p.cx, p.cy) <= p.r) return true;
+  return false;
+}
+
 function townTile(x, y) {
   // buildings first — across ALL towns, so one settlement's bulging ground can
   // never swallow a neighbour's cottages
@@ -212,10 +291,10 @@ function townTile(x, y) {
     const rr = townRadius(t, x, y);
     if (t.walled && Math.abs(d - rr) < 0.9) {
       // city wall following the organic boundary, with 4 gates on the axes
-      if (Math.abs(x - t.cx) < 2 || Math.abs(y - t.cy) < 2) return TILE.ROAD;
+      if (Math.abs(x - t.cx) < 2 || Math.abs(y - t.cy) < 2) return TILE.PATH;
       return TILE.WALL;
     }
-    if (d < rr) return t.snowy ? TILE.SNOW : TILE.DIRT;
+    if (d < rr) return townPath(x, y) ? TILE.PATH : (t.snowy ? TILE.SNOW : TILE.DIRT);
   }
   return -1;
 }
@@ -357,7 +436,8 @@ export function computeWorld() {
       const n = scatterNodeAt(x, y);
       if (n) _nodes.set(x + ',' + y, n);
     }
-  for (const [type, x, y] of POIS) _nodes.set(x + ',' + y, type); // authored POIs win
+  for (const [type, x, y] of TOWN_PROPS) if (!inAnyBuilding(x, y)) _nodes.set(x + ',' + y, type); // town furniture
+  for (const [type, x, y] of POIS) _nodes.set(x + ',' + y, type); // authored POIs win over furniture
   // Fishing spots must sit ON open water. Authored coordinates are approximate
   // (the warped rivers meander, pools wobble), so snap each spot to the nearest
   // water tile within 8 — this guarantees every fishery lands in its pool/river.
