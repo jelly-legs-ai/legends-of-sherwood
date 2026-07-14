@@ -604,7 +604,64 @@
   "wep_pickaxe_uni_male": "wep_pickaxe_uni_male.png",
   "wep_pickaxe_uni_female": "wep_pickaxe_uni_female.png",
   "wep_pickaxe_slash_fg": "wep_pickaxe_slash_fg.png",
-  "wep_pickaxe_slash_bg": "wep_pickaxe_slash_bg.png"
+  "wep_pickaxe_slash_bg": "wep_pickaxe_slash_bg.png",
+  "wep_dagger_walk_fg": "wep_dagger_walk_fg.png",
+  "wep_dagger_walk_bg": "wep_dagger_walk_bg.png",
+  "wep_dagger_thrust_fg": "wep_dagger_thrust_fg.png",
+  "wep_dagger_slash_fg": "wep_dagger_slash_fg.png",
+  "wep_dagger_slash_bg": "wep_dagger_slash_bg.png",
+  "wep_rapier_walk_fg": "wep_rapier_walk_fg.png",
+  "wep_rapier_walk_bg": "wep_rapier_walk_bg.png",
+  "wep_rapier_slash_fg": "wep_rapier_slash_fg.png",
+  "wep_rapier_slash_bg": "wep_rapier_slash_bg.png",
+  "wep_longsword_walk_fg": "wep_longsword_walk_fg.png",
+  "wep_longsword_walk_bg": "wep_longsword_walk_bg.png",
+  "wep_longsword_slash_fg": "wep_longsword_slash_fg.png",
+  "wep_longsword_slash_bg": "wep_longsword_slash_bg.png",
+  "wep_longsword_thrust_fg": "wep_longsword_thrust_fg.png",
+  "wep_longsword_thrust_bg": "wep_longsword_thrust_bg.png",
+  "wep_flail_walk_fg": "wep_flail_walk_fg.png",
+  "wep_flail_walk_bg": "wep_flail_walk_bg.png",
+  "wep_flail_slash_fg": "wep_flail_slash_fg.png",
+  "wep_flail_slash_bg": "wep_flail_slash_bg.png",
+  "wep_halberd_walk_fg": "wep_halberd_walk_fg.png",
+  "wep_halberd_walk_bg": "wep_halberd_walk_bg.png",
+  "wep_halberd_slash_fg": "wep_halberd_slash_fg.png",
+  "wep_halberd_slash_bg": "wep_halberd_slash_bg.png",
+  "wep_halberd_thrust_fg": "wep_halberd_thrust_fg.png",
+  "wep_halberd_thrust_bg": "wep_halberd_thrust_bg.png",
+  "wep_scythe_walk_fg": "wep_scythe_walk_fg.png",
+  "wep_scythe_walk_bg": "wep_scythe_walk_bg.png",
+  "wep_scythe_slash_fg": "wep_scythe_slash_fg.png",
+  "wep_scythe_slash_bg": "wep_scythe_slash_bg.png",
+  "wep_trident_thrust_fg_copper": "wep_trident_thrust_fg_copper.png",
+  "wep_trident_thrust_bg_copper": "wep_trident_thrust_bg_copper.png",
+  "wep_trident_thrust_fg_bronze": "wep_trident_thrust_fg_bronze.png",
+  "wep_trident_thrust_bg_bronze": "wep_trident_thrust_bg_bronze.png",
+  "wep_trident_thrust_fg_iron": "wep_trident_thrust_fg_iron.png",
+  "wep_trident_thrust_bg_iron": "wep_trident_thrust_bg_iron.png",
+  "wep_trident_thrust_fg_steel": "wep_trident_thrust_fg_steel.png",
+  "wep_trident_thrust_bg_steel": "wep_trident_thrust_bg_steel.png",
+  "wep_trident_thrust_fg_brass": "wep_trident_thrust_fg_brass.png",
+  "wep_trident_thrust_bg_brass": "wep_trident_thrust_bg_brass.png",
+  "wep_trident_thrust_fg_silver": "wep_trident_thrust_fg_silver.png",
+  "wep_trident_thrust_bg_silver": "wep_trident_thrust_bg_silver.png",
+  "wep_trident_thrust_fg_gold": "wep_trident_thrust_fg_gold.png",
+  "wep_trident_thrust_bg_gold": "wep_trident_thrust_bg_gold.png",
+  "wep_trident_walk_fg_copper": "wep_trident_walk_fg_copper.png",
+  "wep_trident_walk_bg_copper": "wep_trident_walk_bg_copper.png",
+  "wep_trident_walk_fg_bronze": "wep_trident_walk_fg_bronze.png",
+  "wep_trident_walk_bg_bronze": "wep_trident_walk_bg_bronze.png",
+  "wep_trident_walk_fg_iron": "wep_trident_walk_fg_iron.png",
+  "wep_trident_walk_bg_iron": "wep_trident_walk_bg_iron.png",
+  "wep_trident_walk_fg_steel": "wep_trident_walk_fg_steel.png",
+  "wep_trident_walk_bg_steel": "wep_trident_walk_bg_steel.png",
+  "wep_trident_walk_fg_brass": "wep_trident_walk_fg_brass.png",
+  "wep_trident_walk_bg_brass": "wep_trident_walk_bg_brass.png",
+  "wep_trident_walk_fg_silver": "wep_trident_walk_fg_silver.png",
+  "wep_trident_walk_bg_silver": "wep_trident_walk_bg_silver.png",
+  "wep_trident_walk_fg_gold": "wep_trident_walk_fg_gold.png",
+  "wep_trident_walk_bg_gold": "wep_trident_walk_bg_gold.png"
  },
  "gear": {
   "torso/plate": {
@@ -1333,6 +1390,194 @@
      },
      "bg": {
       "tool": "wep_pickaxe_slash_bg.png"
+     }
+    }
+   }
+  },
+  "dagger": {
+   "perAnim": {
+    "walk": {
+     "fg": {
+      "steel": "wep_dagger_walk_fg.png"
+     },
+     "bg": {
+      "steel": "wep_dagger_walk_bg.png"
+     }
+    },
+    "thrust": {
+     "fg": {
+      "steel": "wep_dagger_thrust_fg.png"
+     },
+     "bg": {
+      "steel": null
+     }
+    },
+    "slash": {
+     "fg": {
+      "steel": "wep_dagger_slash_fg.png"
+     },
+     "bg": {
+      "steel": "wep_dagger_slash_bg.png"
+     }
+    }
+   }
+  },
+  "rapier": {
+   "perAnim": {
+    "walk": {
+     "fg": {
+      "steel": "wep_rapier_walk_fg.png"
+     },
+     "bg": {
+      "steel": "wep_rapier_walk_bg.png"
+     }
+    },
+    "slash": {
+     "fg": {
+      "steel": "wep_rapier_slash_fg.png"
+     },
+     "bg": {
+      "steel": "wep_rapier_slash_bg.png"
+     }
+    }
+   }
+  },
+  "longsword": {
+   "perAnim": {
+    "walk": {
+     "fg": {
+      "steel": "wep_longsword_walk_fg.png"
+     },
+     "bg": {
+      "steel": "wep_longsword_walk_bg.png"
+     }
+    },
+    "slash": {
+     "fg": {
+      "steel": "wep_longsword_slash_fg.png"
+     },
+     "bg": {
+      "steel": "wep_longsword_slash_bg.png"
+     }
+    },
+    "thrust": {
+     "fg": {
+      "steel": "wep_longsword_thrust_fg.png"
+     },
+     "bg": {
+      "steel": "wep_longsword_thrust_bg.png"
+     }
+    }
+   }
+  },
+  "flail": {
+   "perAnim": {
+    "walk": {
+     "fg": {
+      "steel": "wep_flail_walk_fg.png"
+     },
+     "bg": {
+      "steel": "wep_flail_walk_bg.png"
+     }
+    },
+    "slash": {
+     "fg": {
+      "steel": "wep_flail_slash_fg.png"
+     },
+     "bg": {
+      "steel": "wep_flail_slash_bg.png"
+     }
+    }
+   }
+  },
+  "halberd": {
+   "perAnim": {
+    "walk": {
+     "fg": {
+      "steel": "wep_halberd_walk_fg.png"
+     },
+     "bg": {
+      "steel": "wep_halberd_walk_bg.png"
+     }
+    },
+    "slash": {
+     "fg": {
+      "steel": "wep_halberd_slash_fg.png"
+     },
+     "bg": {
+      "steel": "wep_halberd_slash_bg.png"
+     }
+    },
+    "thrust": {
+     "fg": {
+      "steel": "wep_halberd_thrust_fg.png"
+     },
+     "bg": {
+      "steel": "wep_halberd_thrust_bg.png"
+     }
+    }
+   }
+  },
+  "scythe": {
+   "perAnim": {
+    "walk": {
+     "fg": {
+      "steel": "wep_scythe_walk_fg.png"
+     },
+     "bg": {
+      "steel": "wep_scythe_walk_bg.png"
+     }
+    },
+    "slash": {
+     "fg": {
+      "steel": "wep_scythe_slash_fg.png"
+     },
+     "bg": {
+      "steel": "wep_scythe_slash_bg.png"
+     }
+    }
+   }
+  },
+  "trident": {
+   "perAnim": {
+    "thrust": {
+     "fg": {
+      "copper": "wep_trident_thrust_fg_copper.png",
+      "bronze": "wep_trident_thrust_fg_bronze.png",
+      "iron": "wep_trident_thrust_fg_iron.png",
+      "steel": "wep_trident_thrust_fg_steel.png",
+      "brass": "wep_trident_thrust_fg_brass.png",
+      "silver": "wep_trident_thrust_fg_silver.png",
+      "gold": "wep_trident_thrust_fg_gold.png"
+     },
+     "bg": {
+      "copper": "wep_trident_thrust_bg_copper.png",
+      "bronze": "wep_trident_thrust_bg_bronze.png",
+      "iron": "wep_trident_thrust_bg_iron.png",
+      "steel": "wep_trident_thrust_bg_steel.png",
+      "brass": "wep_trident_thrust_bg_brass.png",
+      "silver": "wep_trident_thrust_bg_silver.png",
+      "gold": "wep_trident_thrust_bg_gold.png"
+     }
+    },
+    "walk": {
+     "fg": {
+      "copper": "wep_trident_walk_fg_copper.png",
+      "bronze": "wep_trident_walk_fg_bronze.png",
+      "iron": "wep_trident_walk_fg_iron.png",
+      "steel": "wep_trident_walk_fg_steel.png",
+      "brass": "wep_trident_walk_fg_brass.png",
+      "silver": "wep_trident_walk_fg_silver.png",
+      "gold": "wep_trident_walk_fg_gold.png"
+     },
+     "bg": {
+      "copper": "wep_trident_walk_bg_copper.png",
+      "bronze": "wep_trident_walk_bg_bronze.png",
+      "iron": "wep_trident_walk_bg_iron.png",
+      "steel": "wep_trident_walk_bg_steel.png",
+      "brass": "wep_trident_walk_bg_brass.png",
+      "silver": "wep_trident_walk_bg_silver.png",
+      "gold": "wep_trident_walk_bg_gold.png"
      }
     }
    }

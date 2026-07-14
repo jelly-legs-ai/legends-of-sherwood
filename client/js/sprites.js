@@ -213,9 +213,9 @@ function decorated(im, fx) {
 
 // Daggers reuse the sword sheets shrunk toward the grip; arbalests and siege
 // arbalests reuse the crossbow sheet scaled UP a step per frame.
-const isDagger = (type) => type === 'dagger';
+// Daggers now use REAL LPC dagger art (walk/thrust/slash overlays) — no more
+// shrunk-sword hack. Arbalests still reuse the crossbow sheet scaled up.
 const WEAPON_ALIAS = {
-  dagger: { base: 'sword', scl: 0.66 },
   arbalest: { base: 'crossbow', scl: 1.12 },
   siege: { base: 'crossbow', scl: 1.26 },
 };

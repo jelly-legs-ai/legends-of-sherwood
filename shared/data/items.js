@@ -122,6 +122,25 @@ for (const m of METALS) {
   if (m.lvl >= 20) def(`${m.id}_waraxe`, { name: `${m.name} waraxe`, slot: 'weapon', kind: 'waraxe', style: 'melee', anim: 'slash',
     speed: 3400, twoHand: true, req: { attack: m.lvl, strength: m.lvl }, bonus: { acc: s * 0.9 | 0, str: s * 1.45 | 0 }, value: m.val * 3.2 | 0,
     vis: { layer: 'weapon', type: 'waraxe', color: m.color, glow: gl } });
+  // --- the LPC armoury expansion: six further lines, all metal-tiered ---
+  def(`${m.id}_rapier`, { name: `${m.name} rapier`, slot: 'weapon', kind: 'rapier', style: 'melee', anim: 'slash',
+    speed: 1600, req: { attack: m.lvl }, bonus: { acc: s * 1.2 | 0, str: s * 0.55 | 0 }, value: m.val * 2.1 | 0,
+    vis: { layer: 'weapon', type: 'rapier', color: m.color, glow: gl } });
+  def(`${m.id}_longsword`, { name: `${m.name} longsword`, slot: 'weapon', kind: 'longsword', style: 'melee', anim: 'slash',
+    speed: 2600, req: { attack: m.lvl }, bonus: { acc: s * 0.95 | 0, str: s * 1.15 | 0 }, value: m.val * 2.6 | 0,
+    vis: { layer: 'weapon', type: 'longsword', color: m.color, glow: gl } });
+  def(`${m.id}_flail`, { name: `${m.name} flail`, slot: 'weapon', kind: 'flail', style: 'melee', anim: 'slash',
+    speed: 2800, req: { attack: m.lvl, strength: Math.max(1, m.lvl - 3) }, bonus: { acc: s * 0.7 | 0, str: s * 1.3 | 0 }, value: m.val * 2.4 | 0,
+    vis: { layer: 'weapon', type: 'flail', color: m.color, glow: gl } });
+  def(`${m.id}_halberd`, { name: `${m.name} halberd`, slot: 'weapon', kind: 'halberd', style: 'melee', anim: 'thrust',
+    speed: 3200, twoHand: true, req: { attack: m.lvl, strength: m.lvl }, bonus: { acc: s * 1.05 | 0, str: s * 1.35 | 0 }, value: m.val * 3 | 0,
+    vis: { layer: 'weapon', type: 'halberd', color: m.color, glow: gl } });
+  def(`${m.id}_scythe`, { name: `${m.name} scythe`, slot: 'weapon', kind: 'scythe', style: 'melee', anim: 'slash',
+    speed: 3000, twoHand: true, req: { attack: m.lvl, strength: Math.max(1, m.lvl - 2) }, bonus: { acc: s * 0.85 | 0, str: s * 1.4 | 0 }, value: m.val * 2.8 | 0,
+    vis: { layer: 'weapon', type: 'scythe', color: m.color, glow: gl } });
+  def(`${m.id}_trident`, { name: `${m.name} trident`, slot: 'weapon', kind: 'trident', style: 'melee', anim: 'thrust',
+    speed: 3000, twoHand: true, req: { attack: m.lvl, strength: Math.max(1, m.lvl - 2) }, bonus: { acc: s * 1.15 | 0, str: s * 1.2 | 0 }, value: m.val * 2.5 | 0,
+    vis: { layer: 'weapon', type: 'trident', color: m.color, glow: gl } });
 }
 // ---------------------------------------------------------------------------
 // Wood-and-metal crossbow variants. The stock wood is fixed by the frame —
