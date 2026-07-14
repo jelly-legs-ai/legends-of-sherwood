@@ -62,7 +62,17 @@ export function composite(vis) {
   c = { canvas: document.createElement('canvas'), ready: false, oversize: null };
   c.canvas.width = 832; c.canvas.height = SHEET_ROWS * FRAME;
   composites.set(key, c);
-
+  try {
+    compositeInto(c, vis);
+  } catch (err) {
+    // never cache a wedged sheet — drop the entry so the next frame retries
+    // (e.g. a click that raced the manifest fetch)
+    console.error('[composite]', err);
+    composites.delete(key);
+  }
+  return c;
+}
+function compositeInto(c, vis) {
   const sex = vis.sex || 'male';
   const layers = []; // [file, isWeaponBg]
   const wep = vis.weapon ? weaponFiles(vis.weapon[0], vis.weapon[1], sex) : null;
@@ -93,7 +103,9 @@ export function composite(vis) {
   if (vis.feet) layers.push(gearL('feet/' + vis.feet[0], vis.feet));
   if (vis.legs) layers.push(gearL('legs/' + vis.legs[0], vis.legs));
   if (vis.torso) layers.push(gearL('torso/' + vis.torso[0], vis.torso));
+  if (vis.wrists) layers.push(gearL('wrists/' + vis.wrists[0], vis.wrists));
   if (vis.hands) layers.push(gearL('hands/gloves', vis.hands));
+  if (vis.shoulders) layers.push(gearL('shoulders/' + vis.shoulders[0], vis.shoulders));
   if (vis.head) layers.push(gearL('head/' + vis.head[0], vis.head));
   // NB: the free LPC heater-shield sheet is all but empty (no per-pose art), so
   // shields are drawn procedurally at render time via drawHeldShield() instead.

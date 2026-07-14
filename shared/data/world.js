@@ -161,6 +161,8 @@ export const POIS = [
   ['essence_rock', 271, 340], ['copper_rock', 268, 338], ['copper_rock', 269, 341], ['tin_rock', 270, 336], ['tin_rock', 272, 342],
   ['net_spot', 248, 358], ['rod_spot', 256, 358], ['rod_spot', 262, 358],
   ['house_portal', 240, 330], ['loom', 258, 327], ['tanning_rack', 246, 341],
+  // Loxley village market: a modest pair of stalls by the well
+  ['bakery_stall', 249, 330], ['cloth_stall', 255, 334], ['market_cart', 248, 334],
   // --- Nottingham ---
   ['bank_booth', 305, 324], ...geFurniture(), ['museum_bench', 339, 342],
   // the Great Market: six stalls in two rows on the paved square, dressed with carts and stores
@@ -178,10 +180,12 @@ export const POIS = [
   ['allotment', 303, 318], ['allotment', 305, 318], ['herb_patch', 305, 317],
   // --- Bay ---
   ['bank_booth', 44, 412], ['range', 54, 412],
+  ['bakery_stall', 46, 418], ['spice_stall', 50, 418], ['market_cart', 53, 421],   // harbour market
   ['net_spot', 26, 436], ['net_spot', 24, 442], ['rod_spot', 22, 448], ['harpoon_spot', 24, 455],
   ['allotment', 60, 424], ['essence_rock', 62, 415],
   // --- Frosthollow ---
   ['bank_booth', 294, 123], ['range', 305, 123], ['furnace', 296, 138], ['anvil', 294, 138],
+  ['fur_stall', 297, 128], ['bakery_stall', 302, 128], ['market_cart', 305, 131],  // the frozen market
   ['harpoon_spot', 316, 128], ['harpoon_spot', 318, 132],
   // --- Sherwood interior ---
   ['obelisk', 276, 296], ['earth_altar', 320, 280], ['campfire', 262, 300],

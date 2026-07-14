@@ -705,7 +705,12 @@
   "wound_brain": "wound_brain.png",
   "wound_mouth": "wound_mouth.png",
   "wound_eye_left": "wound_eye_left.png",
-  "wound_eye_right": "wound_eye_right.png"
+  "wound_eye_right": "wound_eye_right.png",
+  "gear_shoulders_pauldrons": "gear_shoulders_pauldrons.png",
+  "gear_shoulders_bauldron": "gear_shoulders_bauldron.png",
+  "gear_shoulders_epaulets": "gear_shoulders_epaulets.png",
+  "gear_shoulders_mantal": "gear_shoulders_mantal.png",
+  "gear_wrists_bracers": "gear_wrists_bracers.png"
  },
  "gear": {
   "torso/plate": {
@@ -1238,6 +1243,46 @@
     "chestnut": "gear_behind_tail_wolf_chestnut.png",
     "blue": "gear_behind_tail_wolf_blue.png",
     "green": "gear_behind_tail_wolf_green.png"
+   }
+  },
+  "shoulders/pauldrons": {
+   "male": {
+    "steel": "gear_shoulders_pauldrons.png"
+   },
+   "female": {
+    "steel": "gear_shoulders_pauldrons.png"
+   }
+  },
+  "shoulders/bauldron": {
+   "male": {
+    "steel": "gear_shoulders_bauldron.png"
+   },
+   "female": {
+    "steel": "gear_shoulders_bauldron.png"
+   }
+  },
+  "shoulders/epaulets": {
+   "male": {
+    "steel": "gear_shoulders_epaulets.png"
+   },
+   "female": {
+    "steel": "gear_shoulders_epaulets.png"
+   }
+  },
+  "shoulders/mantal": {
+   "male": {
+    "steel": "gear_shoulders_mantal.png"
+   },
+   "female": {
+    "steel": "gear_shoulders_mantal.png"
+   }
+  },
+  "wrists/bracers": {
+   "male": {
+    "steel": "gear_wrists_bracers.png"
+   },
+   "female": {
+    "steel": "gear_wrists_bracers.png"
    }
   }
  },

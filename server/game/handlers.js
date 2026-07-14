@@ -10,8 +10,19 @@ import { NPCS } from '../../shared/data/npcs.js';
 import { QUESTS, TASKS } from '../../shared/data/quests.js';
 import { CROPS } from '../../shared/data/items.js';
 import { SHORTCUTS, ANCHORS, ARENA, HOUSE } from '../../shared/data/world.js';
-import { computeWorld, isBlocked, dungeonFloor } from '../../shared/mapgen.js';
+import { computeWorld, isBlocked, dungeonFloor, tileAtPlane } from '../../shared/mapgen.js';
+import { TILE } from '../../shared/constants.js';
 import { Player } from './player.js';
+
+// Line of sight for the town watch: walls hide a deed, open ground does not.
+function sightClear(plane, x0, y0, x1, y1) {
+  const d = Math.hypot(x1 - x0, y1 - y0), steps = Math.max(1, Math.ceil(d * 2));
+  for (let i = 1; i < steps; i++) {
+    const t = tileAtPlane(plane, (x0 + (x1 - x0) * i / steps) | 0, (y0 + (y1 - y0) * i / steps) | 0);
+    if (t === TILE.WALL || t === TILE.WALL_WOOD) return false;
+  }
+  return true;
+}
 import { castSpellAt, useAbility, pvpAllowed, applyPlayerDamage } from './combat.js';
 import { GrandExchange } from './economy.js';
 
@@ -389,11 +400,19 @@ function doNode(world, p, type, node, x, y, msg) {
       const L = p.level(node.skill);
       const chance = Math.min(0.95, 0.45 + (L - node.lvl) * 0.013);
       if (Math.random() > chance) {
-        if (node.stall) { // caught!
+        if (node.stall) { // caught red-handed!
           const dmg = 1 + (Math.random() * 3 | 0);
           p.hp = Math.max(1, p.hp - dmg);
           world.broadcastNear(p.plane, p.x, p.y, { t: MSG.HIT, id: p.id, dmg, src: 0 });
-          world.send(p, { t: MSG.MSGBOX, m: 'A guard clips your ear! You stumble back.' });
+          // every watchman with LINE OF SIGHT joins the chase — duck behind a
+          // wall or a building and the fumble goes unseen
+          let chased = 0;
+          for (const e of world.near(p.plane, p.x, p.y, 9)) {
+            if (e.kind !== 'mob' || e.hp <= 0 || !MOBS[e.type]?.guard) continue;
+            if (!sightClear(p.plane, e.x, e.y, p.x, p.y)) continue;
+            e.target = p.id; e.wander = null; chased++;
+          }
+          world.send(p, { t: MSG.MSGBOX, m: chased ? '“STOP! THIEF!” — the watch has seen you and gives chase!' : 'The stallholder clips your ear! You stumble back.' });
           p.action = null; p.anim = 'idle';
         }
         return;

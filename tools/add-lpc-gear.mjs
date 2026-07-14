@@ -71,6 +71,17 @@ for (const t of ['cat', 'fluffy', 'lizard', 'wolf']) {
   }
   if (Object.keys(dict).length) manifest.gear[`behind/tail_${t}`] = { male: dict, female: dict };
 }
+// ---- shoulders & bracers (single finish; tint-dyed per metal at runtime) ----
+for (const s of ['pauldrons', 'bauldron', 'epaulets', 'mantal']) {
+  const f = stitch(`gear_shoulders_${s}`, a => [
+    `shoulders/${s}/male/${a}.png`, `shoulders/${s}/adult/${a}.png`, `shoulders/${s}/thin/${a}.png`,
+  ]);
+  if (f) manifest.gear[`shoulders/${s}`] = { male: { steel: f }, female: { steel: f } };
+}
+{
+  const f = stitch('gear_wrists_bracers', a => [`arms/bracers/male/${a}.png`, `arms/bracers/adult/${a}.png`]);
+  if (f) manifest.gear['wrists/bracers'] = { male: { steel: f }, female: { steel: f } };
+}
 // ---- wounds: overlay sheets (hurt/shoot/slash rows only), staged for later --
 manifest.wounds = manifest.wounds || {};
 for (const w of ['arm', 'ribs', 'brain', 'mouth', 'eye_left', 'eye_right']) {

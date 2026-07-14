@@ -193,13 +193,13 @@ npc('father_ambrose', {
 });
 npc('tackler_finn', {
   name: 'Tackler Finn', x: 317, y: 351, tutor: 'fishing',
-  vis: { skin: 'light', hair: ['bedhead', 'ginger'], beard: 'ginger', torso: ['longsleeve', 'blue'], legs: ['pants', 'walnut'] },
+  vis: { skin: 'light', head: ['leather_cap', 'brown'], beard: 'ginger', torso: ['longsleeve', 'blue'], legs: ['pants', 'walnut'] },
   shop: [['small_fishing_net', 8], ['fishing_rod', 12], ['harpoon', 45], ['fishing_bait', 1], ['box_trap', 12], ['raw_perch', 6]],
   lines: ['Rods for the Trent, traps for the runs. The city eats what the shire catches.'],
 });
 npc('lumberman_roy', {
   name: 'Lumberman Roy', x: 348, y: 316, tutor: 'woodcutting',
-  vis: gear({ skin: 'light', hair: ['buzzcut', 'light_brown'], torso: ['longsleeve', 'brown'], legs: ['pants', 'walnut'] }, 'iron_hatchet'),
+  vis: gear({ skin: 'light', head: ['leather_cap', 'brown'], torso: ['longsleeve', 'brown'], legs: ['pants', 'walnut'] }, 'iron_hatchet'),
   shop: [['copper_hatchet', 25], ['bronze_hatchet', 60], ['iron_hatchet', 150], ['steel_hatchet', 260], ['tinderbox', 10], ['knife', 8], ['hammer', 12], ['logs', 6], ['oak_logs', 15], ['trowel', 12], ['spade', 10]],
   lines: ['Timber, tinder and trowels — build it, burn it or dig it, we stock it.'],
 });
@@ -238,7 +238,7 @@ npc('washer_wynn', {
 });
 npc('urchin_pip', {
   name: 'Pip the Urchin', x: 318, y: 346, wander: 5, pickpocket: { lvl: 8, xp: 20, loot: [['coins', [1, 8]]] },
-  vis: { skin: 'light', hair: ['bedhead', 'light_brown'], torso: ['longsleeve', 'brown'], legs: ['pants', 'charcoal'] },
+  vis: { skin: 'light', head: ['bandana', 'brown'], torso: ['longsleeve', 'brown'], legs: ['pants', 'charcoal'] },
   lines: ["Ain't seen nothing. Ain't got nothing. Honest."],
 });
 npc('goodwife_edna', {
@@ -248,13 +248,13 @@ npc('goodwife_edna', {
 });
 npc('pieman_perkin', {
   name: 'Pieman Perkin', x: 314, y: 341, wander: 3,
-  vis: { skin: 'olive', hair: ['bedhead', 'black'], torso: ['longsleeve', 'white'], legs: ['pants', 'brown'] },
+  vis: { skin: 'olive', head: ['bandana', 'brown'], torso: ['longsleeve', 'white'], legs: ['pants', 'brown'] },
   shop: [['bread', 8], ['cheese', 14], ['hearty_stew', 150]],
   lines: ['Pies! Well — bread and cheese, but say pies and they queue.'],
 });
 npc('drunkard_ned', {
   name: 'Ned the Sozzled', x: 308, y: 346, wander: 3, pickpocket: { lvl: 12, xp: 28, loot: [['coins', [2, 10]]] },
-  vis: { skin: 'light', hair: ['bedhead', 'ginger'], beard: 'ginger', torso: ['longsleeve', 'walnut'], legs: ['pants', 'charcoal'] },
+  vis: { skin: 'light', head: ['bandana', 'brown'], beard: 'ginger', torso: ['longsleeve', 'walnut'], legs: ['pants', 'charcoal'] },
   lines: ['The Trip pours the finest ale in the shire... an\' I have checked THOROUGHLY.'],
 });
 
