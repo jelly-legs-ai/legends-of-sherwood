@@ -121,7 +121,10 @@ function geFurniture() {
   // their ropes link into continuous lanes.
   const out = [], windows = new Set([319, 320, 324, 325, 329, 330, 334, 335, 339, 340]);
   for (let x = 317; x <= 342; x++) out.push([windows.has(x) ? 'ge_window' : 'ge_counter', x, 316]);
-  for (const y of [319, 321, 323]) for (const x of [318, 322, 326, 330, 334, 338, 342]) out.push(['ge_rope', x, y]);
+  // Queue lanes run FROM the entrance (south) UP to the clerks: rope-post columns
+  // sit on the dividers between the teller windows, each column running toward the
+  // door, so the ropes guide a line up to each window.
+  for (const x of [317, 322, 327, 332, 337, 342]) for (const y of [318, 320, 322, 324, 326]) out.push(['ge_rope', x, y]);
   return out;
 }
 

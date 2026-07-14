@@ -987,9 +987,9 @@ export class Renderer {
     const h = 24;
     ctx.save();
     ctx.fillStyle = '#00000022'; ctx.beginPath(); ctx.ellipse(sx, sy + 2, 5, 2.5, 0, 0, 7); ctx.fill();
-    // draped rope to the next post (4 tiles east) if one exists
-    if (x !== undefined && computeWorld().nodes.get((x + 4) + ',' + y) === 'ge_rope') {
-      const [nsx, nsy] = this.screenOf(0, x + 4 + 0.5, y + 0.5);
+    // draped rope to the next post down the lane (2 tiles south, toward the door)
+    if (x !== undefined && computeWorld().nodes.get(x + ',' + (y + 2)) === 'ge_rope') {
+      const [nsx, nsy] = this.screenOf(0, x + 0.5, y + 2 + 0.5);
       const mx = (sx + nsx) / 2, my = (sy + nsy) / 2 + 12;
       ctx.lineCap = 'round';
       ctx.strokeStyle = '#2e5c2e'; ctx.lineWidth = 3.2;
