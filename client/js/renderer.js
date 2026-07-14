@@ -469,10 +469,26 @@ function hashXY(x, y) { let h = (x * 73856093) ^ (y * 19349663); h = (h ^ (h >> 
 function drawBridge(g, lx, ly, x, y, plane) {
   const hw = TW / 2, hh = TH / 2, TK = 6, PIER = 17;
   const N = [lx, ly - hh], E = [lx + hw, ly], S = [lx, ly + hh], W = [lx - hw, ly];
-  const cont = (nx, ny) => { const t = tileAtPlane(plane, nx, ny); return t === TILE.BRIDGE || t === TILE.ROAD; };
-  // support piers plunge from the deck corners down into the channel water
+  const tileT = (nx, ny) => tileAtPlane(plane, nx, ny);
+  const water = (nx, ny) => WATERS.has(tileT(nx, ny));
+  const land = (nx, ny) => { const t = tileT(nx, ny); return t !== TILE.BRIDGE && !WATERS.has(t); }; // road/ground bank
+  // the four diamond edges: [corner a, corner b, neighbour tile]
+  const EDGES = { TR: [N, E, x, y - 1], TL: [W, N, x - 1, y], RB: [E, S, x + 1, y], LB: [S, W, x, y + 1] };
+  // Stone abutments where the deck meets a bank — a solid footing so the ends
+  // read as anchored to the land, not floating on a pier. Drawn under the deck.
+  for (const k in EDGES) {
+    const [a, b, nx, ny] = EDGES[k];
+    if (!land(nx, ny)) continue;
+    g.fillStyle = '#6b6256';
+    g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.lineTo(b[0], b[1] + 13); g.lineTo(a[0], a[1] + 13); g.closePath(); g.fill();
+    g.fillStyle = '#565046'; g.beginPath(); g.moveTo(a[0], a[1] + 6); g.lineTo(b[0], b[1] + 6); g.lineTo(b[0], b[1] + 13); g.lineTo(a[0], a[1] + 13); g.closePath(); g.fill();
+    g.strokeStyle = '#3f3a33'; g.lineWidth = 1; g.beginPath(); g.moveTo((a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + 4); g.lineTo((a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + 12); g.stroke();
+  }
+  // support piers plunge only where the channel water is actually below
   const pier = (px, topY) => { g.fillStyle = '#2a1c0e'; g.fillRect(px - 2.5, topY, 5, PIER); g.fillStyle = '#402c16'; g.fillRect(px - 2.5, topY, 2, PIER); };
-  pier(W[0] + 6, W[1]); pier(E[0] - 6, E[1]); pier(lx, S[1] - 1);
+  if (water(x - 1, y) || water(x, y + 1)) pier(W[0] + 6, W[1]);
+  if (water(x + 1, y) || water(x, y + 1)) pier(E[0] - 6, E[1]);
+  if (water(x, y + 1)) pier(lx, S[1] - 1);
   // deck thickness on the two camera-facing edges
   const faceQuad = (a, b, col) => { g.fillStyle = col; g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.lineTo(b[0], b[1] + TK); g.lineTo(a[0], a[1] + TK); g.closePath(); g.fill(); };
   faceQuad(W, S, '#573a1c'); faceQuad(S, E, '#684622');
@@ -481,7 +497,7 @@ function drawBridge(g, lx, ly, x, y, plane) {
   g.beginPath(); g.moveTo(N[0], N[1]); g.lineTo(E[0], E[1]); g.lineTo(S[0], S[1]); g.lineTo(W[0], W[1]); g.closePath(); g.fill();
   g.save(); g.beginPath(); g.moveTo(N[0], N[1]); g.lineTo(E[0], E[1]); g.lineTo(S[0], S[1]); g.lineTo(W[0], W[1]); g.closePath(); g.clip();
   // plank seams run across the crossing so you walk over the boards
-  const alongX = cont(x - 1, y) || cont(x + 1, y);
+  const alongX = tileT(x - 1, y) === TILE.BRIDGE || tileT(x + 1, y) === TILE.BRIDGE || land(x - 1, y) || land(x + 1, y);
   g.strokeStyle = '#00000038'; g.lineWidth = 1;
   for (let i = 1; i < 7; i++) {
     const t2 = i / 7;
@@ -491,17 +507,15 @@ function drawBridge(g, lx, ly, x, y, plane) {
   g.restore();
   g.strokeStyle = '#9a6a34'; g.lineWidth = 1;   // lit far edges
   g.beginPath(); g.moveTo(W[0], W[1]); g.lineTo(N[0], N[1]); g.lineTo(E[0], E[1]); g.stroke();
-  // guard rail: only along an edge that faces open water — i.e. the OUTER sides
-  // of the span. Edges shared with another bridge tile (the walkway interior) or
-  // a road (the bank ramps) get no rail, so the rails run the outside only.
+  // guard rails run along EVERY edge that meets open water (both sides of the
+  // span); edges that meet the bank get none, so land never has a rail beside it.
   const railH = 9;
   const rail = (a, b) => {
     g.strokeStyle = '#4a3016'; g.lineWidth = 2;
     g.beginPath(); g.moveTo(a[0], a[1] - railH); g.lineTo(b[0], b[1] - railH); g.stroke();
     for (let i = 0; i <= 3; i++) { const px = a[0] + (b[0] - a[0]) * (i / 3), py = a[1] + (b[1] - a[1]) * (i / 3); g.beginPath(); g.moveTo(px, py); g.lineTo(px, py - railH); g.stroke(); }
   };
-  if (!cont(x - 1, y)) rail(W, N);   // TL edge → neighbour (x-1,y)
-  if (!cont(x, y - 1)) rail(N, E);   // TR edge → neighbour (x,y-1)
+  for (const k in EDGES) { const [a, b, nx, ny] = EDGES[k]; if (water(nx, ny)) rail(a, b); }
 }
 
 // Smooth value noise (bilinear over a 5-tile lattice): neighbouring tiles get
@@ -912,9 +926,9 @@ export class Renderer {
 
   drawNode(ctx, node, now) {
     const [sx, sy] = this.screenOf(0, node.x + 0.5, node.y + 0.5);
-    if (node.type === 'ge_counter') { this.drawGEcounter(ctx, sx, sy, false); return; }
-    if (node.type === 'ge_window') { this.drawGEcounter(ctx, sx, sy, true); return; }
-    if (node.type === 'ge_rope') { this.drawGErope(ctx, sx, sy); return; }
+    if (node.type === 'ge_counter') { this.drawGEcounter(ctx, sx, sy, false, node.x, node.y); return; }
+    if (node.type === 'ge_window') { this.drawGEcounter(ctx, sx, sy, true, node.x, node.y); return; }
+    if (node.type === 'ge_rope') { this.drawGErope(ctx, sx, sy, node.x, node.y); return; }
     if (node.type === 'hotspot') {
       ctx.strokeStyle = '#c77ce766'; ctx.setLineDash([4, 4]);
       ctx.strokeRect(sx - 14, sy - 20, 28, 22);
@@ -936,44 +950,58 @@ export class Renderer {
   // A one-tile segment of the Grand Exchange teller desk. In a row these tile
   // into a continuous wooden divide; `window` segments add a glazed booth above
   // the counter (semi-transparent, so the clerk standing behind shows through).
-  drawGEcounter(ctx, sx, sy, isWindow) {
-    const hw = TW / 2, hh = TH / 2, h = 22;
+  drawGEcounter(ctx, sx, sy, isWindow, x, y) {
+    const hw = TW / 2, hh = TH / 2, h = 34;   // a tall wooden divide between clerks and queue
     const N = [sx, sy - hh], E = [sx + hw, sy], S = [sx, sy + hh], W = [sx - hw, sy];
     const up = (p, dz = h) => [p[0], p[1] - dz];
     ctx.save();
     // camera-facing counter faces (SW + SE), then the top
     const face = (a, b, col) => { const at = up(a), bt = up(b); ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineTo(bt[0], bt[1]); ctx.lineTo(at[0], at[1]); ctx.closePath(); ctx.fill(); };
     face(W, S, '#573a1c'); face(S, E, '#6a4824');
+    // plank seams down the wooden faces
+    ctx.strokeStyle = '#3c2712'; ctx.lineWidth = 1;
+    for (const [a, b] of [[W, S], [S, E]]) for (let i = 1; i <= 2; i++) { const p = [a[0] + (b[0] - a[0]) * i / 3, a[1] + (b[1] - a[1]) * i / 3]; ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(p[0], p[1] - h); ctx.stroke(); }
     const Nt = up(N), Et = up(E), St = up(S), Wt = up(W);
     ctx.fillStyle = '#7d5327'; ctx.beginPath(); ctx.moveTo(Nt[0], Nt[1]); ctx.lineTo(Et[0], Et[1]); ctx.lineTo(St[0], St[1]); ctx.lineTo(Wt[0], Wt[1]); ctx.closePath(); ctx.fill();
     ctx.strokeStyle = '#33200f'; ctx.lineWidth = 1; ctx.stroke();
     ctx.beginPath(); ctx.moveTo(S[0], S[1]); ctx.lineTo(St[0], St[1]); ctx.stroke();   // corner seam
     if (isWindow) {
-      const gh = 34;
-      // glazed panes on the two camera-facing sides (clerk behind shows through)
-      const glass = (a, b) => { const at = up(a), bt = up(b); ctx.fillStyle = 'rgba(155,205,230,0.20)'; ctx.beginPath(); ctx.moveTo(at[0], at[1]); ctx.lineTo(bt[0], bt[1]); ctx.lineTo(bt[0], bt[1] - gh); ctx.lineTo(at[0], at[1] - gh); ctx.closePath(); ctx.fill(); };
+      const gh = 30;
+      // glazed panes ONLY on the customer-facing (camera-near, south) faces; the
+      // clerk side stays solid timber. Two-wide windows join into one long booth.
+      const glass = (a, b) => { const at = up(a), bt = up(b); ctx.fillStyle = 'rgba(150,205,232,0.22)'; ctx.beginPath(); ctx.moveTo(at[0], at[1]); ctx.lineTo(bt[0], bt[1]); ctx.lineTo(bt[0], bt[1] - gh); ctx.lineTo(at[0], at[1] - gh); ctx.closePath(); ctx.fill(); };
       glass(W, S); glass(S, E);
-      // gilded frame: corner posts + top beam
+      // gilded frame: corner posts + top beam over the glazing
       ctx.strokeStyle = '#c9a24a'; ctx.lineWidth = 2.5;
       for (const t of [Wt, St, Et]) { ctx.beginPath(); ctx.moveTo(t[0], t[1]); ctx.lineTo(t[0], t[1] - gh); ctx.stroke(); }
       ctx.beginPath(); ctx.moveTo(Wt[0], Wt[1] - gh); ctx.lineTo(St[0], St[1] - gh); ctx.lineTo(Et[0], Et[1] - gh); ctx.stroke();
-      // glass sheen
+      // mullion only where this is the LEFT tile of a 2-wide booth (seam hidden mid-booth)
       ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(St[0] - 7, St[1] - 5); ctx.lineTo(St[0] - 7, St[1] - gh + 5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(St[0] - 6, St[1] - 5); ctx.lineTo(St[0] - 6, St[1] - gh + 5); ctx.stroke();
     }
     ctx.restore();
   }
-  // A gilded rope stanchion marking the customer queue lanes (decorative only).
-  drawGErope(ctx, sx, sy) {
+  // A gilded rope stanchion; the rope drapes to the next post in the lane so the
+  // dividers read as continuous velvet ropes rather than isolated stubs.
+  drawGErope(ctx, sx, sy, x, y) {
     const h = 24;
     ctx.save();
     ctx.fillStyle = '#00000022'; ctx.beginPath(); ctx.ellipse(sx, sy + 2, 5, 2.5, 0, 0, 7); ctx.fill();
+    // draped rope to the next post (4 tiles east) if one exists
+    if (x !== undefined && computeWorld().nodes.get((x + 4) + ',' + y) === 'ge_rope') {
+      const [nsx, nsy] = this.screenOf(0, x + 4 + 0.5, y + 0.5);
+      const mx = (sx + nsx) / 2, my = (sy + nsy) / 2 + 12;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#2e5c2e'; ctx.lineWidth = 3.2;
+      ctx.beginPath(); ctx.moveTo(sx, sy - h + 4); ctx.quadraticCurveTo(mx, my - h + 4, nsx, nsy - h + 4); ctx.stroke();
+      ctx.strokeStyle = '#4c9a4c'; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(sx, sy - h + 3); ctx.quadraticCurveTo(mx, my - h + 3, nsx, nsy - h + 4); ctx.stroke();
+    }
+    // brass post + finial
     ctx.strokeStyle = '#b8912f'; ctx.lineWidth = 3; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx, sy - h); ctx.stroke();
     ctx.fillStyle = '#e8c84e'; ctx.beginPath(); ctx.arc(sx, sy - h - 2, 4, 0, 7); ctx.fill();
     ctx.fillStyle = '#fff3b0'; ctx.beginPath(); ctx.arc(sx - 1.2, sy - h - 3, 1.4, 0, 7); ctx.fill();
-    ctx.strokeStyle = '#3c7a3c'; ctx.lineWidth = 2;             // a draped green rope
-    ctx.beginPath(); ctx.moveTo(sx, sy - h + 3); ctx.quadraticCurveTo(sx + 10, sy - h + 13, sx + 20, sy - h + 3); ctx.stroke();
     ctx.restore();
   }
 

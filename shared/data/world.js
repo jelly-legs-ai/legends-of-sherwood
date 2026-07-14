@@ -116,9 +116,12 @@ export const TOWNS = {
 // with the clerks working behind it, and rope-stanchion queue lanes out front
 // (purely decorative — any number of players can be served at once).
 function geFurniture() {
-  const out = [], windows = new Set([320, 324, 328, 332, 336]);   // teller window columns
+  // Teller windows are TWO tiles wide each, glazed on the customer side; the rest
+  // of the divide is a solid counter. Queue posts sit at an even 4-tile pitch so
+  // their ropes link into continuous lanes.
+  const out = [], windows = new Set([319, 320, 324, 325, 329, 330, 334, 335, 339, 340]);
   for (let x = 317; x <= 342; x++) out.push([windows.has(x) ? 'ge_window' : 'ge_counter', x, 316]);
-  for (const y of [319, 321, 323]) for (const x of [318, 322, 326, 330, 334, 338, 341]) out.push(['ge_rope', x, y]);
+  for (const y of [319, 321, 323]) for (const x of [318, 322, 326, 330, 334, 338, 342]) out.push(['ge_rope', x, y]);
   return out;
 }
 
