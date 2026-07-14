@@ -993,8 +993,8 @@ export function nodeSprite(type, off = false) {
       case 'obelisk': { g.shadowColor = '#9fe0cf'; g.shadowBlur = 8; g.fillStyle = '#5e7a72'; g.beginPath(); g.moveTo(32, 18); g.lineTo(42, 66); g.lineTo(22, 66); g.fill(); px(g, 29, 34, 6, 6, '#c9fce9'); g.shadowBlur = 0; break; }
       case 'museum_bench': { px(g, 14, 52, 36, 8, '#8a6d4c'); px(g, 16, 60, 4, 8, '#6b5322'); px(g, 44, 60, 4, 8, '#6b5322'); px(g, 20, 46, 10, 6, '#d8cfa8'); px(g, 34, 46, 8, 6, '#b0b8c8'); break; }
       case 'allotment': case 'herb_patch': { px(g, 12, 52, 40, 16, '#5a4326'); for (let i = 0; i < 4; i++) px(g, 16 + i * 10, 54, 6, 2, '#3e2f1a'); if (type === 'herb_patch') for (let i = 0; i < 3; i++) px(g, 18 + i * 12, 48, 4, 5, '#5aa03c'); break; }
-      case 'bakery_stall': case 'fur_stall': case 'silver_stall': case 'gem_stall': {
-        const c = { bakery_stall: '#e0b93c', fur_stall: '#a8703c', silver_stall: '#cfd4dc', gem_stall: '#7fd0e0' }[type];
+      case 'bakery_stall': case 'fur_stall': case 'silver_stall': case 'gem_stall': case 'cloth_stall': case 'spice_stall': {
+        const c = { bakery_stall: '#e0b93c', fur_stall: '#a8703c', silver_stall: '#cfd4dc', gem_stall: '#7fd0e0', cloth_stall: '#8a6ab8', spice_stall: '#c8762a' }[type];
         px(g, 14, 48, 36, 18, '#6b5322');
         px(g, 12, 40, 40, 9, c);
         px(g, 20, 52, 8, 5, c); px(g, 34, 52, 9, 5, c);
@@ -1107,6 +1107,20 @@ export function nodeSprite(type, off = false) {
         g.beginPath(); g.moveTo(42, 32); g.lineTo(47, 36); g.lineTo(42, 40); g.closePath(); g.fill();
         g.strokeStyle = '#4a3a1c'; g.lineWidth = 1; g.strokeRect(20, 32, 22, 8);
         g.strokeStyle = '#e8dcc0'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(23, 36); g.lineTo(38, 36); g.stroke();
+        break;
+      }
+      case 'shop_sign': {
+        // a bracketed hanging sign at a shop door: post, iron arm, swinging board
+        px(g, 30, 26, 3, 38, '#4a3a24'); px(g, 27, 62, 9, 3, '#3a2d1a');          // post + base
+        g.strokeStyle = '#2e2c2a'; g.lineWidth = 2;
+        g.beginPath(); g.moveTo(31, 28); g.lineTo(44, 28); g.stroke();             // iron arm
+        g.beginPath(); g.moveTo(31, 34); g.lineTo(40, 28); g.stroke();             // brace
+        g.strokeStyle = '#57534c'; g.lineWidth = 1;
+        g.beginPath(); g.moveTo(36, 28); g.lineTo(36, 32); g.moveTo(43, 28); g.lineTo(43, 32); g.stroke(); // chains
+        g.fillStyle = '#6e522f'; px(g, 33, 32, 13, 10, '#6e522f');                 // board
+        g.fillStyle = '#7d6238'; px(g, 34, 33, 11, 8, '#7d6238');
+        g.strokeStyle = '#e8c86a'; g.lineWidth = 1; g.strokeRect(34.5, 33.5, 10, 7); // gilt border
+        g.fillStyle = '#e8c86a'; g.beginPath(); g.arc(39.5, 37, 2, 0, 7); g.fill(); // painted device
         break;
       }
       case 'hay_bale': {

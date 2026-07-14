@@ -381,6 +381,8 @@ const DECOR = {
   market_cart: "A trader's cart, its striped awning shading the wares.",
   signpost: 'A weathered signpost pointing the way.',
   hay_bale: 'A bale of sweet-smelling hay.',
+  shop_sign: 'A painted trade sign swinging on iron chains.',
+  archery_butt: "A straw archery butt on the contest green. The Sheriff's men practise here.",
 };
 function nodeDisplayName(type) {
   const n = NODES[type];

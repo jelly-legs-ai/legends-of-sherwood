@@ -546,14 +546,18 @@ export class World {
       else { m.anim = 'idle'; mobAttack(this, m, t, now); }
       return;
     }
-    // leash home / wander
-    if (Math.hypot(m.home.x - m.x, m.home.y - m.y) > (m.zone.r + 6)) this.moveEntity(m, m.home.x, m.home.y, def.speed || 2.2, dt), m.anim = 'walk';
+    // leash home / wander. Patrol zones (city guards) walk beats across the
+    // WHOLE zone at marching pace instead of milling ±4 tiles around home.
+    const patrol = m.zone.patrol;
+    const ax = patrol ? m.zone.x : m.home.x, ay = patrol ? m.zone.y : m.home.y;
+    if (Math.hypot(ax - m.x, ay - m.y) > (m.zone.r + 6)) this.moveEntity(m, ax, ay, def.speed || 2.2, dt), m.anim = 'walk';
     else if (Math.random() < 0.01) {
-      const wx = m.home.x + (Math.random() * 2 - 1) * Math.min(4, m.zone.r), wy = m.home.y + (Math.random() * 2 - 1) * Math.min(4, m.zone.r);
-      m.wander = { x: wx, y: wy };
+      const amp = patrol ? m.zone.r : Math.min(4, m.zone.r);
+      const wx = ax + (Math.random() * 2 - 1) * amp, wy = ay + (Math.random() * 2 - 1) * amp;
+      if (!this.blockedFor(m, wx | 0, wy | 0)) m.wander = { x: wx, y: wy };
     }
     if (m.wander) {
-      if (this.moveEntity(m, m.wander.x, m.wander.y, (def.speed || 2.2) * 0.5, dt)) m.wander = null, m.anim = 'idle';
+      if (this.moveEntity(m, m.wander.x, m.wander.y, (def.speed || 2.2) * (patrol ? 0.8 : 0.5), dt)) m.wander = null, m.anim = 'idle';
       else m.anim = 'walk';
     } else m.anim = 'idle';
   }

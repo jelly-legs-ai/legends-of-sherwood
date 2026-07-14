@@ -72,7 +72,7 @@ npc('peasant', {
 
 // ---------------- Nottingham ----------------
 npc('alan_a_dale', {
-  name: 'Alan-a-Dale', x: 321, y: 342, quest: 'marians_message_target',
+  name: 'Alan-a-Dale', x: 331, y: 334, quest: 'marians_message_target',
   vis: { skin: 'light', hair: ['curly_long', 'ginger'], torso: ['longsleeve', 'red'], legs: ['pants', 'charcoal'] },
   lines: ['A song for a $LoS? Or news for free — the Colosseum pays fighters in $LoS, real ones.'],
 });
@@ -113,18 +113,19 @@ npc('colosseum_marshal', {
     'steel_platebody', 'steel_platelegs', 'steel_helm', 'steel_gauntlets', 'steel_spear'),
   lines: ['Care to wager your $LoS on your own blood? Challenge another warrior, agree a stake, and the pot is winner-takes-all. I keep five parts in a hundred for the sand.'],
 });
+// The Bowyer, south quarter — ranged arms and fletching supplies under one roof.
 npc('fletcher_ansel', {
-  name: 'Fletcher Ansel', x: 336, y: 334, tutor: 'fletching',
+  name: 'Fletcher Ansel', x: 335, y: 351, tutor: 'fletching',
   vis: gear({ skin: 'light', hair: ['plain', 'chestnut_fallback'] },
     'studded_body', 'studded_chaps', 'leather_boots', 'quiver', 'ash_bow'),
-  shop: [['knife', 8], ['feathers', 2], ['bowstring', 35], ['shortbow', 25], ['ash_bow', 90], ['copper_arrow', 2], ['bronze_arrow', 4], ['iron_arrow', 8], ['iron_bolts', 10], ['crossbow_stock', 60], ['quiver', 40]],
+  shop: [['knife', 8], ['feathers', 2], ['arrow_shafts', 2], ['bowstring', 35], ['shortbow', 25], ['ash_bow', 90], ['yew_bow', 420], ['copper_arrow', 2], ['bronze_arrow', 4], ['iron_arrow', 8], ['steel_arrow', 16], ['iron_bolts', 10], ['steel_bolts', 20], ['crossbow_stock', 60], ['crossbow', 900], ['quiver', 40]],
   lines: ['A straight arrow is an honest answer to a crooked law.'],
 });
 npc('apothecary_edith', {
-  name: 'Apothecary Edith', x: 327, y: 334, tutor: 'herblore',
+  name: 'Apothecary Edith', x: 335, y: 336, tutor: 'herblore',
   vis: { skin: 'taupe', hair: ['braid', 'gray'], torso: ['robe', 'forest'], legs: ['pants', 'black'] },
-  shop: [['vial_water', 4], ['grimy_nettle', 10], ['secateurs', 10], ['fishing_bait', 1]],
-  lines: ['Every weed is a remedy to those who listen.'],
+  shop: [['vial_water', 4], ['grimy_nettle', 10], ['grimy_yarrow', 25], ['secateurs', 10], ['fishing_bait', 1]],
+  lines: ['Every weed is a remedy to those who listen. The Green Vial stocks them all.'],
 });
 npc('curator_bede', {
   name: 'Curator Bede', x: 340, y: 343, tutor: 'archaeology',
@@ -133,12 +134,12 @@ npc('curator_bede', {
   lines: ['History sleeps beneath our boots. Bring me what you unearth — restored, it will teach us all.'],
 });
 npc('taskmaster_gil', {
-  name: 'Taskmaster Gil', x: 330, y: 338, taskboard: true,
+  name: 'Taskmaster Gil', x: 328, y: 337, taskboard: true,
   vis: { skin: 'light', hair: ['bedhead', 'black'], torso: ['longsleeve', 'charcoal'], legs: ['pants', 'brown'] },
   lines: ['Work for coin, coin for work. Take a task, do it, get paid. Simple as.'],
 });
 npc('merchant', {
-  name: 'Merchant', x: 332, y: 328, wander: 5, pickpocket: { lvl: 20, xp: 45, loot: [['coins', [8, 24]]] },
+  name: 'Merchant', x: 318, y: 341, wander: 5, pickpocket: { lvl: 20, xp: 45, loot: [['coins', [8, 24]]] },
   vis: { skin: 'olive', hair: ['plain', 'black'], torso: ['longsleeve', 'red'], legs: ['pants', 'black'] },
   lines: ['Finest wares this side of the Trent!'],
 });
@@ -148,10 +149,113 @@ npc('noble', {
   lines: ['Out of my way, churl.'],
 });
 npc('castle_knight', {
-  name: 'Castle knight', x: 330, y: 312, wander: 3, pickpocket: { lvl: 70, xp: 230, loot: [['coins', [60, 150]], ['kings_elixir', 1, 0.03]] },
+  name: 'Castle knight', x: 330, y: 309, wander: 3, pickpocket: { lvl: 70, xp: 230, loot: [['coins', [60, 150]], ['kings_elixir', 1, 0.03]] },
   vis: gear({ skin: 'light' },
     'silversteel_platebody', 'silversteel_platelegs', 'silversteel_helm', 'silversteel_gauntlets', 'silversteel_shield', 'silversteel_sword'),
   lines: ['Move along. The castle is no place for outlaws.'],
+});
+// ---- the guild shops of the capital: a keeper for every skill ----
+npc('armourer_bertha', {
+  name: 'Armourer Bertha', x: 313, y: 326, tutor: 'defence',
+  vis: gear({ skin: 'light', hair: ['braid', 'black'] }, 'steel_platebody', 'steel_platelegs', 'steel_gauntlets'),
+  shop: [['copper_helm', 20], ['copper_platebody', 45], ['copper_platelegs', 35], ['copper_shield', 30], ['bronze_helm', 45], ['bronze_platebody', 95], ['bronze_platelegs', 75], ['bronze_shield', 65], ['iron_helm', 120], ['iron_platebody', 250], ['iron_platelegs', 190], ['iron_shield', 160], ['iron_chainbody', 210], ['steel_helm', 260], ['steel_platebody', 520], ['steel_platelegs', 400], ['steel_shield', 330], ['steel_chainbody', 450], ['steel_boots', 140], ['steel_gauntlets', 140]],
+  lines: ['Plate for the brave, chain for the quick. Either way, keep it oiled.'],
+});
+npc('weaponsmith_gruff', {
+  name: 'Weaponsmith Gruff', x: 313, y: 335, tutor: 'attack',
+  vis: gear({ skin: 'brown', hair: ['buzzcut', 'black'], beard: 'black' }, 'leather_body', 'studded_chaps', 'steel_gauntlets', 'steel_waraxe'),
+  shop: [['copper_sword', 30], ['copper_mace', 28], ['bronze_sword', 65], ['bronze_dagger', 35], ['bronze_mace', 60], ['iron_sword', 170], ['iron_dagger', 90], ['iron_spear', 150], ['iron_mace', 160], ['steel_sword', 380], ['steel_dagger', 200], ['steel_spear', 340], ['steel_mace', 360], ['steel_waraxe', 420]],
+  lines: ['The Wolfshead sells to anyone the Sheriff would hang. Which is everyone worth arming.'],
+});
+npc('forgemaster_hal', {
+  name: 'Forgemaster Hal', x: 348, y: 326, tutor: 'smithing',
+  vis: gear({ skin: 'brown', hair: ['bedhead', 'black'] }, 'leather_body', 'leather_chaps', 'steel_gauntlets', 'iron_mace'),
+  shop: [['hammer', 12], ['tinderbox', 10], ['copper_pickaxe', 25], ['bronze_pickaxe', 60], ['iron_pickaxe', 150], ['steel_pickaxe', 260], ['copper_bar', 20], ['bronze_bar', 40], ['iron_bar', 90]],
+  lines: ['Ore in, edge out. The Grand Forge never cools.'],
+});
+npc('guildmistress_sela', {
+  name: 'Guildmistress Sela', x: 350, y: 336, tutor: 'crafting',
+  vis: { skin: 'olive', hair: ['bun', 'black'], torso: ['tunic', 'forest'], legs: ['skirt', 'brown'] },
+  shop: [['needle', 5], ['chisel', 8], ['soft_leather', 30], ['ball_of_wool', 12], ['bucket', 5], ['shears', 8], ['gold_amulet', 350]],
+  lines: ['Leather, loom and lapidary — the Guild teaches hands to feed their owner.'],
+});
+npc('magus_orlin', {
+  name: 'Magus Orlin', x: 355, y: 327, tutor: 'magic',
+  vis: gear({ skin: 'taupe', hair: ['plain', 'gray'], beard: 'gray' }, 'druidic_robe_top', 'druidic_robe_skirt', 'druid_staff'),
+  shop: [['air_rune', 6], ['earth_rune', 6], ['water_rune', 6], ['fire_rune', 8], ['nature_rune', 18], ['rune_essence', 4], ['apprentice_staff', 25], ['druid_staff', 480], ['novice_hood', 15], ['novice_robe_top', 30], ['novice_robe_skirt', 25], ['spirit_shard', 25]],
+  lines: ['Runes, staves and the shards that call the spirit world. Mind where you point them.'],
+});
+npc('father_ambrose', {
+  name: 'Father Ambrose', x: 326, y: 352, tutor: 'prayer',
+  vis: gear({ skin: 'light', hair: ['plain', 'gray'] }, 'friar_robe_top', 'friar_robe_skirt', 'friar_staff'),
+  shop: [['vial_water', 4]],
+  lines: ['St Mary keeps her doors open to saint and outlaw alike. The altar restores what the road takes.'],
+});
+npc('tackler_finn', {
+  name: 'Tackler Finn', x: 317, y: 351, tutor: 'fishing',
+  vis: { skin: 'light', hair: ['bedhead', 'ginger'], beard: 'ginger', torso: ['longsleeve', 'blue'], legs: ['pants', 'walnut'] },
+  shop: [['small_fishing_net', 8], ['fishing_rod', 12], ['harpoon', 45], ['fishing_bait', 1], ['box_trap', 12], ['raw_perch', 6]],
+  lines: ['Rods for the Trent, traps for the runs. The city eats what the shire catches.'],
+});
+npc('lumberman_roy', {
+  name: 'Lumberman Roy', x: 348, y: 316, tutor: 'woodcutting',
+  vis: gear({ skin: 'light', hair: ['buzzcut', 'light_brown'], torso: ['longsleeve', 'brown'], legs: ['pants', 'walnut'] }, 'iron_hatchet'),
+  shop: [['copper_hatchet', 25], ['bronze_hatchet', 60], ['iron_hatchet', 150], ['steel_hatchet', 260], ['tinderbox', 10], ['knife', 8], ['hammer', 12], ['logs', 6], ['oak_logs', 15], ['trowel', 12], ['spade', 10]],
+  lines: ['Timber, tinder and trowels — build it, burn it or dig it, we stock it.'],
+});
+npc('cook_matilda', {
+  name: 'Cook Matilda', x: 325, y: 341, tutor: 'cooking',
+  vis: { skin: 'light', hair: ['bun', 'ginger'], torso: ['longsleeve', 'white'], legs: ['skirt', 'brown'] },
+  shop: [['bread', 8], ['cheese', 14], ['milk', 10], ['hearty_stew', 150], ['cooked_trout', 30], ['barley', 10], ['vial_water', 4]],
+  lines: ['Hot bread, sharp cheese, and a stew that has ended arguments.'],
+});
+npc('seedsman_wilf', {
+  name: 'Seedsman Wilf', x: 309, y: 315, tutor: 'farming',
+  vis: { skin: 'taupe', hair: ['plain', 'gray'], torso: ['longsleeve', 'green'], legs: ['pants', 'brown'] },
+  shop: [['potato_seed', 4], ['cabbage_seed', 6], ['barley_seed', 8], ['flax_seed', 10], ['yarrow_seed', 15], ['wolfsbane_seed', 40], ['mandrake_seed', 90], ['secateurs', 10], ['spade', 10], ['bucket', 5], ['shears', 8]],
+  lines: ['City soil grows coin; good seed grows everything else.'],
+});
+npc('westgate_serjeant', {
+  name: 'Serjeant Hawise', x: 305, y: 334, tutor: 'strength',
+  vis: gear({ skin: 'light', hair: ['braid', 'black'] }, 'steel_platebody', 'steel_platelegs', 'steel_helm', 'steel_spear'),
+  lines: ['Westgate Barracks. State your business or move through the gate.', 'The patrols change at every bell. Nothing crosses this wall unseen.'],
+});
+npc('se_captain', {
+  name: 'Captain Aldred', x: 344, y: 351, tutor: 'defence',
+  vis: gear({ skin: 'brown', hair: ['buzzcut', 'black'] }, 'silversteel_platebody', 'silversteel_platelegs', 'silversteel_helm', 'silversteel_sword'),
+  lines: ['Southeast Barracks holds the wall from the fen road to the east gate.', 'Thieves work the market. Guards work the thieves.'],
+});
+// ---- townsfolk: the city crowd ----
+npc('town_crier', {
+  name: 'Town Crier Cedric', x: 329, y: 334, wander: 3,
+  vis: { skin: 'light', hair: ['plain', 'black'], torso: ['tunic', 'red'], legs: ['pants', 'white'] },
+  lines: ['Hear ye! The Grand Exchange settles all trades in $LoS!', 'Hear ye! Archery on the north-east green — the Sheriff pays the purse!'],
+});
+npc('washer_wynn', {
+  name: 'Washerwoman Wynn', x: 316, y: 344, wander: 4,
+  vis: { skin: 'taupe', hair: ['bun', 'gray'], torso: ['longsleeve', 'white'], legs: ['skirt', 'charcoal'] },
+  lines: ['Market day every day in Nottingham — and mud on everything by noon.'],
+});
+npc('urchin_pip', {
+  name: 'Pip the Urchin', x: 318, y: 346, wander: 5, pickpocket: { lvl: 8, xp: 20, loot: [['coins', [1, 8]]] },
+  vis: { skin: 'light', hair: ['bedhead', 'light_brown'], torso: ['longsleeve', 'brown'], legs: ['pants', 'charcoal'] },
+  lines: ["Ain't seen nothing. Ain't got nothing. Honest."],
+});
+npc('goodwife_edna', {
+  name: 'Goodwife Edna', x: 326, y: 339, wander: 4,
+  vis: { skin: 'light', hair: ['braid', 'gray'], torso: ['longsleeve', 'blue'], legs: ['skirt', 'black'] },
+  lines: ['Fresh from the Cookhouse, that smell. Matilda works miracles with barley.'],
+});
+npc('pieman_perkin', {
+  name: 'Pieman Perkin', x: 314, y: 341, wander: 3,
+  vis: { skin: 'olive', hair: ['bedhead', 'black'], torso: ['longsleeve', 'white'], legs: ['pants', 'brown'] },
+  shop: [['bread', 8], ['cheese', 14], ['hearty_stew', 150]],
+  lines: ['Pies! Well — bread and cheese, but say pies and they queue.'],
+});
+npc('drunkard_ned', {
+  name: 'Ned the Sozzled', x: 308, y: 346, wander: 3, pickpocket: { lvl: 12, xp: 28, loot: [['coins', [2, 10]]] },
+  vis: { skin: 'light', hair: ['bedhead', 'ginger'], beard: 'ginger', torso: ['longsleeve', 'walnut'], legs: ['pants', 'charcoal'] },
+  lines: ['The Trip pours the finest ale in the shire... an\' I have checked THOROUGHLY.'],
 });
 
 // ---------------- Sherwood camp ----------------
@@ -288,11 +392,12 @@ npc('ragged_beggar', {
   vis: { skin: 'taupe', hair: ['bedhead', 'gray'], beard: 'gray', torso: ['longsleeve', 'charcoal'], legs: ['pants', 'charcoal'] },
   lines: ['Spare a coin at the gate, friend? The Sheriff took the rest.', 'They eat swan up at the castle. Swan!'],
 });
+// Keeper of the General Store — everything the specialist guilds don't carry.
 npc('aldous_clothier', {
-  name: 'Aldous the Clothier', x: 333, y: 327, wander: 2, pickpocket: { lvl: 45, xp: 130, loot: [['coins', [20, 70]], ['soft_leather', 1, 0.25]] },
+  name: 'Aldous the Clothier', x: 355, y: 334, wander: 2, pickpocket: { lvl: 45, xp: 130, loot: [['coins', [20, 70]], ['soft_leather', 1, 0.25]] },
   vis: { skin: 'light', hair: ['bangs', 'dark_brown'], torso: ['tunic', 'blue'], legs: ['pants', 'black'] },
-  shop: [['peasant_shirt', 4], ['outlaw_tunic', 12], ['leather_boots', 10], ['quiver', 45], ['needle', 5], ['soft_leather', 30]],
-  lines: ['Cloth for the street, leather for the road, and silk — silk is for THEM up the hill.'],
+  shop: [['peasant_shirt', 4], ['outlaw_tunic', 12], ['leather_boots', 10], ['quiver', 45], ['needle', 5], ['soft_leather', 30], ['tinderbox', 10], ['knife', 8], ['hammer', 12], ['bucket', 5], ['spade', 10], ['vial_water', 4], ['fishing_bait', 1], ['feathers', 2]],
+  lines: ['Cloth for the street, leather for the road, and sundries for everything between.'],
 });
 npc('alderman_fitzwalter', {
   name: 'Alderman Fitzwalter', x: 329, y: 309, pickpocket: { lvl: 60, xp: 200, loot: [['coins', [40, 120]], ['gold_amulet', 1, 0.04]] },

@@ -17,7 +17,11 @@ export const TOWNS = {
     ],
   },
   nottingham: {
-    name: 'Nottingham', cx: 330, cy: 330, r: 30, walled: true,
+    // The realm's capital: a sealed rampart with gatehouses west, south and
+    // east (the castle crag closes the north), two barracks, a full high
+    // street of skill shops, and a paved market square in the south-west.
+    name: 'Nottingham', cx: 330, cy: 330, r: 30, walled: true, gates: ['W', 'S', 'E'],
+    squares: [{ x: 312, y: 340, w: 9, h: 9 }],   // the Great Market (paved)
     buildings: [
       { x: 303, y: 322, w: 7, h: 6, door: 'S', name: 'Bank of Nottingham' },
       // The Grand Exchange: a single vast, heavily fortified stone hall in the
@@ -27,6 +31,26 @@ export const TOWNS = {
       { x: 305, y: 340, w: 6, h: 5, door: 'N', name: 'The Trip to Jerusalem Inn' },
       { x: 337, y: 340, w: 7, h: 5, door: 'N', name: 'Museum of Antiquities' },
       { x: 326, y: 302, w: 9, h: 7, door: 'S', name: 'Nottingham Castle', castle: true },
+      // -- garrisons: one gatehouse barracks by the west gate, one bastion SE --
+      { x: 302, y: 332, w: 7, h: 6, door: 'E', name: 'Westgate Barracks', castle: true },
+      { x: 341, y: 349, w: 8, h: 6, door: 'W', name: 'Southeast Barracks', castle: true },
+      // -- the high street (west-east avenue): arms, armour and heavy crafts --
+      { x: 311, y: 324, w: 5, h: 5, door: 'S', name: 'Castle Plate & Mail' },
+      { x: 311, y: 333, w: 5, h: 5, door: 'N', name: 'Wolfshead Armoury' },
+      { x: 346, y: 324, w: 6, h: 5, door: 'S', name: 'The Grand Forge' },
+      { x: 346, y: 333, w: 6, h: 5, door: 'N', name: 'Guild of Crafters' },
+      { x: 353, y: 325, w: 5, h: 5, door: 'S', name: 'The Magic Emporium' },
+      { x: 353, y: 333, w: 5, h: 4, door: 'N', name: 'Nottingham General Store' },
+      // -- north-east yard: timberwrights beside the archery butts --
+      { x: 346, y: 314, w: 6, h: 5, door: 'S', name: 'Timber & Trowel' },
+      // -- north-west corner: the seedsman and his plots --
+      { x: 307, y: 314, w: 6, h: 4, door: 'S', name: 'Seed & Sickle' },
+      // -- the south quarter, flanking the gate avenue --
+      { x: 322, y: 349, w: 7, h: 6, door: 'E', name: 'St Mary de Nottingham', castle: true },
+      { x: 333, y: 349, w: 6, h: 5, door: 'W', name: 'The Bowyer' },
+      { x: 315, y: 350, w: 5, h: 4, door: 'E', name: 'Trent Tackle & Trap' },
+      { x: 322, y: 340, w: 6, h: 5, door: 'E', name: 'The Old Cookhouse' },
+      { x: 333, y: 334, w: 5, h: 4, door: 'S', name: 'The Green Vial' },
     ],
   },
   bay: {
@@ -139,8 +163,19 @@ export const POIS = [
   ['house_portal', 240, 330], ['loom', 258, 327], ['tanning_rack', 246, 341],
   // --- Nottingham ---
   ['bank_booth', 305, 324], ...geFurniture(), ['museum_bench', 339, 342],
-  ['bakery_stall', 328, 330], ['fur_stall', 331, 330], ['silver_stall', 334, 330], ['gem_stall', 337, 330],
-  ['range', 320, 342], ['chapel_altar', 322, 334], ['furnace', 344, 330], ['anvil', 345, 332], ['loom', 342, 334], ['tanning_rack', 347, 334],
+  // the Great Market: six stalls in two rows on the paved square, dressed with carts and stores
+  ['bakery_stall', 313, 342], ['cloth_stall', 316, 342], ['spice_stall', 319, 342],
+  ['fur_stall', 313, 345], ['silver_stall', 316, 345], ['gem_stall', 319, 345],
+  ['market_cart', 312, 347], ['market_cart', 320, 340], ['barrel', 320, 347], ['crate', 313, 340], ['hay_bale', 316, 347],
+  // skill workstations live inside their guild shops now
+  ['range', 324, 342],                                      // the Old Cookhouse
+  ['chapel_altar', 324, 351],                               // St Mary de Nottingham
+  ['furnace', 347, 326], ['anvil', 349, 326],               // the Grand Forge
+  ['loom', 347, 335], ['tanning_rack', 349, 335],           // Guild of Crafters
+  // the archery butts on the north-east green (contest ground)
+  ['archery_butt', 346, 322], ['archery_butt', 349, 322], ['archery_butt', 352, 322],
+  // the seedsman's plots in the north-west corner
+  ['allotment', 303, 318], ['allotment', 305, 318], ['herb_patch', 305, 317],
   // --- Bay ---
   ['bank_booth', 44, 412], ['range', 54, 412],
   ['net_spot', 26, 436], ['net_spot', 24, 442], ['rod_spot', 22, 448], ['harpoon_spot', 24, 455],
@@ -236,6 +271,14 @@ export const SPAWNS = [
   { mob: 'poacher', x: 260, y: 300, r: 16, n: 6 }, { mob: 'poacher', x: 322, y: 288, r: 14, n: 5 },
   { mob: 'goblin_raider', x: 246, y: 282, r: 14, n: 6 }, { mob: 'brown_bear', x: 292, y: 252, r: 16, n: 4 },
   { mob: 'sheriffs_guard', x: 340, y: 310, r: 14, n: 6 }, { mob: 'sheriffs_guard', x: 352, y: 336, r: 12, n: 5 },
+  // Nottingham garrison: a pair mans each gatehouse (west, south, east), squads
+  // hold both barracks, and a patrol walks beats across the whole city ground.
+  { mob: 'sheriffs_guard', x: 302, y: 330, r: 1, n: 2 },   // west gate
+  { mob: 'sheriffs_guard', x: 330, y: 358, r: 1, n: 2 },   // south gate
+  { mob: 'sheriffs_guard', x: 358, y: 330, r: 1, n: 2 },   // east gate
+  { mob: 'sheriffs_guard', x: 305, y: 334, r: 2, n: 3 },   // Westgate Barracks muster
+  { mob: 'sheriffs_guard', x: 344, y: 351, r: 2, n: 3 },   // Southeast Barracks muster
+  { mob: 'sheriffs_guard', x: 330, y: 336, r: 26, n: 8, patrol: true }, // city patrol beats
   // Grand Exchange garrison — elite guards ring the fortified hall (passive unless attacked)
   { mob: 'ge_guard', x: 330, y: 331, r: 3, n: 4 },   // south approach & doors
   { mob: 'ge_guard', x: 313, y: 319, r: 2, n: 2 }, { mob: 'ge_guard', x: 346, y: 319, r: 2, n: 2 }, // flanks
@@ -369,6 +412,8 @@ if (K !== 1) {
     for (const b of t.buildings) _origBuildings.push({ ox: b.x, oy: b.y, w: b.w, h: b.h, ref: b });
     t.cx = Math.round(t.cx * K); t.cy = Math.round(t.cy * K); t.r = Math.round(t.r * K);
     for (const b of t.buildings) { b.x = Math.round(b.x * K); b.y = Math.round(b.y * K); }
+    // paved squares are ground areas: scale their extent too
+    if (t.squares) for (const q of t.squares) { q.x = Math.round(q.x * K); q.y = Math.round(q.y * K); q.w = Math.round(q.w * K); q.h = Math.round(q.h * K); }
   }
 }
 export function remapPoint(x, y) {

@@ -62,12 +62,15 @@ const POOLS = [
   [330, 74, 5],    // Wild Lands frozen pool
 ].map(([x, y, r]) => [S(x), S(y), S(r)]);
 const ROAD_LINES = [
-  [[252, 332], [330, 332]],
-  [[330, 316], [330, 240], [300, 150]],
+  // Nottingham's three roads meet its three gates dead-on (west, south, east —
+  // the castle crag seals the north): the west road runs the gate axis, the
+  // north road swings out through the EAST gate, the fen road leaves SOUTH.
+  [[252, 332], [292, 331], [330, 330]],                          // Loxley → west gate
+  [[364, 330], [376, 300], [356, 258], [330, 240], [300, 150]],  // east gate → the north road
   [[252, 336], [200, 368], [176, 396], [110, 412], [60, 420]],   // coast road skirting the Gulf of Barnsdale
   [[252, 340], [252, 440], [270, 470]],
-  [[344, 336], [420, 420]],
-  [[346, 330], [440, 300]],
+  [[330, 334], [330, 372], [368, 398], [420, 420]],              // south gate → the fen road
+  [[330, 330], [368, 330], [440, 300]],                          // east gate → the Peaks road
   [[330, 240], [352, 168]],              // spur to Peveril Keep
   [[210, 352], [196, 358]],              // lane into Edwinstowe
   [[420, 420], [400, 410]],              // causeway to Wyckham-on-Fen
@@ -219,9 +222,15 @@ function buildTownFurniture() {
     const t = TOWNS[key];
     const cx = t.cx, cy = t.cy;
     const big = t.r >= S(20);
-    const plazaR = big ? 4 : t.r >= S(12) ? 3 : 2;
+    const plazaR = t.walled && big ? 6 : big ? 4 : t.r >= S(12) ? 3 : 2;
     PLAZAS.push({ cx, cy, r: plazaR });
     for (const b of t.buildings) { const [dx, dy] = doorOutside(b); rasterStreet(dx, dy, cx, cy); }
+    // walled cities: paved avenues run from every gate to the central plaza
+    const GATE_PT = { W: [cx - t.r, cy], E: [cx + t.r, cy], S: [cx, cy + t.r], N: [cx, cy - t.r] };
+    if (t.walled) for (const s of (t.gates || ['N', 'W', 'S', 'E'])) rasterStreet(GATE_PT[s][0], GATE_PT[s][1], cx, cy);
+    // authored squares (markets, parade grounds) are fully paved
+    if (t.squares) for (const q of t.squares)
+      for (let qy = q.y; qy < q.y + q.h; qy++) for (let qx = q.x; qx < q.x + q.w; qx++) STREET_TILES.add(`${qx},${qy}`);
     // deterministic furniture ---------------------------------------------------
     const rnd = (s) => vnoise(cx + s * 7, cy - s * 5, 3, 41 + s);
     const occupied = new Set();
@@ -256,6 +265,28 @@ function buildTownFurniture() {
       put('hay_bale', cx - 1, cy + ring + 1);
     }
     put('signpost', cx + (rnd(9) > 0.5 ? ring + 1 : -ring - 1), cy - ring);
+    // cities: a hanging shop sign beside every trader's door, and lamp posts
+    // marching down each gate avenue so the streets read as real streets
+    if (t.walled) {
+      for (const b of t.buildings) {
+        if (b.castle || b.ge) continue;
+        const [dx, dy] = doorOutside(b);
+        const [px2, py2] = (b.door === 'E' || b.door === 'W') ? [0, 1] : [1, 0];
+        put('shop_sign', dx + px2, dy + py2);
+      }
+      for (const s of (t.gates || ['N', 'W', 'S', 'E'])) {
+        const [gx, gy] = GATE_PT[s];
+        const horiz = s === 'W' || s === 'E';
+        const steps = Math.floor((t.r - plazaR - 3) / 7);
+        for (let i = 1; i <= steps; i++) {
+          const f = plazaR + 2 + i * 7;
+          const ax = horiz ? cx + Math.sign(gx - cx) * f : cx + (i % 2 ? -2 : 3);
+          const ay = horiz ? cy + (i % 2 ? -2 : 3) : cy + Math.sign(gy - cy) * f;
+          put('lamp_post', ax, ay);
+          if (i % 2 === 0) put(rnd(i) > 0.5 ? 'park_bench' : 'flower_bed', horiz ? ax : cx + (i % 2 ? 3 : -2), horiz ? cy + (i % 2 ? 3 : -2) : ay);
+        }
+      }
+    }
   }
 }
 buildTownFurniture();
@@ -289,12 +320,30 @@ function townTile(x, y) {
     if (Math.abs(x - t.cx) > t.r * 1.5 + 6 || Math.abs(y - t.cy) > t.r * 1.5 + 6) continue;
     const d = dist(x, y, t.cx, t.cy);
     const rr = townRadius(t, x, y);
-    if (t.walled && Math.abs(d - rr) < 0.9) {
-      // city wall following the organic boundary, with 4 gates on the axes
-      if (Math.abs(x - t.cx) < 2 || Math.abs(y - t.cy) < 2) return TILE.PATH;
-      return TILE.WALL;
+    if (d < rr) {
+      if (t.walled) {
+        // Sealed rampart: a tile is wall if ANY of its 8 neighbours falls off
+        // the town ground — the inner boundary of the organic blob, so the
+        // ring can never gap the way the old thin distance-band did.
+        let edge = false;
+        for (let oy = -1; oy <= 1 && !edge; oy++) for (let ox = -1; ox <= 1; ox++) {
+          if (!ox && !oy) continue;
+          if (dist(x + ox, y + oy, t.cx, t.cy) >= townRadius(t, x + ox, y + oy)) { edge = true; break; }
+        }
+        if (edge) {
+          // gate openings only on the town's authored sides, on the road axes
+          const gw = 3;
+          for (const s of (t.gates || ['N', 'W', 'S', 'E'])) {
+            if (s === 'W' && x < t.cx && Math.abs(y - t.cy) <= gw) return TILE.PATH;
+            if (s === 'E' && x > t.cx && Math.abs(y - t.cy) <= gw) return TILE.PATH;
+            if (s === 'S' && y > t.cy && Math.abs(x - t.cx) <= gw) return TILE.PATH;
+            if (s === 'N' && y < t.cy && Math.abs(x - t.cx) <= gw) return TILE.PATH;
+          }
+          return TILE.WALL;
+        }
+      }
+      return townPath(x, y) ? TILE.PATH : (t.snowy ? TILE.SNOW : TILE.DIRT);
     }
-    if (d < rr) return townPath(x, y) ? TILE.PATH : (t.snowy ? TILE.SNOW : TILE.DIRT);
   }
   return -1;
 }
@@ -468,7 +517,7 @@ export function worldTile(x, y) {
 }
 
 // Blocking: unwalkable tile, or a gather node occupies it (except flat stations)
-const FLAT_NODES = new Set(['net_spot', 'rod_spot', 'harpoon_spot', 'allotment', 'herb_patch', 'rabbit_run', 'fox_trail', 'deer_track', 'sable_run', 'campfire', 'log_balance', 'stepping_stones', 'cliff_scramble', 'rope_swing', 'ice_traverse', 'roman_ruin', 'saxon_barrow', 'druid_circle', 'norman_keep', 'grail_shrine', 'dungeon_entrance', 'house_portal', 'ge_rope']);
+const FLAT_NODES = new Set(['net_spot', 'rod_spot', 'harpoon_spot', 'allotment', 'herb_patch', 'rabbit_run', 'fox_trail', 'deer_track', 'sable_run', 'campfire', 'log_balance', 'stepping_stones', 'cliff_scramble', 'rope_swing', 'ice_traverse', 'roman_ruin', 'saxon_barrow', 'druid_circle', 'norman_keep', 'grail_shrine', 'dungeon_entrance', 'house_portal', 'ge_rope', 'shop_sign']);
 export function isBlockedOverworld(x, y) {
   if (x < 0 || y < 0 || x >= W || y >= H) return true;
   if (!TILE_WALKABLE.has(worldTile(x, y))) return true;

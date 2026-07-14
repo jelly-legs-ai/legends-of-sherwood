@@ -44,6 +44,8 @@ export const NODES = {
 
   // Thieving stalls
   bakery_stall: { skill: 'thieving', lvl: 5, xp: 25, yield: 'bread', respawnMs: 6000, name: 'Bakery stall', anim: 'spellcast', fx: 'SPARK', stall: true },
+  cloth_stall: { skill: 'thieving', lvl: 15, xp: 40, yield: 'ball_of_wool', respawnMs: 8000, name: 'Cloth stall', anim: 'spellcast', fx: 'SPARK', stall: true },
+  spice_stall: { skill: 'thieving', lvl: 20, xp: 50, yield: 'cheese', respawnMs: 9000, name: 'Spice stall', anim: 'spellcast', fx: 'SPARK', stall: true },
   fur_stall: { skill: 'thieving', lvl: 30, xp: 70, yield: 'fox_fur', respawnMs: 12000, name: 'Fur stall', anim: 'spellcast', fx: 'SPARK', stall: true },
   silver_stall: { skill: 'thieving', lvl: 50, xp: 130, yield: 'silver_ore', respawnMs: 20000, name: 'Silver stall', anim: 'spellcast', fx: 'SPARK', stall: true },
   gem_stall: { skill: 'thieving', lvl: 75, xp: 240, yield: 'sapphire', respawnMs: 40000, name: 'Gem stall', anim: 'spellcast', fx: 'SPARK', stall: true, table: [['sapphire', 75, 240], ['emerald', 80, 280], ['ruby', 88, 340]] },
