@@ -103,7 +103,7 @@ export const RECIPES = [
   { id: 'smelt_sylvan', skill: 'smithing', lvl: 85, xp: 220, station: 'furnace', inputs: { sylvanite_ore: 2, coal: 4 }, output: { sylvan_bar: 1 }, name: 'Sylvan bar' },
 ];
 // Smithing: forging (generated per metal — offsets from the metal's base level)
-import { METALS } from './items.js';
+import { METALS, DHIDES } from './items.js';
 // [item, level offset, bars, xp]. Plate pieces cost more bars than the chain
 // equivalents (a full helm 2 vs a coif 1; a platebody 3 vs a chainmail 2).
 const FORGE = [
@@ -166,6 +166,15 @@ RECIPES.push(
   { id: 'make_cheese', skill: 'cooking', lvl: 8, xp: 40, station: 'range', inputs: { milk: 1 }, output: { cheese: 1 }, name: 'Cheese' },
   { id: 'craft_vial', skill: 'crafting', lvl: 5, xp: 12, station: 'furnace', inputs: { coins: 2 }, output: { vial_water: 3 }, name: 'Blow vials' },
 );
+// Premium ranger armour: gold-trim the studded set, or stitch dragonhide from
+// the leathers that only the mightiest beasts yield.
+const DHIDE_PIECE = [['coif', 1], ['vambraces', 1], ['chaps', 2], ['body', 3]];
+for (const D of DHIDES) for (const [piece, n] of DHIDE_PIECE) {
+  const out = `${D.id}_${piece}`;
+  const inputs = D.hide ? { [D.hide]: n * 2 } : { soft_leather: n + 1, gold_ore: n };
+  RECIPES.push({ id: `craft_${out}`, skill: 'crafting', lvl: Math.min(99, D.lvl), xp: 80 + n * 60 + D.lvl * 2,
+    station: 'tanning_rack', tool: 'needle', inputs, output: { [out]: 1 }, name: `${D.name} ${piece}` });
+}
 for (const g of GEMS) RECIPES.push({
   id: `craft_${g.id}_amulet`, skill: 'crafting', lvl: g.lvl, xp: 40 + g.lvl * 2, station: 'furnace',
   inputs: { gold_ore: 1, [g.id]: 1 }, output: { [`${g.id}_amulet`]: 1 }, name: `${g.id} amulet`,

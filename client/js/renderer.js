@@ -373,6 +373,9 @@ function foamFrames() {
       const c = document.createElement('canvas');
       c.width = 64; c.height = 32;
       const g = c.getContext('2d');
+      // clip to the tile diamond so the foam laps only the water side of the
+      // shoreline and never bleeds onto the land tile (or its trees/buildings)
+      g.beginPath(); g.moveTo(32, 0); g.lineTo(64, 16); g.lineTo(32, 32); g.lineTo(0, 16); g.closePath(); g.clip();
       const [[ax, ay], [bx, by]] = EDGE_SEG[e];
       g.strokeStyle = 'rgba(240,250,255,0.5)';
       g.lineWidth = 1.6;
@@ -488,14 +491,17 @@ function drawBridge(g, lx, ly, x, y, plane) {
   g.restore();
   g.strokeStyle = '#9a6a34'; g.lineWidth = 1;   // lit far edges
   g.beginPath(); g.moveTo(W[0], W[1]); g.lineTo(N[0], N[1]); g.lineTo(E[0], E[1]); g.stroke();
-  // guard rail along the two far (up-screen) edges: top rail + posts
+  // guard rail: only along an edge that faces open water — i.e. the OUTER sides
+  // of the span. Edges shared with another bridge tile (the walkway interior) or
+  // a road (the bank ramps) get no rail, so the rails run the outside only.
   const railH = 9;
   const rail = (a, b) => {
     g.strokeStyle = '#4a3016'; g.lineWidth = 2;
     g.beginPath(); g.moveTo(a[0], a[1] - railH); g.lineTo(b[0], b[1] - railH); g.stroke();
     for (let i = 0; i <= 3; i++) { const px = a[0] + (b[0] - a[0]) * (i / 3), py = a[1] + (b[1] - a[1]) * (i / 3); g.beginPath(); g.moveTo(px, py); g.lineTo(px, py - railH); g.stroke(); }
   };
-  rail(W, N); rail(N, E);
+  if (!cont(x - 1, y)) rail(W, N);   // TL edge → neighbour (x-1,y)
+  if (!cont(x, y - 1)) rail(N, E);   // TR edge → neighbour (x,y-1)
 }
 
 // Smooth value noise (bilinear over a 5-tile lattice): neighbouring tiles get
@@ -574,9 +580,12 @@ function chunkCanvas(plane, cx, cy) {
       }
     }
     if (t === TILE.BRIDGE) {
-      // channel water below, then a timber deck on piers at bank level
+      // channel water below, then a timber deck on piers at bank level. The
+      // water is re-drawn live (with the deck relaid over it) so the river keeps
+      // flowing under the crossing instead of freezing to a static texture.
       g.drawImage(tileTexture(TILE.RIVER, (shade * 8) | 0), lx - TW / 2, ly - TH / 2 + 9);
       drawBridge(g, lx, ly, x, y, plane);
+      water.push({ lx, ly, t: TILE.RIVER, x, y, ph: (x * 7 + y * 13) % 64, bridge: true });
     } else if (!WALLS.has(t)) {
       const isWater = WATERS.has(t);
       for (let k = drop; k >= 1; k--) {
@@ -815,6 +824,11 @@ export class Renderer {
         for (const w of cc.water) {
           const sx = cox + w.lx - TW / 2, sy = coy + w.ly - TH / 2;
           if (sx < -TW || sy < -TH - (w.drop || 0) * ESTEP || sx > W || sy > H) continue;
+          if (w.bridge) {   // flowing channel water, with the deck relaid on top
+            ctx.drawImage(waterAnim(TILE.RIVER)[((now / 260 + w.ph) | 0) & 3], sx, sy + 9);
+            drawBridge(ctx, cox + w.lx, coy + w.ly, w.x, w.y, plane);
+            continue;
+          }
           ctx.drawImage(waterAnim(w.t)[((now / 260 + w.ph) | 0) & 3], sx, sy);
           if (w.em) {
             const f2 = ((now / 430 + w.ph) | 0) & 1;
@@ -1076,6 +1090,16 @@ export class Renderer {
       }
     } else if (!sheetH && e.vis) {
       const comp = composite(e.vis);
+      // enchanted (dragonhide) armour sheds a soft aura the wearer stands in
+      const armorGlow = e.vis.torso && e.vis.torso[2];
+      if (armorGlow) {
+        const ay = ry - 20 * scale, ap = 0.32 + 0.14 * Math.sin(now / 380 + e.id);
+        ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = ap;
+        const gr = ctx.createRadialGradient(sx, ay, 0, sx, ay, 32 * scale);
+        gr.addColorStop(0, armorGlow); gr.addColorStop(1, armorGlow + '00');
+        ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(sx, ay, 20 * scale, 30 * scale, 0, 0, 7); ctx.fill();
+        ctx.restore();
+      }
       const shieldCol = e.vis.shield && e.vis.shield[1];
       if (shieldCol && shieldBehind(e.dir)) drawHeldShield(ctx, shieldCol, e.dir, sx, ry, scale);
       drawChar(ctx, comp, rAnim, e.dir, rFrame, sx, ry, scale);

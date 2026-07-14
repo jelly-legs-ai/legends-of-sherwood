@@ -14,7 +14,7 @@ function gear(base, ...itemIds) {
   for (const id of itemIds) {
     const v = ITEMS[id] && ITEMS[id].vis;
     if (!v) continue;
-    vis[v.layer] = v.layer === 'weapon' ? [v.type, v.color, v.glow] : [v.sheet || v.type, v.color];
+    vis[v.layer] = v.layer === 'weapon' ? [v.type, v.color, v.glow] : [v.sheet || v.type, v.color, v.glow];
   }
   return vis;
 }

@@ -23,6 +23,35 @@ function metalFor(name) {
 function px(g, x, y, w, h, col) { g.fillStyle = col; g.fillRect(x, y, w, h); }
 function diag(g, fn) { g.save(); g.translate(16, 16); g.rotate(Math.PI / 4); fn(); g.restore(); }
 
+// Dragonhide / sylvan-trimmed ranger armour — scaly hide in the dragon's colour,
+// a bright trim edge and a soft elemental glow.
+const DHIDE = {
+  sylvan_trimmed: { c: '#43434c', trim: '#e8c84e', glow: '#e8c84e' },
+  blue_dragonhide: { c: '#2f5c9c', trim: '#8fd0f0', glow: '#4aa0e0' },
+  green_dragonhide: { c: '#2f6c3a', trim: '#8fe0a0', glow: '#3fbf6a' },
+  red_dragonhide: { c: '#9c2f2f', trim: '#f0968a', glow: '#e0503a' },
+  aethereal_dragonhide: { c: '#aac8e0', trim: '#ffffff', glow: '#bfeaff' },
+};
+function dhideOf(name) { for (const k in DHIDE) if (name.startsWith(k)) return DHIDE[k]; return null; }
+function drawHide(g, slot, dh) {
+  const path = slot === 'head' ? () => { g.beginPath(); g.moveTo(16, 5); g.quadraticCurveTo(26, 8, 25, 20); g.quadraticCurveTo(24, 26, 16, 26); g.quadraticCurveTo(8, 26, 7, 20); g.quadraticCurveTo(6, 8, 16, 5); }
+    : slot === 'torso' ? () => { g.beginPath(); g.moveTo(11, 6); g.lineTo(21, 6); g.lineTo(27, 10); g.lineTo(25, 15); g.lineTo(22, 13); g.lineTo(22, 26); g.lineTo(10, 26); g.lineTo(10, 13); g.lineTo(7, 15); g.lineTo(5, 10); g.closePath(); }
+      : slot === 'legs' ? () => { g.beginPath(); g.moveTo(10, 6); g.lineTo(22, 6); g.lineTo(23, 12); g.lineTo(18.6, 27); g.lineTo(14.8, 27); g.lineTo(16, 14); g.lineTo(13.4, 27); g.lineTo(9.6, 27); g.lineTo(9, 12); g.closePath(); }
+        : () => { g.beginPath(); g.moveTo(11, 8); g.lineTo(21, 8); g.lineTo(22, 18); g.lineTo(24, 20); g.lineTo(22, 23); g.lineTo(19, 21); g.lineTo(12, 21); g.closePath(); };
+  g.save(); g.shadowColor = dh.glow; g.shadowBlur = 5;
+  path(); g.fillStyle = dh.c; g.fill();
+  g.shadowBlur = 0;
+  // overlapping scales
+  g.save(); path(); g.clip();
+  g.strokeStyle = dh.trim; g.lineWidth = 0.8; g.globalAlpha = 0.5;
+  for (let r = 0; r < 6; r++) for (let cxs = 0; cxs < 6; cxs++) { const x = 4 + cxs * 5 + (r % 2) * 2.5, y = 6 + r * 4; g.beginPath(); g.arc(x, y + 2, 2.5, Math.PI * 1.05, Math.PI * 1.95); g.stroke(); }
+  g.globalAlpha = 1; g.restore();
+  path(); g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
+  path(); g.strokeStyle = dh.trim; g.lineWidth = 0.8; g.globalAlpha = 0.7; g.stroke(); g.globalAlpha = 1;
+  if (slot === 'head') { g.fillStyle = '#141210'; g.beginPath(); g.ellipse(16, 18, 5.4, 5, 0, 0, 7); g.fill(); }
+  g.restore();
+}
+
 function blade(g, pal, len, wid) {
   g.fillStyle = pal[1];
   g.beginPath(); g.moveTo(0, -len); g.lineTo(wid, -len + 4); g.lineTo(wid, 6); g.lineTo(-wid, 6); g.lineTo(-wid, -len + 4); g.closePath(); g.fill();
@@ -97,6 +126,9 @@ export function itemIcon(id) {
   g.lineJoin = 'round';
   g.fillStyle = '#00000026';
   g.beginPath(); g.ellipse(16, 27.5, 10, 2.6, 0, 0, 7); g.fill();
+
+  const dh = dhideOf(name);
+  if (dh && def.slot) { drawHide(g, def.slot, dh); return c; }
 
   if (/(sword|_dagger|blade)/.test(name)) {
     diag(g, () => { blade(g, pal, name.includes('dagger') ? 12 : 17, name.includes('dagger') ? 2.2 : 3); hilt(g, pal); });

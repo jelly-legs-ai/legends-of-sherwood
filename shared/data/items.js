@@ -133,6 +133,40 @@ for (const L of LEATHERS) {
     bonus: { def: s * 0.5 | 0, racc: s * 0.25 | 0 }, value: L.val * 2,
     vis: { layer: 'legs', sheet: 'pants', color: L.color } });
 }
+// ---------------------------------------------------------------------------
+// Premium ranger armour — the end-game kit an archer grinds for. A gold-trimmed
+// studded set, then the dragonhide line: dyed hide with an in-world glow and
+// vambraces that push ranged accuracy hard (the ranger's signature bonus).
+// Each set is coif + body + chaps + vambraces.
+export const DHIDES = [
+  { id: 'sylvan_trimmed', name: 'Sylvan-trimmed', lvl: 40, color: 'charcoal', glow: '#e8c84e', val: 3200 },
+  { id: 'blue_dragonhide', name: 'Blue dragonhide', lvl: 50, color: 'blue', glow: '#4aa0e0', val: 9000, hide: 'blue_dragon_leather' },
+  { id: 'green_dragonhide', name: 'Green dragonhide', lvl: 60, color: 'forest', glow: '#3fbf6a', val: 17000, hide: 'green_dragon_leather' },
+  { id: 'red_dragonhide', name: 'Red dragonhide', lvl: 72, color: 'red', glow: '#e0503a', val: 30000, hide: 'red_dragon_leather' },
+  { id: 'aethereal_dragonhide', name: 'Aethereal dragonhide', lvl: 85, color: 'white', glow: '#bfeaff', val: 68000, hide: 'aethereal_dragon_leather', unique: true },
+];
+for (const D of DHIDES) {
+  const s = T(D.lvl), req = { ranged: D.lvl, defence: Math.max(1, D.lvl - 8) };
+  const gl = D.glow, u = D.unique;
+  def(`${D.id}_coif`, { name: `${D.name} coif`, slot: 'head', req, unique: u,
+    bonus: { def: s * 0.35 | 0, racc: s * 0.4 | 0 }, value: D.val,
+    vis: { layer: 'head', sheet: 'hood', color: D.color, glow: gl } });
+  def(`${D.id}_body`, { name: `${D.name} body`, slot: 'torso', req, unique: u,
+    bonus: { def: s * 0.8 | 0, racc: s | 0 }, value: D.val * 3 | 0,
+    vis: { layer: 'torso', sheet: 'leather', color: D.color, glow: gl } });
+  def(`${D.id}_chaps`, { name: `${D.name} chaps`, slot: 'legs', req, unique: u,
+    bonus: { def: s * 0.5 | 0, racc: s * 0.6 | 0 }, value: D.val * 2 | 0,
+    vis: { layer: 'legs', sheet: 'pants', color: D.color, glow: gl } });
+  def(`${D.id}_vambraces`, { name: `${D.name} vambraces`, slot: 'hands', req, unique: u,
+    bonus: { def: s * 0.22 | 0, racc: s * 0.75 | 0 }, value: D.val * 0.8 | 0,
+    vis: { layer: 'hands', sheet: 'gloves', color: D.color, glow: gl } });
+}
+// Dragon leathers: tanned into hide only the mightiest beasts yield.
+def('blue_dragon_leather', { name: 'Blue dragon leather', value: 1500, material: true });
+def('green_dragon_leather', { name: 'Green dragon leather', value: 2800, material: true });
+def('red_dragon_leather', { name: 'Red dragon leather', value: 5200, material: true });
+def('aethereal_dragon_leather', { name: 'Aethereal dragon leather', value: 11000, material: true, unique: true });
+
 def('leather_boots', { name: 'Leather boots', slot: 'feet', req: {}, bonus: { def: 1 }, value: 8,
   vis: { layer: 'feet', sheet: 'boots', color: 'brown' } });
 def('quiver', { name: 'Quiver', slot: 'cape', req: {}, bonus: { racc: 2 }, value: 30,

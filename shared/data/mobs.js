@@ -25,8 +25,10 @@ mob('smuggler', { name: 'Smuggler', lvl: 16, life: 38, atk: 9, def: 8, style: 'r
 // ---- Sherwood (10-40) -------------------------------------------------------
 mob('sherwood_wolf', { name: 'Sherwood wolf', lvl: 18, life: 44, atk: 11, def: 9, critter: 'wolf', style: 'melee', aggro: true,
   drops: [['bones', 1, 1], ['wolf_pelt', 1, 0.35], ['verdant_charm', 1, 0.12]] });
+// A common road brigand — scruffy tan leathers and a brown hood, not the pristine
+// Lincoln green of Robin and his Merry Men.
 mob('outlaw', { name: 'Outlaw', lvl: 22, life: 52, atk: 13, def: 11, style: 'melee',
-  vis: { skin: 'light', hair: ['plain', 'light_brown'], torso: ['tunic', 'green'], legs: ['pants', 'brown'], head: ['hood', 'green'], weapon: ['sword', 'bronze'] },
+  vis: { skin: 'light', hair: ['bedhead', 'dark_brown'], beard: 'dark_brown', torso: ['leather', 'brown'], legs: ['pants', 'charcoal'], head: ['hood', 'walnut'], weapon: ['sword', 'iron'] },
   drops: [['bones', 1, 1], ['coins', [8, 28], 0.9], ['bronze_sword', 1, 0.05], ['grimy_yarrow', 1, 0.2], ['spirit_shard', [2, 6], 0.3]] });
 // Town watch: passive to players (won't attack on sight — retaliates only when
 // struck), but hunts down any hostile mob that strays into the town. Respawns
@@ -248,5 +250,17 @@ boss('hellbeast', { name: 'The Hellbeast', lvl: 95, life: 3400, atk: 78, def: 68
 boss('dragon_tyrant', { name: 'Vermithrax, the Three-Headed Tyrant', lvl: 99, life: 4500, atk: 86, def: 74, sheet: 'dragon_tyrant', style: 'magic', tier: 6, scale: 1.2, shil: 8, respawnMs: 300000,
   region: 'WILDLANDS', drops: [['ancient_bones', [2, 3], 1], ['dragonbane_greatsword', 1, 0.03], ['coins', [1000, 2400], 1], ['diamond', [1, 2], 0.5], ['abyssal_pearl', 1, 0.3], ['tome_farming', 1, 0.05], ['sylvanite_ore', [2, 5], 0.7], ['sky_screecher', 1, 0.012], ['aura_spectral', 1, 0.02]] });
 
+// Dragon-leather drops feed the dragonhide ranger line — sourced from wyrms,
+// drakes and the mightiest beasts, so the top ranger kit is a real grind.
+const DRAGON_LEATHER_DROPS = {
+  blue_dragon_leather: [['ice_wolf', 0.05], ['winter_wolf', 0.05], ['fenwyrm', 0.6]],
+  green_dragon_leather: [['vine_horror', 0.05], ['crag_raptor', 0.05], ['elder_treant', 0.5]],
+  red_dragon_leather: [['abyssal_sentinel', 0.05], ['minotaur', 0.05], ['orc_warlord', 0.04]],
+  aethereal_dragon_leather: [['frost_revenant', 0.03], ['dragon_tyrant', 0.8], ['sheriff_of_nottingham', 0.06]],
+};
+for (const [leather, sources] of Object.entries(DRAGON_LEATHER_DROPS))
+  for (const [mobId, chance] of sources)
+    if (MOBS[mobId]) (MOBS[mobId].drops = MOBS[mobId].drops || []).push([leather, 1, chance]);
+
 // Vis for hair may be absent (helmets); critters are drawn by client code.
-export const CRITTERS = ['rat', 'rabbit', 'boar', 'wolf', 'icewolf', 'hawk', 'leech', 'serpent', 'panther', 'treant', 'goat', 'troll', 'sprite', 'spider', 'giant', 'bear', 'stag', 'abyssal'];
+export const CRITTERS =['rat', 'rabbit', 'boar', 'wolf', 'icewolf', 'hawk', 'leech', 'serpent', 'panther', 'treant', 'goat', 'troll', 'sprite', 'spider', 'giant', 'bear', 'stag', 'abyssal'];
