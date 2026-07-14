@@ -323,26 +323,36 @@ function oval(g, x, y, rx, ry, fill, outline) {
   g.fillStyle = fill; g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, 7); g.fill();
 }
 
-export function critterSprite(type, frame = 0, dead = false) {
+// Creatures are drawn facing RIGHT; the renderer mirrors dir-1 (left) horizontally.
+// Each has four animation states — idle (gentle breathing), walk (leg/wing cycle),
+// attack (a forward lunge with bared jaws/claws) and hurt (a recoil with a red
+// impact flash and clenched eyes).
+export function critterSprite(type, frame = 0, dir = 2, anim = 'walk', dead = false) {
   const st = CRITTER_STYLE[type] || CRITTER_STYLE.rat;
-  const key = `cr:${type}:${frame}:${dead ? 1 : 0}`;
+  const key = `cr:${type}:${frame}:${dir}:${anim}:${dead ? 1 : 0}`;
   return proc(key, 64, 64, (g) => {
     g.save();
     if (dead) { g.globalAlpha = 0.55; g.translate(32, 48); g.rotate(1.2); g.translate(-32, -40); }
     const s = st.size;
-    const swing = Math.sin(frame * 0.8);         // leg/wing swing
-    const bob = Math.round(Math.abs(Math.cos(frame * 0.8)) * (st.hop ? 3 : 1.5));
+    const walking = anim === 'walk';
+    const swing = walking ? Math.sin(frame * 0.8) : anim === 'idle' ? Math.sin(frame * 0.35) * 0.3 : 0;
+    const bob = walking ? Math.round(Math.abs(Math.cos(frame * 0.8)) * (st.hop ? 3 : 1.5)) : 0;
+    // attack: a 0→1→0 lunge; hurt: a recoil that eases out over the frames
+    const atk = anim === 'attack' ? Math.sin(Math.min(1, frame / 3) * Math.PI) : 0;
+    const hurt = anim === 'hurt' ? Math.max(0, 1 - frame / 4) : 0;
+    const pose = { atk, hurt, dir };
+    if (!dead) g.translate(atk * 6 - hurt * 5, -atk * 1.5 + hurt * 1);   // shove the whole body
     if (st.glow) { g.shadowColor = st.glow; g.shadowBlur = 9; }
-
-    if (st.kind === 'quad') drawQuad(g, st, s, swing, bob, type);
-    else if (st.kind === 'bird') drawBird(g, st, s, swing);
-    else if (st.kind === 'snake') drawSnake(g, st, s, frame);
-    else if (st.kind === 'worm') drawWorm(g, st, s, frame);
-    else if (st.kind === 'tree') drawTreant(g, st, s, swing);
-    else if (st.kind === 'brute') drawBrute(g, st, s, swing, bob);
-    else if (st.kind === 'wisp') drawWisp(g, st, frame);
-    else if (st.kind === 'spider') drawSpider(g, st, s, swing);
-
+    const kind = st.kind;
+    if (kind === 'quad') drawQuad(g, st, s, swing, bob, type, pose);
+    else if (kind === 'bird') drawBird(g, st, s, swing, pose);
+    else if (kind === 'snake') drawSnake(g, st, s, frame, pose);
+    else if (kind === 'worm') drawWorm(g, st, s, frame, pose);
+    else if (kind === 'tree') drawTreant(g, st, s, swing, pose);
+    else if (kind === 'brute') drawBrute(g, st, s, swing, bob, pose);
+    else if (kind === 'wisp') drawWisp(g, st, frame);
+    else if (kind === 'spider') drawSpider(g, st, s, swing, pose);
+    if (hurt > 0.35) { g.globalCompositeOperation = 'source-atop'; g.fillStyle = `rgba(255,90,90,${hurt * 0.45})`; g.fillRect(0, 0, 64, 64); g.globalCompositeOperation = 'source-over'; }
     g.shadowBlur = 0; g.restore();
   });
 }
@@ -351,8 +361,12 @@ function eye(g, x, y, r = 1.6, glint = true) {
   px(g, x - r, y - r, r * 2, r * 2, '#0c0c10');
   if (glint) px(g, x, y - r, 1, 1, '#fff');
 }
+// clenched/pained eye for the hurt pose
+function eyeX(g, x, y) { g.strokeStyle = '#0c0c10'; g.lineWidth = 1; g.beginPath(); g.moveTo(x - 2, y - 2); g.lineTo(x + 2, y + 2); g.moveTo(x + 2, y - 2); g.lineTo(x - 2, y + 2); g.stroke(); }
+// bared jaws for the attack pose (an open red maw with a fang)
+function maw(g, x, y, r, atk) { g.fillStyle = '#3a0e12'; g.beginPath(); g.ellipse(x, y, r, r * (0.5 + atk), 0, 0, 7); g.fill(); g.fillStyle = '#f4ecd8'; px(g, x - r * 0.6, y - r * 0.4, 1.2, 2.2, '#f4ecd8'); px(g, x + r * 0.3, y - r * 0.4, 1.2, 2.2, '#f4ecd8'); }
 
-function drawQuad(g, st, s, swing, bob, type) {
+function drawQuad(g, st, s, swing, bob, type, pose = {}) {
   const cx = 30, cy = 40 - bob;
   const bw = 15 * s, bh = 8 * s;
   const legY = cy + bh - 1;
@@ -414,8 +428,9 @@ function drawQuad(g, st, s, swing, bob, type) {
   if (st.snout === 'long' || st.snout === 'boar') { const sw = st.snout === 'boar' ? 5 * s : 4 * s; oval(g, hx + hr - 1, hy + 1, sw, 2.6 * s, st.body, OUTLINE); px(g, hx + hr + sw - 3, hy - 1, 2, 3, '#1c1418'); if (st.snout === 'boar') { px(g, hx + hr + sw - 2, hy - 1, 1, 1, '#222'); px(g, hx + hr + sw - 2, hy + 2, 1, 1, '#222'); } }
   else if (st.snout === 'point') { g.fillStyle = st.body; g.beginPath(); g.moveTo(hx + hr - 1, hy - 1); g.lineTo(hx + hr + 5 * s, hy + 1); g.lineTo(hx + hr - 1, hy + 3); g.fill(); px(g, hx + hr + 5 * s - 1, hy, 1.5, 1.5, '#d99'); }
   else oval(g, hx + hr - 1, hy + 1.5, 2.5 * s, 2 * s, st.hi);
-  eye(g, hx + hr * 0.4, hy - 0.5, st.sleek ? 1.8 : 1.6);
-  if (st.sleek) { g.strokeStyle = '#4c9a4c'; g.lineWidth = 1; g.beginPath(); g.moveTo(hx + hr * 0.4 - 2, hy - 1); g.lineTo(hx + hr * 0.4 + 2, hy - 1); g.stroke(); }
+  if (pose.hurt > 0.3) eyeX(g, hx + hr * 0.4, hy - 0.5);
+  else { eye(g, hx + hr * 0.4, hy - 0.5, st.sleek ? 1.8 : 1.6); if (st.sleek) { g.strokeStyle = '#4c9a4c'; g.lineWidth = 1; g.beginPath(); g.moveTo(hx + hr * 0.4 - 2, hy - 1); g.lineTo(hx + hr * 0.4 + 2, hy - 1); g.stroke(); } }
+  if (pose.atk > 0.35) maw(g, hx + hr + 1.5, hy + hr * 0.6, 2.2 * s, pose.atk);   // bared jaws on the lunge
   // features
   if (st.tusks) { px(g, hx + hr + 1, hy + 3, 1.5, 3, '#f4ecd8'); px(g, hx + hr + 3, hy + 3, 1.5, 3, '#f4ecd8'); }
   if (st.beard) px(g, hx - 1, hy + hr - 1, 2, 4, '#e8e0d0');
@@ -493,7 +508,7 @@ function drawTreant(g, st, s, swing) {
   g.strokeStyle = '#2a1e12'; g.lineWidth = 1.4; g.beginPath(); g.arc(cx, 44, 3, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
 }
 
-function drawBrute(g, st, s, swing, bob) {
+function drawBrute(g, st, s, swing, bob, pose = {}) {
   const cx = 32, top = 20 - bob;
   // legs
   for (const dx of [-5, 5]) { const off = dx > 0 ? swing * 2 : -swing * 2; px(g, cx + dx - 3, 46 + off, 7, 10 - off, OUTLINE); px(g, cx + dx - 2, 46 + off, 5, 9 - off, st.sh); }
@@ -509,10 +524,12 @@ function drawBrute(g, st, s, swing, bob) {
   // head
   oval(g, cx, top + 6, 7 * s, 6.5 * s, st.body, OUTLINE);
   oval(g, cx - 2, top + 3, 3.5 * s, 3 * s, st.hi);
-  eye(g, cx - 3, top + 6, 1.6); eye(g, cx + 3, top + 6, 1.6);
-  // brow + mouth
+  if (pose.hurt > 0.3) { eyeX(g, cx - 3, top + 6); eyeX(g, cx + 3, top + 6); }
+  else { eye(g, cx - 3, top + 6, 1.6); eye(g, cx + 3, top + 6, 1.6); }
+  // brow + mouth (a roaring maw on the attack lunge)
   g.strokeStyle = st.sh; g.lineWidth = 2; g.beginPath(); g.moveTo(cx - 6, top + 3); g.lineTo(cx + 6, top + 3); g.stroke();
-  g.strokeStyle = '#2a1a1a'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(cx - 4, top + 10); g.lineTo(cx + 4, top + 10); g.stroke();
+  if (pose.atk > 0.35) { g.fillStyle = '#2a0e10'; oval(g, cx, top + 10, 3, 1.4 + pose.atk * 2, '#2a0e10'); }
+  else { g.strokeStyle = '#2a1a1a'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(cx - 4, top + 10); g.lineTo(cx + 4, top + 10); g.stroke(); }
   // tusks / frost / horns / cracked stone
   px(g, cx - 3, top + 9, 1.5, 3, '#f4ecd8'); px(g, cx + 2, top + 9, 1.5, 3, '#f4ecd8');
   if (st.frost) { g.shadowColor = '#bfe0ff'; g.shadowBlur = 8; oval(g, cx, 38, 11 * s, 10 * s, 'rgba(200,230,255,0.10)'); g.shadowBlur = 0; }

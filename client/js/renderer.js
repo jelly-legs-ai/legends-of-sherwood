@@ -1105,17 +1105,17 @@ export class Renderer {
     }
     if (!sheetH && e.critter) {
       const dead = e.hp <= 0;
-      const spr = critterSprite(e.critter, anim === 'walk' ? frame : 0, dead);
+      // map the shared animation set onto the critter's four states
+      const cAnim = dead ? 'idle'
+        : (anim === 'slash' || anim === 'shoot' || anim === 'spellcast') ? 'attack'
+          : anim === 'hurt' ? 'hurt' : anim === 'walk' ? 'walk' : 'idle';
+      const spr = critterSprite(e.critter, frame, e.dir ?? 2, cAnim, dead);
       const S = 64 * scale;
-      const flip = e.dir === 1; // left-facing critters mirror
+      const flip = e.dir === 1; // left-facing critters mirror the right-facing art
       ctx.save();
       if (flip) { ctx.translate(sx, 0); ctx.scale(-1, 1); ctx.translate(-sx, 0); }
       ctx.drawImage(spr, sx - S / 2, sy - S + 14 * scale, S, S);
       ctx.restore();
-      // attack lunge flash
-      if ((anim === 'slash' || anim === 'shoot' || anim === 'spellcast') && frame < 3) {
-        ctx.fillStyle = '#ffffff22'; ctx.beginPath(); ctx.arc(sx, sy - 20 * scale, 16 * scale, 0, 7); ctx.fill();
-      }
     } else if (!sheetH && e.vis) {
       const comp = composite(e.vis);
       // enchanted (dragonhide) armour sheds a soft aura the wearer stands in

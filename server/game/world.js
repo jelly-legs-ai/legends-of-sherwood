@@ -538,6 +538,8 @@ export class World {
     // drop the target if it's dead/gone, too far, or (for a guard) has lured us too far from post
     if (t && (t.hp <= 0 || t.plane !== m.plane || Math.hypot(t.x - m.x, t.y - m.y) > 14 || (def.guard && Math.hypot(m.home.x - m.x, m.home.y - m.y) > 14))) { m.target = null; }
     else if (t) {
+      // always square up to the target — mobs face whoever they're fighting
+      m.dir = Math.abs(t.x - m.x) > Math.abs(t.y - m.y) ? (t.x > m.x ? 3 : 1) : (t.y > m.y ? 2 : 0);
       const range = def.style === 'melee' ? 1.5 : 6;
       const d = Math.hypot(t.x - m.x, t.y - m.y);
       if (d > range) this.moveEntity(m, t.x, t.y, def.speed || 2.2, dt), m.anim = 'walk';
@@ -626,6 +628,7 @@ export class World {
     const canAttack = pt.cls === 'offense' || pt.cls === 'utility';
     if (canAttack && tgt && tgt.kind === 'mob' && tgt.hp > 0 && Math.hypot(tgt.x - pt.x, tgt.y - pt.y) < 10) {
       const dd = Math.hypot(tgt.x - pt.x, tgt.y - pt.y);
+      pt.dir = Math.abs(tgt.x - pt.x) > Math.abs(tgt.y - pt.y) ? (tgt.x > pt.x ? 3 : 1) : (tgt.y > pt.y ? 2 : 0);
       if (dd > 1.4) this.moveEntity(pt, tgt.x, tgt.y, 4.5, dt), pt.anim = 'walk';
       else if (now - pt.lastAttack > PET_POWER.attackSpeedMs(pt.cls)) {
         pt.lastAttack = now;
@@ -635,8 +638,15 @@ export class World {
         this.broadcastNear(pt.plane, pt.x, pt.y, { t: MSG.HIT, id: tgt.id, dmg, src: pt.id });
         this.petGainXp(owner, rec, dmg * 2);
       }
-    } else if (d > 2.2) { this.moveEntity(pt, owner.x, owner.y, 5.5, dt); pt.anim = 'walk'; }
-    else pt.anim = 'idle';
+    } else {
+      // heel a few paces BEHIND the owner (opposite their heading) and match their facing
+      const FACE = [[0, -1], [-1, 0], [0, 1], [1, 0]];   // dir 0 up,1 left,2 down,3 right
+      const back = FACE[owner.dir ?? 2];
+      const hx = owner.x - back[0] * 2.5, hy = owner.y - back[1] * 2.5;
+      if (Math.hypot(hx - pt.x, hy - pt.y) > 1.1) { this.moveEntity(pt, hx, hy, 5.5, dt); pt.anim = 'walk'; }
+      else pt.anim = 'idle';
+      pt.dir = owner.dir ?? 2;   // pets always face the same way as their owner
+    }
     // utility pets: feed a hurt owner from their pack, retrieve their drops
     if (pt.cls === 'utility' && now - pt.lastUtility > 8000) {
       if (owner.hp < owner.maxHp * 0.6) {
@@ -682,6 +692,7 @@ export class World {
     const tgt = owner.target ? this.entities.get(owner.target) : null;
     if (tgt && tgt.kind === 'mob' && tgt.hp > 0 && Math.hypot(tgt.x - f.x, tgt.y - f.y) < 10) {
       const dd = Math.hypot(tgt.x - f.x, tgt.y - f.y);
+      f.dir = Math.abs(tgt.x - f.x) > Math.abs(tgt.y - f.y) ? (tgt.x > f.x ? 3 : 1) : (tgt.y > f.y ? 2 : 0);
       if (dd > 1.4) this.moveEntity(f, tgt.x, tgt.y, 4, dt), f.anim = 'walk';
       else if (now - (f.lastAttack || 0) > 2600) {
         f.lastAttack = now; f.anim = 'slash'; f.animSeq++;
@@ -689,8 +700,14 @@ export class World {
         this.applyMobDamage(tgt, dmg, owner);
         this.broadcastNear(f.plane, f.x, f.y, { t: MSG.HIT, id: tgt.id, dmg, src: f.id });
       }
-    } else if (d > 2.2) this.moveEntity(f, owner.x, owner.y, 5.5, dt), f.anim = 'walk';
-    else f.anim = 'idle';
+    } else {
+      const FACE = [[0, -1], [-1, 0], [0, 1], [1, 0]];
+      const back = FACE[owner.dir ?? 2];
+      const hx = owner.x - back[0] * 2.5, hy = owner.y - back[1] * 2.5;
+      if (Math.hypot(hx - f.x, hy - f.y) > 1.1) { this.moveEntity(f, hx, hy, 5.5, dt); f.anim = 'walk'; }
+      else f.anim = 'idle';
+      f.dir = owner.dir ?? 2;
+    }
   }
 
   applyMobDamage(mob, dmg, attacker) {

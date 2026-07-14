@@ -387,17 +387,24 @@ function preview(sel) {
     const system = def.sheet ? 'sheet' : def.critter ? 'critter' : def.vis ? 'vis' : 'none';
     const animSets = {
       sheet: ['idle', 'walk', 'attack', 'special', 'death'],
-      critter: ['idle', 'walk', 'attack'],
+      critter: ['idle', 'walk', 'attack', 'hurt'],
       vis: ['idle', 'walk', 'slash', 'thrust', 'spellcast', 'shoot', 'hurt'],
       none: [],
     };
-    let anim = 'idle', animStart = performance.now();
+    let anim = 'idle', animStart = performance.now(), dirState = 2;
     const sels = document.createElement('div');
     sels.style.marginTop = '6px';
     sels.innerHTML = animSets[system].map(a => `<button class="act" data-a="${a}">${a}</button>`).join(' ')
       || '<i style="color:var(--dim)">no visual defined</i>';
     pv.appendChild(sels);
     for (const b of sels.querySelectorAll('button')) b.onclick = () => { anim = b.dataset.a; animStart = performance.now(); };
+    // direction row (critters/creatures) so facing can be tested
+    if (system === 'critter' || system === 'sheet') {
+      const dirs = document.createElement('div'); dirs.style.marginTop = '4px';
+      dirs.innerHTML = [['↑ up', 0], ['← left', 1], ['↓ down', 2], ['→ right', 3]].map(([l, d]) => `<button class="act" data-d="${d}">${l}</button>`).join(' ');
+      pv.appendChild(dirs);
+      for (const b of dirs.querySelectorAll('button')) b.onclick = () => { dirState = +b.dataset.d; };
+    }
     const cx = 130, cy = 178;
     const fake = { id: 7, dir: 2, hp: 1, tint: def.tint, animStart };
     const loop = (now) => {
@@ -411,12 +418,17 @@ function preview(sel) {
         else fake.animStart = animStart;
         drawCreature(g, def.sheet, fake, anim, now, cx, cy + 4, def.scale || 1);
       } else if (system === 'critter') {
-        const wf = anim === 'walk' ? Math.floor(now / 70) % 9 : 0;
+        const wf = anim === 'walk' ? Math.floor(now / 70) % 9
+          : anim === 'attack' ? Math.floor((now % 720) / 120)
+            : anim === 'hurt' ? Math.floor((now % 720) / 120)
+              : Math.floor(now / 650) % 2;
         const sc = (def.scale || 1) * 1.7;
-        const spr = critterSprite(def.critter, wf, false);
+        const spr = critterSprite(def.critter, wf, dirState, anim, false);
         const S = 64 * sc;
+        g.save();
+        if (dirState === 1) { g.translate(cx, 0); g.scale(-1, 1); g.translate(-cx, 0); }   // mirror left-facers
         g.drawImage(spr, cx - S / 2, cy - S + 14 * sc, S, S);
-        if (anim === 'attack') { g.fillStyle = '#ffffff33'; g.beginPath(); g.arc(cx, cy - 22 * sc, 16 * sc, 0, 7); g.fill(); }
+        g.restore();
       } else if (system === 'vis') {
         const ai = ANIMS[anim] || ANIMS.idle;
         let frame;
@@ -451,7 +463,7 @@ function previewCritterDef(g, def, alive) {
       drawCreature(g, def.sheet, { id: 7, dir: 2, hp: 1, tint: def.tint, anim: 'walk', animStart: 0 }, 'walk', now, 130, 182, def.scale || 1);
     } else if (def.critter) {
       const sc = (def.scale || 1) * 1.9;
-      const spr = critterSprite(def.critter, Math.floor(now / 70) % 9, false);
+      const spr = critterSprite(def.critter, Math.floor(now / 70) % 9, 2, 'walk', false);
       const S = 64 * sc;
       g.drawImage(spr, 130 - S / 2, 178 - S + 14 * sc, S, S);
     }
