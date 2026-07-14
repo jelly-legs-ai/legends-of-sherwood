@@ -200,6 +200,7 @@ export const POIS = [
   ['fire_altar', 450, 300], ['dungeon_entrance', 470, 250], ['cliff_scramble', 440, 300],
   ['iron_rock', 455, 280], ['iron_rock', 457, 282], ['coal_rock', 460, 284], ['coal_rock', 462, 286],
   ['silver_rock', 468, 270], ['silver_rock', 470, 272], ['gold_rock', 480, 250], ['gold_rock', 484, 254],
+  ['mithril_rock', 474, 262], ['mithril_rock', 476, 264], ['mithril_rock', 490, 240],
   ['sylvanite_rock', 500, 230],
   // --- Northmoor ---
   ['cosmic_altar', 250, 150], ['norman_keep', 350, 170], ['sable_run', 260, 170], ['sable_run', 320, 180],

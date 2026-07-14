@@ -36,10 +36,20 @@ function img(file) {
   return im;
 }
 function pick(obj, ...keys) { let o = obj; for (const k of keys) { if (!o) return null; o = o[k]; } return o; }
+// The mail sheets ship in near-identical greys, so chainmail is ALWAYS dyed to
+// its metal tint (steel/iron keep their native art); other sheets use their
+// exact palette file when one exists and tint a neutral sheet otherwise — so
+// new metals (mithril) dye correctly on every armour line.
+const FORCE_DYE = new Set(['torso/chainmail', 'head/mail']);
 function gearFile(sheetKey, sex, color) {
   const g = pick(manifest.gear, sheetKey, sex);
   if (!g) return null;
-  return g[color] || Object.values(g).find(Boolean);
+  const neutral = g.steel || g.iron || Object.values(g).find(Boolean);
+  if (FORCE_DYE.has(sheetKey) && METAL_TINT[color] && color !== 'steel' && color !== 'iron')
+    return { f: neutral, tint: METAL_TINT[color] };
+  if (g[color]) return g[color];
+  if (METAL_TINT[color]) return { f: neutral, tint: METAL_TINT[color] };
+  return neutral;
 }
 
 // Build (or fetch) the composited sheet for a "vis" descriptor.
@@ -68,15 +78,25 @@ export function composite(vis) {
   }
   if (vis.hair && !vis.head && !vis.monster) layers.push(pick(manifest.hair, vis.hair[0], sex, vis.hair[1]));
   if (vis.beard) layers.push(manifest.beard[vis.beard]);
-  if (vis.feet) layers.push(gearFile('feet/' + vis.feet[0], sex, vis.feet[1]));
-  if (vis.legs) layers.push(gearFile('legs/' + vis.legs[0], sex, vis.legs[1]));
-  if (vis.torso) layers.push(gearFile('torso/' + vis.torso[0], sex, vis.torso[1]));
-  if (vis.hands) layers.push(gearFile('hands/gloves', sex, vis.hands[1]));
-  if (vis.head) layers.push(gearFile('head/' + vis.head[0], sex, vis.head[1]));
+  // gear layers may carry a surface fx (vis[3]): studs, scales, runes — the
+  // pattern is stamped over the garment's own pixels at bake time
+  const gearL = (path, arr) => {
+    let f = gearFile(path, sex, arr[1]);
+    if (f && arr[3]) f = typeof f === 'string' ? { f, fx: arr[3] } : { ...f, fx: arr[3] };
+    return f;
+  };
+  if (vis.feet) layers.push(gearL('feet/' + vis.feet[0], vis.feet));
+  if (vis.legs) layers.push(gearL('legs/' + vis.legs[0], vis.legs));
+  if (vis.torso) layers.push(gearL('torso/' + vis.torso[0], vis.torso));
+  if (vis.hands) layers.push(gearL('hands/gloves', vis.hands));
+  if (vis.head) layers.push(gearL('head/' + vis.head[0], vis.head));
   // NB: the free LPC heater-shield sheet is all but empty (no per-pose art), so
   // shields are drawn procedurally at render time via drawHeldShield() instead.
   if (wep?.fg) layers.push(wep.fg);
+  if (wep?.shootPatch) layers.push(wep.shootPatch);   // recurve/great bows borrow the bow sheet's shoot rows
   if (wep?.perAnim) c.oversize = wep.perAnim; // spear overlays drawn at render time
+  // swords cut INWARD: their slash rows play in reverse (see drawChar/drawOversize)
+  c.reverseSlash = !!(vis.weapon && vis.weapon[0] === 'sword');
 
   const files = layers.filter(Boolean);
   let pending = files.length;
@@ -89,10 +109,17 @@ export function composite(vis) {
       const im = img(f);
       if (!im.complete || !im.naturalWidth) continue;
       const h = Math.min(H, im.naturalHeight);
-      const src = spec.tint ? tinted(im, spec.tint) : im;
-      if (spec.dagger) {
-        // shrink each 64px weapon cell toward the grip so the blade reads short
-        const scl = 0.66, pxp = 32, pyp = 40;
+      let src = spec.tint ? tinted(im, spec.tint) : im;
+      if (spec.fx) src = decorated(src, spec.fx);
+      if (spec.rows === 'shoot') {
+        // patch only the shoot rows (16-19) — used to lend firing art to bows
+        // whose own sheets ship those rows empty
+        const y0 = 16 * FRAME, hh = Math.min(4 * FRAME, h - y0);
+        if (hh > 0) ctx.drawImage(src, 0, y0, 832, hh, 0, y0, 832, hh);
+      } else if (spec.scl) {
+        // re-scale each 64px weapon cell about the wielder's grip: daggers
+        // shrink to short blades, arbalests and siege arbalests grow a size up
+        const scl = spec.scl, pxp = 34, pyp = 46;
         for (let ry = 0; ry * FRAME < h; ry++)
           for (let cx2 = 0; cx2 < 13; cx2++) {
             const dx = cx2 * FRAME, dy = ry * FRAME;
@@ -121,7 +148,9 @@ export function composite(vis) {
 }
 // Hue-shift a sheet toward a metal tint, preserving shading + alpha. Lets one
 // LPC tool/weapon sheet represent every metal tier (gold sylvan pickaxes etc).
-const METAL_TINT = { copper: '#b87333', bronze: '#c98f57', iron: '#8d94a0', steel: '#e2e7ee', brass: '#d8b45e', silver: '#eef2f8', gold: '#e8c84e', dark: '#6a6480', walnut: '#9a6a3c', normal: null, wood: null };
+const METAL_TINT = { copper: '#b87333', bronze: '#c98f57', iron: '#8d94a0', steel: '#e2e7ee', brass: '#d8b45e', silver: '#eef2f8', gold: '#e8c84e', dark: '#6a6480', walnut: '#9a6a3c', normal: null, wood: null,
+  mithril: '#42589c',                                              // navy-blue metal of the deep seams
+  ashwood: '#b59a77', elmwood: '#8a6a42', yewwood: '#6a4a2a' };    // crossbow stock woods
 const tintCache = new Map();
 function tinted(im, tint) {
   const key = im.src + '|' + tint;
@@ -138,13 +167,73 @@ function tinted(im, tint) {
   tintCache.set(key, c);
   return c;
 }
-// Daggers reuse the sword sheets but are shrunk toward the hand at bake time so
-// they read as short blades, not full swords.
+// Surface fx stamped over a garment's own pixels (source-atop respects alpha):
+// studs = riveted dots, scales = overlapping dragonhide crescents, runes =
+// stitched arcane glyphs. Deterministic per 64px cell so frames stay steady.
+const decoCache = new Map();
+function decorated(im, fx) {
+  const key = (im.src || im.toDataURL?.().slice(0, 40) || 'c') + '|' + fx + '|' + im.width;
+  let c = decoCache.get(key);
+  if (c) return c;
+  const W2 = im.naturalWidth || im.width, H2 = im.naturalHeight || im.height;
+  c = document.createElement('canvas'); c.width = W2; c.height = H2;
+  const g = c.getContext('2d');
+  g.drawImage(im, 0, 0);
+  g.globalCompositeOperation = 'source-atop';
+  if (fx === 'studs') {
+    g.fillStyle = 'rgba(226,231,238,0.85)';
+    for (let y = 22; y < H2; y += 5) for (let x = ((y / 5) | 0) % 2 ? 2 : 4; x < W2; x += 5) {
+      g.fillRect(x, y, 1.6, 1.6);
+      g.fillStyle = 'rgba(40,40,48,0.5)'; g.fillRect(x + 0.8, y + 1.2, 1.2, 0.8);
+      g.fillStyle = 'rgba(226,231,238,0.85)';
+    }
+  } else if (fx === 'scales') {
+    g.lineWidth = 1;
+    for (let y = 20; y < H2; y += 4) {
+      const off = ((y / 4) | 0) % 2 ? 3 : 0;
+      for (let x = off; x < W2; x += 6) {
+        g.strokeStyle = 'rgba(0,0,0,0.30)';
+        g.beginPath(); g.arc(x + 3, y, 3, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
+        g.strokeStyle = 'rgba(255,255,255,0.20)';
+        g.beginPath(); g.arc(x + 3, y - 1, 3, 0.25 * Math.PI, 0.75 * Math.PI); g.stroke();
+      }
+    }
+  } else if (fx === 'runes') {
+    g.strokeStyle = 'rgba(255,255,255,0.35)'; g.lineWidth = 1;
+    const GLYPH = [[0, 0, 0, 3], [0, 1, 2, 1], [0, 3, 2, 0], [2, 0, 2, 3]];
+    for (let y = 26; y < H2; y += 9) for (let x = ((y / 9) | 0) % 2 ? 3 : 8; x < W2; x += 11) {
+      const seg = GLYPH[((x * 7 + y * 13) >> 2) % GLYPH.length];
+      g.beginPath(); g.moveTo(x + seg[0], y + seg[1]); g.lineTo(x + seg[2], y + seg[3]); g.stroke();
+    }
+  }
+  g.globalCompositeOperation = 'source-over';
+  decoCache.set(key, c);
+  return c;
+}
+
+// Daggers reuse the sword sheets shrunk toward the grip; arbalests and siege
+// arbalests reuse the crossbow sheet scaled UP a step per frame.
 const isDagger = (type) => type === 'dagger';
+const WEAPON_ALIAS = {
+  dagger: { base: 'sword', scl: 0.66 },
+  arbalest: { base: 'crossbow', scl: 1.12 },
+  siege: { base: 'crossbow', scl: 1.26 },
+};
 function weaponFiles(type, color, sex = 'male') {
-  const w = manifest.weapons[isDagger(type) ? 'sword' : type];
+  const alias = WEAPON_ALIAS[type];
+  const w = manifest.weapons[alias ? alias.base : type];
   if (!w) return null;
-  const out = { perAnim: w.perAnim || null, color, dagger: isDagger(type) };
+  const out = { perAnim: w.perAnim || null, color, scl: alias?.scl };
+  // waraxes swing with the two-handed overhead cleave (the big tool arc),
+  // tinted to their metal — not the one-hand sword slash
+  if (type === 'waraxe' && manifest.weapons.axe?.perAnim) out.perAnim = manifest.weapons.axe.perAnim;
+  // recurve + great bows ship empty shoot rows: borrow the standard bow's
+  // firing art in the matching wood so every bow has a draw-and-loose anim
+  if ((type === 'recurve' || type === 'great') && manifest.weapons.bow?.fg) {
+    const bfg = manifest.weapons.bow.fg;
+    const base = bfg[color] || bfg.medium || Object.values(bfg).find(Boolean);
+    if (base) out.shootPatch = { f: base, rows: 'shoot' };
+  }
   // neutral fallback (steel) so an unknown colour tints a grey blade, never brass
   const neutral = (dict) => dict && (dict.steel || dict.iron || Object.values(dict).find(Boolean));
   if (w.sexed) {                                                                    // tools (axe/pickaxe): single sheet, tint per metal
@@ -158,13 +247,13 @@ function weaponFiles(type, color, sex = 'male') {
     const fbBg = neutral(w.bg);
     out.bg = exBg || (fbBg && METAL_TINT[color] ? { f: fbBg, tint: METAL_TINT[color] } : fbBg);
   }
-  // flag the composite layers so the baker knows to scale daggers down
-  if (out.dagger) { out.fg = tagDagger(out.fg); out.bg = tagDagger(out.bg); }
-  return (out.fg || out.bg || out.perAnim) ? out : null;
+  // flag the composite layers so the baker re-scales them about the grip
+  if (out.scl) { out.fg = tagScale(out.fg, out.scl); out.bg = tagScale(out.bg, out.scl); }
+  return (out.fg || out.bg || out.perAnim || out.shootPatch) ? out : null;
 }
-function tagDagger(spec) {
+function tagScale(spec, scl) {
   if (!spec) return spec;
-  return typeof spec === 'string' ? { f: spec, dagger: true } : { ...spec, dagger: true };
+  return typeof spec === 'string' ? { f: spec, scl } : { ...spec, scl };
 }
 
 // Draw a composited character. dir: 0 up,1 left,2 down,3 right.
@@ -172,7 +261,8 @@ export function drawChar(ctx, comp, anim, dir, frame, sx, sy, scale = 1) {
   if (!comp.ready) return;
   const a = ANIMS[anim] || ANIMS.idle;
   const row = a.nodir ? a.row : a.row + dir;
-  const f = Math.min(frame, a.frames - 1);
+  let f = Math.min(frame, a.frames - 1);
+  if (anim === 'slash' && comp.reverseSlash) f = a.frames - 1 - f;   // swords cut inward
   const S = FRAME * scale;
   ctx.drawImage(comp.canvas, f * FRAME, row * FRAME, FRAME, FRAME, sx - S / 2, sy - S + 12 * scale, S, S);
 }
@@ -188,7 +278,7 @@ export function drawOversize(ctx, comp, vis, anim, dir, frame, sx, sy, scale = 1
   if (!set) return;
   const type = (vis.weapon && vis.weapon[0]) || '';
   const color = (vis.weapon && vis.weapon[1]) || 'steel';
-  const shrink = isDagger(type) ? 0.66 : 1;
+  const shrink = WEAPON_ALIAS[type]?.scl || 1;
   for (const part of ['bg', 'fg']) {
     const dict = set[part] || {};
     // exact metal art if the sheet has it, else tint a neutral sheet to the tier
@@ -202,9 +292,25 @@ export function drawOversize(ctx, comp, vis, anim, dir, frame, sx, sy, scale = 1
     const fs = im.naturalHeight / 4;
     const cols = Math.floor(im.naturalWidth / fs);
     const a = ANIMS[anim === 'idle' ? 'walk' : anim] || ANIMS.idle;
-    const ff = Math.min(f, Math.min(a.frames, cols) - 1);
+    let ff = Math.min(f, Math.min(a.frames, cols) - 1);
+    if (anim === 'slash' && comp.reverseSlash) ff = Math.min(a.frames, cols) - 1 - ff;  // inward cut
     const S = fs * scale * shrink;
     ctx.drawImage(src, ff * fs, dir * fs, fs, fs, sx - S / 2, sy - (fs / 2 + 20) * scale, S, S);
+  }
+  // the staff's focus crystal rides the staff head as a glowing orb (matches
+  // the icon's gem; colour carried on vis.weapon[2])
+  if (type === 'staff' && vis.weapon && vis.weapon[2]) {
+    const gem = vis.weapon[2];
+    const jab = anim === 'thrust' ? Math.min(3, Math.max(0, f - 2)) * 2.4 : 0;   // extends with the cast jab
+    const gx = sx + (dir === 1 ? -9 - jab : dir === 3 ? 9 + jab : dir === 0 ? -7 : 8) * scale;
+    const gy = sy + (-36 - (anim === 'thrust' ? 2 : 0)) * scale + (anim === 'walk' ? Math.sin(f * 1.1) * scale : 0);
+    ctx.save();
+    ctx.shadowColor = gem; ctx.shadowBlur = 9 * scale;
+    ctx.fillStyle = gem;
+    ctx.beginPath(); ctx.arc(gx, gy, 2.4 * scale, 0, 7); ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(gx - 0.7 * scale, gy - 0.7 * scale, 0.9 * scale, 0, 7); ctx.fill();
+    ctx.restore();
   }
 }
 
@@ -215,13 +321,14 @@ const SHIELD_PAL = {
   copper: ['#c98f57', '#8a5a30', '#eec394'], bronze: ['#b5814e', '#7a5228', '#e0b483'],
   iron: ['#9ba0aa', '#5e636e', '#c8ccd4'], steel: ['#c2c8d2', '#828894', '#eef2f8'],
   brass: ['#d0ad55', '#94781f', '#f0dc92'], silver: ['#d4dae6', '#8f97a8', '#f4f8ff'],
-  gold: ['#e2c24e', '#9a7a1e', '#fff0b0'],
+  gold: ['#e2c24e', '#9a7a1e', '#fff0b0'], mithril: ['#5a6da8', '#37477a', '#8fa2d8'],
 };
 // Whether the shield sits behind the body (facing away / near-shoulder occluded)
 export function shieldBehind(dir) { return dir === 0 || dir === 3; }
 export function drawHeldShield(ctx, color, dir, sx, sy, scale = 1) {
   const pal = SHIELD_PAL[color] || SHIELD_PAL.steel;
-  const S = scale, cy = sy - 30 * S;
+  // carried on the forearm at waist-chest height, not up by the head
+  const S = scale, cy = sy - 23 * S;
   let cx, w;
   if (dir === 2) { cx = sx + 11 * S; w = 15 * S; }       // toward camera: full face, off (left) arm
   else if (dir === 0) { cx = sx - 11 * S; w = 14 * S; }  // facing away: full face on the back
@@ -624,6 +731,7 @@ const ROCK_STYLE = {
   iron_rock:      { rock: ['#42342a', '#6e523c', '#87654b'], vein: '#b06a3c', extra: 'bands' },
   coal_rock:      { rock: ['#17171c', '#2e2e36', '#45454f'], vein: '#0e0e12', extra: 'gloss' },
   silver_rock:    { rock: ['#4a4e58', '#7d828e', '#a3a9b5'], vein: '#eef2fa', extra: 'glint' },
+  mithril_rock:   { rock: ['#3a4258', '#5a6a8e', '#7d90b5'], vein: '#6a8ae8', extra: 'glint' },
   gold_rock:      { rock: ['#5c5648', '#948c74', '#c2bca4'], vein: '#e8c24e', extra: 'glint' },
   sylvanite_rock: { rock: ['#2c3a28', '#4a5c40', '#66805a'], vein: '#7fe07f', extra: 'glow' },
   essence_rock:   { rock: ['#3a3348', '#5c5372', '#7d7394'], vein: '#c09fe8', extra: 'glow' },

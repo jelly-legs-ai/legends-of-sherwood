@@ -12,6 +12,7 @@ export const METALS = [
   { id: 'bronze', name: 'Bronze', lvl: 5, color: 'bronze', val: 20 },
   { id: 'iron', name: 'Iron', lvl: 10, color: 'iron', val: 55 },
   { id: 'steel', name: 'Steel', lvl: 20, color: 'steel', val: 150 },
+  { id: 'mithril', name: 'Mithril', lvl: 30, color: 'mithril', val: 380 },   // the navy-blue metal of the deep seams
   { id: 'damasked', name: 'Damasked', lvl: 40, color: 'brass', val: 900 },
   { id: 'silversteel', name: 'Silversteel', lvl: 60, color: 'silver', val: 3800 },
   { id: 'sylvan', name: 'Sylvan-tempered', lvl: 80, color: 'gold', val: 16000 },
@@ -20,44 +21,51 @@ const T = (lvl) => 4 + lvl; // generic tier stat scale
 
 for (const m of METALS) {
   const s = T(m.lvl);
-  def(`${m.id}_dagger`, { name: `${m.name} dagger`, slot: 'weapon', kind: 'dagger', style: 'melee', anim: 'slash',
-    speed: 1800, req: { attack: m.lvl }, bonus: { acc: s * 0.7 | 0, str: s * 0.55 | 0 }, value: m.val,
-    vis: { layer: 'weapon', type: 'dagger', color: m.color } });
+  // Sylvan-tempered gear carries a living verdant sheen so it can never be
+  // mistaken for damasked brass on the battlefield.
+  const gl = m.id === 'sylvan' ? '#b8f06a' : undefined;
+  // Daggers are rapid stabbing blades: three strikes for every sword swing,
+  // lighter base damage and no slash weight, but their point slips armour —
+  // `pen` shears a fraction off the target's defence roll.
+  def(`${m.id}_dagger`, { name: `${m.name} dagger`, slot: 'weapon', kind: 'dagger', style: 'melee', anim: 'thrust',
+    speed: 800, req: { attack: m.lvl }, bonus: { acc: s * 0.55 | 0, str: s * 0.3 | 0, pen: 0.35 }, value: m.val,
+    vis: { layer: 'weapon', type: 'dagger', color: m.color, glow: gl } });
   def(`${m.id}_sword`, { name: `${m.name} sword`, slot: 'weapon', kind: 'sword', style: 'melee', anim: 'slash',
     speed: 2400, req: { attack: m.lvl }, bonus: { acc: s, str: s * 0.9 | 0 }, value: m.val * 2,
-    vis: { layer: 'weapon', type: 'sword', color: m.color } });
+    vis: { layer: 'weapon', type: 'sword', color: m.color, glow: gl } });
   def(`${m.id}_spear`, { name: `${m.name} spear`, slot: 'weapon', kind: 'spear', style: 'melee', anim: 'thrust',
     speed: 3000, req: { attack: m.lvl, strength: Math.max(1, m.lvl - 2) }, twoHand: true,
     bonus: { acc: s * 1.1 | 0, str: s * 1.25 | 0 }, value: m.val * 2.4 | 0,
-    vis: { layer: 'weapon', type: 'spear', color: m.color } });
+    vis: { layer: 'weapon', type: 'spear', color: m.color, glow: gl } });
   // --- PLATE line: the sylvan-style full plate, dyed to every metal tier.
   // Heavier defence than chainmail, and costs more bars at the anvil.
   def(`${m.id}_helm`, { name: `${m.name} full helm`, slot: 'head', req: { defence: m.lvl },
     bonus: { def: s * 0.55 | 0 }, value: m.val * 1.6 | 0,
-    vis: { layer: 'head', sheet: 'greathelm', color: m.color } });
+    vis: { layer: 'head', sheet: 'greathelm', color: m.color, glow: gl } });
   def(`${m.id}_platebody`, { name: `${m.name} platebody`, slot: 'torso', req: { defence: m.lvl },
     bonus: { def: s * 1.25 | 0 }, value: m.val * 3.2 | 0,
-    vis: { layer: 'torso', sheet: 'plate', color: m.color } });
+    vis: { layer: 'torso', sheet: 'plate', color: m.color, glow: gl } });
   def(`${m.id}_platelegs`, { name: `${m.name} platelegs`, slot: 'legs', req: { defence: m.lvl },
     bonus: { def: s * 0.95 | 0 }, value: m.val * 2.4 | 0,
-    vis: { layer: 'legs', sheet: 'plate', color: m.color } });
+    vis: { layer: 'legs', sheet: 'plate', color: m.color, glow: gl } });
   def(`${m.id}_boots`, { name: `${m.name} plate boots`, slot: 'feet', req: { defence: m.lvl },
     bonus: { def: s * 0.32 | 0 }, value: m.val,
-    vis: { layer: 'feet', sheet: 'armour', color: m.color } });
+    vis: { layer: 'feet', sheet: 'armour', color: m.color, glow: gl } });
   def(`${m.id}_gauntlets`, { name: `${m.name} gauntlets`, slot: 'hands', req: { defence: m.lvl },
     bonus: { def: s * 0.28 | 0, str: 1 }, value: m.val,
-    vis: { layer: 'hands', sheet: 'gloves', color: m.color } });
+    vis: { layer: 'hands', sheet: 'gloves', color: m.color, glow: gl } });
   def(`${m.id}_shield`, { name: `${m.name} heater shield`, slot: 'shield', req: { defence: m.lvl },
     bonus: { def: s * 0.8 | 0 }, value: m.val * 1.8 | 0,
-    vis: { layer: 'shield', sheet: 'heater', color: m.color } });
-  // --- CHAINMAIL line: the iron-helm/iron-body models, dyed per tier. Lighter,
-  // cheaper to craft, a touch less defensive than plate.
-  def(`${m.id}_coif`, { name: `${m.name} chainmail coif`, slot: 'head', req: { defence: m.lvl },
+    vis: { layer: 'shield', sheet: 'heater', color: m.color, glow: gl } });
+  // --- CHAINMAIL line: the mail models, dyed per tier at the compositor (the
+  // sheet tints to the metal when no exact palette exists). Lighter, cheaper
+  // to craft, a touch less defensive than plate.
+  def(`${m.id}_coif`, { name: `${m.name} chainmail hood`, slot: 'head', req: { defence: m.lvl },
     bonus: { def: s * 0.42 | 0 }, value: m.val * 1.1 | 0,
-    vis: { layer: 'head', sheet: 'mail', color: m.color } });
+    vis: { layer: 'head', sheet: 'mail', color: m.color, glow: gl } });
   def(`${m.id}_chainbody`, { name: `${m.name} chainmail`, slot: 'torso', req: { defence: m.lvl },
     bonus: { def: s * 1.0 | 0 }, value: m.val * 2.4 | 0,
-    vis: { layer: 'torso', sheet: 'chainmail', color: m.color } });
+    vis: { layer: 'torso', sheet: 'chainmail', color: m.color, glow: gl } });
   def(`${m.id}_arrow`, { name: `${m.name} arrow`, slot: 'ammo', stack: true, req: {},
     bonus: { rstr: s * 0.8 | 0 }, value: Math.max(1, m.val / 8 | 0), ammoTier: m.lvl, ammoKind: 'arrow', color: m.color });
   def(`${m.id}_bar`, { name: `${m.name} bar`, stack: false, value: m.val, material: true });
@@ -105,19 +113,47 @@ def('crossbow_stock', { name: 'Crossbow stock', value: 40, material: true });
 // Waraxes: massive two-handed cleavers for the strongest smiths.
 for (const m of METALS) {
   const s = T(m.lvl);
+  const gl = m.id === 'sylvan' ? '#b8f06a' : undefined;
   def(`${m.id}_mace`, { name: `${m.name} mace`, slot: 'weapon', kind: 'mace', style: 'melee', anim: 'slash',
     speed: 2600, req: { attack: m.lvl }, bonus: { acc: s * 0.85 | 0, str: s * 1.1 | 0 }, value: m.val * 2.2 | 0,
-    vis: { layer: 'weapon', type: 'mace', color: m.color } });
+    vis: { layer: 'weapon', type: 'mace', color: m.color, glow: gl } });
   def(`${m.id}_bolts`, { name: `${m.name} bolts`, slot: 'ammo', stack: true, req: {},
     bonus: { rstr: s * 1.05 | 0 }, value: Math.max(1, m.val / 6 | 0), ammoTier: m.lvl, ammoKind: 'bolt', color: m.color });
   if (m.lvl >= 20) def(`${m.id}_waraxe`, { name: `${m.name} waraxe`, slot: 'weapon', kind: 'waraxe', style: 'melee', anim: 'slash',
     speed: 3400, twoHand: true, req: { attack: m.lvl, strength: m.lvl }, bonus: { acc: s * 0.9 | 0, str: s * 1.45 | 0 }, value: m.val * 3.2 | 0,
-    vis: { layer: 'weapon', type: 'waraxe', color: m.color } });
+    vis: { layer: 'weapon', type: 'waraxe', color: m.color, glow: gl } });
+}
+// ---------------------------------------------------------------------------
+// Wood-and-metal crossbow variants. The stock wood is fixed by the frame —
+// ash crossbows, elm arbalests, yew siege arbalests — and the limb metal
+// varies: Ash crossbow (I) has iron limbs, Elm arbalest (M) mithril, and so
+// on. Each frame draws a size up from the last (crossbow < arbalest < siege).
+export const XBOW_FRAMES = [
+  { frame: 'crossbow', label: 'crossbow', wood: 'ash', woodColor: 'ashwood', base: 20, size: 'crossbow', stocks: 1 },
+  { frame: 'arbalest', label: 'arbalest', wood: 'elm', woodColor: 'elmwood', base: 45, size: 'arbalest', stocks: 1 },
+  { frame: 'siege_arbalest', label: 'siege arbalest', wood: 'yew', woodColor: 'yewwood', base: 68, size: 'siege', stocks: 2 },
+];
+export const XBOW_METALS = [
+  { id: 'iron', tag: 'I', lvl: 0, val: 1 }, { id: 'steel', tag: 'S', lvl: 5, val: 2.2 },
+  { id: 'mithril', tag: 'M', lvl: 12, val: 5 }, { id: 'silversteel', tag: 'V', lvl: 20, val: 11 },
+  { id: 'sylvan', tag: 'Y', lvl: 28, val: 24 },
+];
+for (const f of XBOW_FRAMES) for (const mm of XBOW_METALS) {
+  const lvl = f.base + mm.lvl;
+  if (lvl > 96) continue;
+  const s = T(lvl);
+  def(`${f.wood}_${f.frame}_${mm.tag.toLowerCase()}`, {
+    name: `${f.wood[0].toUpperCase() + f.wood.slice(1)} ${f.label} (${mm.tag})`,
+    slot: 'weapon', kind: 'crossbow', style: 'ranged', anim: 'thrust', speed: 3600, twoHand: true,
+    req: { ranged: lvl }, bonus: { racc: s * 1.25 | 0, rstr: s * 0.3 | 0 }, usesAmmo: true, ammoKind: 'bolt',
+    value: Math.round(120 * mm.val * (f.stocks + lvl / 25)),
+    vis: { layer: 'weapon', type: f.size, color: f.woodColor, metal: mm.id, glow: mm.id === 'sylvan' ? '#b8f06a' : undefined },
+  });
 }
 
 export const LEATHERS = [
   { id: 'leather', name: 'Leather', lvl: 1, color: 'brown', val: 10 },
-  { id: 'studded', name: 'Studded leather', lvl: 20, color: 'charcoal', val: 160 },
+  { id: 'studded', name: 'Studded leather', lvl: 20, color: 'charcoal', val: 160, fx: 'studs' },  // riveted studs show in-world
   { id: 'ranger', name: 'Ranger', lvl: 45, color: 'forest', val: 1300 },
   { id: 'lincoln', name: 'Lincoln green', lvl: 70, color: 'green', val: 7000 },
 ];
@@ -125,41 +161,43 @@ for (const L of LEATHERS) {
   const s = T(L.lvl);
   def(`${L.id}_coif`, { name: `${L.name} coif`, slot: 'head', req: { ranged: L.lvl, defence: Math.max(1, L.lvl - 5) },
     bonus: { def: s * 0.3 | 0, racc: s * 0.2 | 0 }, value: L.val,
-    vis: { layer: 'head', sheet: 'hood', color: L.color } });
+    vis: { layer: 'head', sheet: 'hood', color: L.color, fx: L.fx } });
   def(`${L.id}_body`, { name: `${L.name} body`, slot: 'torso', req: { ranged: L.lvl, defence: Math.max(1, L.lvl - 5) },
     bonus: { def: s * 0.7 | 0, racc: s * 0.4 | 0 }, value: L.val * 2.6 | 0,
-    vis: { layer: 'torso', sheet: 'leather', color: L.color } });
+    vis: { layer: 'torso', sheet: 'leather', color: L.color, fx: L.fx } });
   def(`${L.id}_chaps`, { name: `${L.name} chaps`, slot: 'legs', req: { ranged: L.lvl, defence: Math.max(1, L.lvl - 5) },
     bonus: { def: s * 0.5 | 0, racc: s * 0.25 | 0 }, value: L.val * 2,
-    vis: { layer: 'legs', sheet: 'pants', color: L.color } });
+    vis: { layer: 'legs', sheet: 'pants', color: L.color, fx: L.fx } });
 }
 // ---------------------------------------------------------------------------
 // Premium ranger armour — the end-game kit an archer grinds for. A gold-trimmed
 // studded set, then the dragonhide line: dyed hide with an in-world glow and
 // vambraces that push ranged accuracy hard (the ranger's signature bonus).
 // Each set is coif + body + chaps + vambraces.
+// Dragonhide reads as SCALES in-world (fx pattern stitched over the hide);
+// the aethereal set adds a spectral aura on top of its glow.
 export const DHIDES = [
-  { id: 'sylvan_trimmed', name: 'Sylvan-trimmed', lvl: 40, color: 'charcoal', glow: '#e8c84e', val: 3200 },
-  { id: 'blue_dragonhide', name: 'Blue dragonhide', lvl: 50, color: 'blue', glow: '#4aa0e0', val: 9000, hide: 'blue_dragon_leather' },
-  { id: 'green_dragonhide', name: 'Green dragonhide', lvl: 60, color: 'forest', glow: '#3fbf6a', val: 17000, hide: 'green_dragon_leather' },
-  { id: 'red_dragonhide', name: 'Red dragonhide', lvl: 72, color: 'red', glow: '#e0503a', val: 30000, hide: 'red_dragon_leather' },
-  { id: 'aethereal_dragonhide', name: 'Aethereal dragonhide', lvl: 85, color: 'white', glow: '#bfeaff', val: 68000, hide: 'aethereal_dragon_leather', unique: true },
+  { id: 'sylvan_trimmed', name: 'Sylvan-trimmed', lvl: 40, color: 'charcoal', glow: '#e8c84e', val: 3200, fx: 'studs' },
+  { id: 'blue_dragonhide', name: 'Blue dragonhide', lvl: 50, color: 'blue', glow: '#4aa0e0', val: 9000, hide: 'blue_dragon_leather', fx: 'scales' },
+  { id: 'green_dragonhide', name: 'Green dragonhide', lvl: 60, color: 'forest', glow: '#3fbf6a', val: 17000, hide: 'green_dragon_leather', fx: 'scales' },
+  { id: 'red_dragonhide', name: 'Red dragonhide', lvl: 72, color: 'red', glow: '#e0503a', val: 30000, hide: 'red_dragon_leather', fx: 'scales' },
+  { id: 'aethereal_dragonhide', name: 'Aethereal dragonhide', lvl: 85, color: 'white', glow: '#bfeaff', val: 68000, hide: 'aethereal_dragon_leather', unique: true, fx: 'scales', aura: true },
 ];
 for (const D of DHIDES) {
   const s = T(D.lvl), req = { ranged: D.lvl, defence: Math.max(1, D.lvl - 8) };
-  const gl = D.glow, u = D.unique;
+  const gl = D.glow, u = D.unique, fx = D.fx;
   def(`${D.id}_coif`, { name: `${D.name} coif`, slot: 'head', req, unique: u,
     bonus: { def: s * 0.35 | 0, racc: s * 0.4 | 0 }, value: D.val,
-    vis: { layer: 'head', sheet: 'hood', color: D.color, glow: gl } });
+    vis: { layer: 'head', sheet: 'hood', color: D.color, glow: gl, fx, aura: D.aura } });
   def(`${D.id}_body`, { name: `${D.name} body`, slot: 'torso', req, unique: u,
     bonus: { def: s * 0.8 | 0, racc: s | 0 }, value: D.val * 3 | 0,
-    vis: { layer: 'torso', sheet: 'leather', color: D.color, glow: gl } });
+    vis: { layer: 'torso', sheet: 'leather', color: D.color, glow: gl, fx, aura: D.aura } });
   def(`${D.id}_chaps`, { name: `${D.name} chaps`, slot: 'legs', req, unique: u,
     bonus: { def: s * 0.5 | 0, racc: s * 0.6 | 0 }, value: D.val * 2 | 0,
-    vis: { layer: 'legs', sheet: 'pants', color: D.color, glow: gl } });
+    vis: { layer: 'legs', sheet: 'pants', color: D.color, glow: gl, fx, aura: D.aura } });
   def(`${D.id}_vambraces`, { name: `${D.name} vambraces`, slot: 'hands', req, unique: u,
     bonus: { def: s * 0.22 | 0, racc: s * 0.75 | 0 }, value: D.val * 0.8 | 0,
-    vis: { layer: 'hands', sheet: 'gloves', color: D.color, glow: gl } });
+    vis: { layer: 'hands', sheet: 'gloves', color: D.color, glow: gl, fx, aura: D.aura } });
 }
 // Dragon leathers: tanned into hide only the mightiest beasts yield.
 def('blue_dragon_leather', { name: 'Blue dragon leather', value: 1500, material: true });
@@ -174,32 +212,38 @@ def('quiver', { name: 'Quiver', slot: 'cape', req: {}, bonus: { racc: 2 }, value
 
 // ---------------------------------------------------------------------------
 // Magic: staves + robe sets + runes
+// Each staff is crowned with its focus crystal (gem) — shown in the icon AND
+// on the in-world model as a glowing orb at the staff head.
 export const STAVES = [
-  { id: 'apprentice_staff', name: 'Apprentice staff', lvl: 1, color: 'light', val: 15 },
-  { id: 'friar_staff', name: "Friar's staff", lvl: 20, color: 'medium', val: 220 },
-  { id: 'druid_staff', name: 'Druidic staff', lvl: 50, color: 'gnarled', val: 2200 },
-  { id: 'archdruid_staff', name: 'Archdruid staff', lvl: 75, color: 'gold', val: 12000 },
+  { id: 'apprentice_staff', name: 'Apprentice staff', lvl: 1, color: 'light', val: 15, gem: '#7ac8f0' },
+  { id: 'friar_staff', name: "Friar's staff", lvl: 20, color: 'medium', val: 220, gem: '#ffd75e' },
+  { id: 'druid_staff', name: 'Druidic staff', lvl: 50, color: 'gnarled', val: 2200, gem: '#5aa03c' },
+  { id: 'archdruid_staff', name: 'Archdruid staff', lvl: 75, color: 'gold', val: 12000, gem: '#c77ce7' },
 ];
 for (const st of STAVES) {
   const s = T(st.lvl);
   def(st.id, { name: st.name, slot: 'weapon', kind: 'staff', style: 'magic', anim: 'spellcast', speed: 3000,
     twoHand: true, req: { magic: st.lvl }, bonus: { macc: s * 1.1 | 0, mdmg: s * 0.3 | 0 }, value: st.val,
-    vis: { layer: 'weapon', type: 'staff', color: st.color } });
+    vis: { layer: 'weapon', type: 'staff', color: st.color, glow: st.gem } });
 }
+// Mage vestments, reworked: each order dresses distinctly — novice in plain
+// blue cloth, friars in humble walnut wool, druids in rune-stitched forest
+// green, and the archdruid in white silk shot through with living runes and
+// an arcane shimmer. Runes render as a stitched fx pattern on the cloth.
 export const ROBES = [
   { id: 'novice', name: 'Novice', lvl: 1, color: 'blue', val: 12 },
-  { id: 'friar', name: "Friar's", lvl: 20, color: 'brown', val: 200, prayerReq: 10 },
-  { id: 'druidic', name: 'Druidic', lvl: 50, color: 'forest', val: 2000, prayerReq: 30 },
-  { id: 'archdruid', name: 'Archdruid', lvl: 75, color: 'white', val: 11000, prayerReq: 50 },
+  { id: 'friar', name: "Friar's", lvl: 20, color: 'walnut', val: 200, prayerReq: 10 },
+  { id: 'druidic', name: 'Druidic', lvl: 50, color: 'forest', val: 2000, prayerReq: 30, fx: 'runes' },
+  { id: 'archdruid', name: 'Archdruid', lvl: 75, color: 'white', val: 11000, prayerReq: 50, fx: 'runes', glow: '#c77ce7' },
 ];
 for (const R of ROBES) {
   const s = T(R.lvl); const req = { magic: R.lvl }; if (R.prayerReq) req.prayer = R.prayerReq;
   def(`${R.id}_hood`, { name: `${R.name} hood`, slot: 'head', req, bonus: { macc: s * 0.25 | 0 }, value: R.val,
-    vis: { layer: 'head', sheet: 'hood', color: R.color } });
+    vis: { layer: 'head', sheet: 'hood', color: R.color, fx: R.fx, glow: R.glow } });
   def(`${R.id}_robe_top`, { name: `${R.name} robe top`, slot: 'torso', req, bonus: { macc: s * 0.5 | 0, def: s * 0.15 | 0 }, value: R.val * 2.5 | 0,
-    vis: { layer: 'torso', sheet: 'robe', color: R.color } });
+    vis: { layer: 'torso', sheet: 'robe', color: R.color, fx: R.fx, glow: R.glow } });
   def(`${R.id}_robe_skirt`, { name: `${R.name} robe skirt`, slot: 'legs', req, bonus: { macc: s * 0.35 | 0 }, value: R.val * 2,
-    vis: { layer: 'legs', sheet: 'pants', color: R.color } });
+    vis: { layer: 'legs', sheet: 'pants', color: R.color, fx: R.fx, glow: R.glow } });
 }
 export const RUNES = ['air', 'earth', 'water', 'fire', 'nature', 'cosmic', 'blood'];
 for (const r of RUNES) def(`${r}_rune`, { name: `${r[0].toUpperCase() + r.slice(1)} rune`, stack: true, value: { air: 4, earth: 4, water: 4, fire: 5, nature: 12, cosmic: 20, blood: 35 }[r] });
@@ -219,7 +263,8 @@ def('peasant_trousers', { name: 'Peasant trousers', slot: 'legs', req: {}, bonus
 export const ORES = [
   { id: 'copper_ore', lvl: 1, xp: 18, val: 4 }, { id: 'tin_ore', lvl: 1, xp: 18, val: 4 },
   { id: 'iron_ore', lvl: 15, xp: 35, val: 18 }, { id: 'coal', lvl: 30, xp: 50, val: 45 },
-  { id: 'silver_ore', lvl: 40, xp: 65, val: 90 }, { id: 'gold_ore', lvl: 55, xp: 85, val: 160 },
+  { id: 'silver_ore', lvl: 40, xp: 65, val: 90 }, { id: 'mithril_ore', lvl: 45, xp: 72, val: 120 },
+  { id: 'gold_ore', lvl: 55, xp: 85, val: 160 },
   { id: 'sylvanite_ore', lvl: 80, xp: 140, val: 700 },
 ];
 for (const o of ORES) def(o.id, { name: o.id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), stack: false, value: o.val, material: true });

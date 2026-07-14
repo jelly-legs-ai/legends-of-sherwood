@@ -210,7 +210,7 @@ export class Player {
       const e = this.equip[slot];
       if (!e) return;
       const def = ITEMS[e.id];
-      if (def?.vis) v[layer] = def.vis.layer === 'weapon' ? [def.vis.type, def.vis.color, def.vis.glow] : [def.vis.sheet, def.vis.color, def.vis.glow];
+      if (def?.vis) v[layer] = def.vis.layer === 'weapon' ? [def.vis.type, def.vis.color, def.vis.glow] : [def.vis.sheet, def.vis.color, def.vis.glow, def.vis.fx];
     };
     map('torso', 'torso'); map('legs', 'legs'); map('feet', 'feet'); map('hands', 'hands');
     map('head', 'head'); map('weapon', 'weapon'); map('shield', 'shield'); map('cape', 'behind');

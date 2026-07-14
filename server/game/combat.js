@@ -164,6 +164,10 @@ export function resolveHit(world, p, t, style, spell) {
   let defRoll;
   if (t.kind === 'player') defRoll = playerDefRoll(t);
   else { const m = MOBS[t.type]; defRoll = COMBAT.ROLL(m.def * (t.lvlScale || 1), 24); }
+  // armour penetration (daggers): the point slips mail — shear a fraction off
+  // the defender's roll before the accuracy check
+  const pen = style === 'melee' ? (ITEMS[p.equip.weapon?.id]?.bonus?.pen || 0) : 0;
+  if (pen) defRoll = Math.max(1, Math.round(defRoll * (1 - pen)));
   let dmg = 0;
   const hit = roll(rolls.acc, defRoll);
   if (hit) {
@@ -332,7 +336,9 @@ export function useAbility(world, p, abilityId) {
     case 'accBoost': p.effects.haste = now + 8000; world.fx(p.plane, p.x, p.y, FX.SPARK, { id: p.id }); break;
     case 'bigshot': p.effects.bigshot = ab.mult; world.fx(p.plane, p.x, p.y, FX.CRIT, { id: p.id }); break;
     case 'aoe': {
-      p.anim = p.combatStyle() === 'ranged' ? 'shoot' : p.combatStyle() === 'magic' ? magicCastAnim(p) : 'slash';
+      // melee honours the weapon's own pose — spears/daggers thrust, blades slash
+      p.anim = p.combatStyle() === 'ranged' ? 'shoot' : p.combatStyle() === 'magic' ? magicCastAnim(p)
+        : ITEMS[p.equip.weapon?.id]?.anim === 'thrust' ? 'thrust' : 'slash';
       p.animSeq++;
       let hits = 0;
       for (const e of world.near(p.plane, p.x, p.y, 3.2)) {

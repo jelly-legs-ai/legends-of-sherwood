@@ -12,6 +12,7 @@ export const NODES = {
   iron_rock: { skill: 'mining', lvl: 15, xp: 35, tool: 'pickaxe', yield: 'iron_ore', respawnMs: 6000, name: 'Iron rock', anim: 'slash', fx: 'MINE' },
   coal_rock: { skill: 'mining', lvl: 30, xp: 50, tool: 'pickaxe', yield: 'coal', respawnMs: 12000, name: 'Coal seam', anim: 'slash', fx: 'MINE' },
   silver_rock: { skill: 'mining', lvl: 40, xp: 65, tool: 'pickaxe', yield: 'silver_ore', respawnMs: 20000, name: 'Silver vein', anim: 'slash', fx: 'MINE' },
+  mithril_rock: { skill: 'mining', lvl: 45, xp: 72, tool: 'pickaxe', yield: 'mithril_ore', respawnMs: 24000, name: 'Mithril vein', anim: 'slash', fx: 'MINE' },
   gold_rock: { skill: 'mining', lvl: 55, xp: 85, tool: 'pickaxe', yield: 'gold_ore', respawnMs: 30000, name: 'Gold vein', anim: 'slash', fx: 'MINE', gem: 1 / 40 },
   sylvanite_rock: { skill: 'mining', lvl: 80, xp: 140, tool: 'pickaxe', yield: 'sylvanite_ore', respawnMs: 60000, name: 'Sylvanite vein', anim: 'slash', fx: 'MINE', gem: 1 / 25 },
 
@@ -100,6 +101,7 @@ export const RECIPES = [
   { id: 'smelt_bronze', skill: 'smithing', lvl: 5, xp: 25, station: 'furnace', inputs: { copper_ore: 1, tin_ore: 1 }, output: { bronze_bar: 1 }, name: 'Bronze bar' },
   { id: 'smelt_iron', skill: 'smithing', lvl: 15, xp: 40, station: 'furnace', inputs: { iron_ore: 1 }, output: { iron_bar: 1 }, name: 'Iron bar' },
   { id: 'smelt_steel', skill: 'smithing', lvl: 30, xp: 60, station: 'furnace', inputs: { iron_ore: 1, coal: 2 }, output: { steel_bar: 1 }, name: 'Steel bar' },
+  { id: 'smelt_mithril', skill: 'smithing', lvl: 40, xp: 75, station: 'furnace', inputs: { mithril_ore: 2, coal: 1 }, output: { mithril_bar: 1 }, name: 'Mithril bar' },
   { id: 'smelt_damasked', skill: 'smithing', lvl: 45, xp: 90, station: 'furnace', inputs: { steel_bar: 1, coal: 2 }, output: { damasked_bar: 1 }, name: 'Damasked bar' },
   { id: 'smelt_silversteel', skill: 'smithing', lvl: 60, xp: 130, station: 'furnace', inputs: { silver_ore: 2, coal: 3 }, output: { silversteel_bar: 1 }, name: 'Silversteel bar' },
   { id: 'smelt_sylvan', skill: 'smithing', lvl: 85, xp: 220, station: 'furnace', inputs: { sylvanite_ore: 2, coal: 4 }, output: { sylvan_bar: 1 }, name: 'Sylvan bar' },
@@ -141,6 +143,20 @@ RECIPES.push(
   { id: 'forge_arbalest', skill: 'smithing', lvl: 52, xp: 260, station: 'anvil', inputs: { crossbow_stock: 1, damasked_bar: 2 }, output: { arbalest: 1 }, name: 'Arbalest' },
   { id: 'forge_siege_arbalest', skill: 'smithing', lvl: 77, xp: 520, station: 'anvil', inputs: { crossbow_stock: 2, silversteel_bar: 3 }, output: { siege_arbalest: 1 }, name: 'Siege arbalest' },
 );
+// Wood-and-metal crossbow variants: the frame's stock + two bars of the limb metal.
+import { XBOW_FRAMES, XBOW_METALS } from './items.js';
+for (const f of XBOW_FRAMES) for (const mm of XBOW_METALS) {
+  const lvl = f.base + mm.lvl;
+  if (lvl > 96) continue;
+  const wood = f.wood[0].toUpperCase() + f.wood.slice(1);
+  RECIPES.push({
+    id: `forge_${f.wood}_${f.frame}_${mm.tag.toLowerCase()}`, skill: 'smithing', lvl: Math.min(99, lvl + 6),
+    xp: 120 * (1 + lvl / 14) | 0, station: 'anvil',
+    inputs: { crossbow_stock: f.stocks, [`${mm.id}_bar`]: 2 },
+    output: { [`${f.wood}_${f.frame}_${mm.tag.toLowerCase()}`]: 1 },
+    name: `${wood} ${f.label} (${mm.tag})`,
+  });
+}
 // Cooking (fire or range; burn chance handled server-side)
 import { FISH } from './items.js';
 for (const f of FISH) RECIPES.push({

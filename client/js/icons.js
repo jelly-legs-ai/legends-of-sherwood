@@ -8,13 +8,13 @@ const cache = new Map();
 const INK = '#1b1410';
 const ORE_COL = {
   copper_rock: '#b87333', tin_rock: '#a8a8b0', iron_rock: '#8a6a5a', coal_rock: '#3a3a3e',
-  silver_rock: '#cfd4dc', gold_rock: '#e0b93c', sylvanite_rock: '#7fe07f', essence_rock: '#b09fe0',
+  silver_rock: '#cfd4dc', mithril_rock: '#5a72b8', gold_rock: '#e0b93c', sylvanite_rock: '#7fe07f', essence_rock: '#b09fe0',
 };
 const METAL_PAL = {
   copper: ['#d98d4f', '#9c5a28', '#f4c08a'], bronze: ['#c98f57', '#8a5a30', '#eec394'],
   iron: ['#aeb0b8', '#6e7078', '#dcdee4'], steel: ['#ced4dc', '#8c929c', '#f4f7fa'],
-  damasked: ['#d8b45e', '#997a2c', '#f4e0a0'], silversteel: ['#e4e9f2', '#9aa2b2', '#ffffff'],
-  sylvan: ['#e8cc66', '#a8862e', '#fff0b0'],
+  mithril: ['#5a72b8', '#34457e', '#8ca4e0'], damasked: ['#d8b45e', '#997a2c', '#f4e0a0'],
+  silversteel: ['#e4e9f2', '#9aa2b2', '#ffffff'], sylvan: ['#e8cc66', '#a8862e', '#fff0b0'],
 };
 function metalFor(name) {
   const m = Object.keys(METAL_PAL).find(k => name.startsWith(k));

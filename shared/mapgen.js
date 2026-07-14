@@ -436,9 +436,14 @@ export function heightAt(x, y) {
   // shoreline falls smoothly to sea level (whatever shape the carved coast takes)
   const shore = Math.min(1, Math.max(0, shoreDist(x, y) / 26 + 0.15));
   h *= shore;
-  // rivers cut a shallow channel; a bridge deck stays level with its road banks
-  if (t === TILE.RIVER || t === TILE.WATER_SWAMP || t === TILE.WATER) h = Math.max(0, h - 0.8);
-  return Math.max(0, Math.min(MAX_ELEV, Math.round(h)));
+  // Water sits exactly ONE block below its terrain level, derived AFTER
+  // quantization — so wherever the ground steps down a block, the water steps
+  // with it and the renderer pours a waterfall at every such lip. (The old
+  // "h - 0.8 then round" put water's block boundaries on different contour
+  // lines than the land's, so rivers crossed visible cliffs without falling.)
+  const hq = Math.max(0, Math.min(MAX_ELEV, Math.round(h)));
+  if (t === TILE.RIVER || t === TILE.WATER_SWAMP || t === TILE.WATER) return Math.max(0, hq - 1);
+  return hq;
 }
 
 // ---- scattered gather nodes --------------------------------------------------------
@@ -450,9 +455,9 @@ const SCATTER = {
   ELDERGLADE: [['maple_tree', 0.02], ['yew_tree', 0.006], ['elm_tree', 0.003], ['willow_tree', 0.012]],
   FENWOLD: [['willow_tree', 0.02], ['tree', 0.008]],
   NORTHMOOR: [['frostpine_tree', 0.006], ['tree', 0.004]],
-  PEAKS: [['iron_rock', 0.007], ['coal_rock', 0.007], ['silver_rock', 0.0022], ['gold_rock', 0.0015]],
+  PEAKS: [['iron_rock', 0.007], ['coal_rock', 0.007], ['silver_rock', 0.0022], ['mithril_rock', 0.0018], ['gold_rock', 0.0015]],
   WILDLANDS: [['sylvanite_rock', 0.0015], ['frostpine_tree', 0.005]],
-  ALPINE: [['frostpine_tree', 0.01], ['silver_rock', 0.003], ['gold_rock', 0.0022], ['sylvanite_rock', 0.0012]],
+  ALPINE: [['frostpine_tree', 0.01], ['silver_rock', 0.003], ['mithril_rock', 0.0022], ['gold_rock', 0.0022], ['sylvanite_rock', 0.0012]],
 };
 const NODE_OK_TILES = new Set([TILE.GRASS, TILE.MEADOW, TILE.FOREST, TILE.DEEPFOREST, TILE.JUNGLE, TILE.SWAMP, TILE.TUNDRA, TILE.SNOW, TILE.SCREE, TILE.DIRT]);
 
