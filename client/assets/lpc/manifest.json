@@ -661,7 +661,51 @@
   "wep_trident_walk_fg_silver": "wep_trident_walk_fg_silver.png",
   "wep_trident_walk_bg_silver": "wep_trident_walk_bg_silver.png",
   "wep_trident_walk_fg_gold": "wep_trident_walk_fg_gold.png",
-  "wep_trident_walk_bg_gold": "wep_trident_walk_bg_gold.png"
+  "wep_trident_walk_bg_gold": "wep_trident_walk_bg_gold.png",
+  "gear_head_armet": "gear_head_armet.png",
+  "gear_head_bascinet": "gear_head_bascinet.png",
+  "gear_head_horned": "gear_head_horned.png",
+  "gear_head_legion": "gear_head_legion.png",
+  "gear_head_bandana": "gear_head_bandana.png",
+  "gear_head_leather_cap": "gear_head_leather_cap.png",
+  "gear_behind_wings_feathered_black": "gear_behind_wings_feathered_black.png",
+  "gear_behind_wings_feathered_white": "gear_behind_wings_feathered_white.png",
+  "gear_behind_wings_feathered_blue": "gear_behind_wings_feathered_blue.png",
+  "gear_behind_wings_feathered_green": "gear_behind_wings_feathered_green.png",
+  "gear_behind_wings_feathered_red": "gear_behind_wings_feathered_red.png",
+  "gear_behind_wings_feathered_gold": "gear_behind_wings_feathered_gold.png",
+  "gear_behind_wings_feathered_purple": "gear_behind_wings_feathered_purple.png",
+  "gear_behind_wings_bat_black": "gear_behind_wings_bat_black.png",
+  "gear_behind_wings_bat_white": "gear_behind_wings_bat_white.png",
+  "gear_behind_wings_bat_blue": "gear_behind_wings_bat_blue.png",
+  "gear_behind_wings_bat_green": "gear_behind_wings_bat_green.png",
+  "gear_behind_wings_bat_red": "gear_behind_wings_bat_red.png",
+  "gear_behind_wings_bat_gold": "gear_behind_wings_bat_gold.png",
+  "gear_behind_wings_bat_purple": "gear_behind_wings_bat_purple.png",
+  "gear_behind_tail_cat_black": "gear_behind_tail_cat_black.png",
+  "gear_behind_tail_cat_white": "gear_behind_tail_cat_white.png",
+  "gear_behind_tail_cat_gray": "gear_behind_tail_cat_gray.png",
+  "gear_behind_tail_cat_chestnut": "gear_behind_tail_cat_chestnut.png",
+  "gear_behind_tail_cat_blue": "gear_behind_tail_cat_blue.png",
+  "gear_behind_tail_cat_green": "gear_behind_tail_cat_green.png",
+  "gear_behind_tail_fluffy_black": "gear_behind_tail_fluffy_black.png",
+  "gear_behind_tail_fluffy_white": "gear_behind_tail_fluffy_white.png",
+  "gear_behind_tail_fluffy_gray": "gear_behind_tail_fluffy_gray.png",
+  "gear_behind_tail_fluffy_chestnut": "gear_behind_tail_fluffy_chestnut.png",
+  "gear_behind_tail_fluffy_blue": "gear_behind_tail_fluffy_blue.png",
+  "gear_behind_tail_fluffy_green": "gear_behind_tail_fluffy_green.png",
+  "gear_behind_tail_wolf_black": "gear_behind_tail_wolf_black.png",
+  "gear_behind_tail_wolf_white": "gear_behind_tail_wolf_white.png",
+  "gear_behind_tail_wolf_gray": "gear_behind_tail_wolf_gray.png",
+  "gear_behind_tail_wolf_chestnut": "gear_behind_tail_wolf_chestnut.png",
+  "gear_behind_tail_wolf_blue": "gear_behind_tail_wolf_blue.png",
+  "gear_behind_tail_wolf_green": "gear_behind_tail_wolf_green.png",
+  "wound_arm": "wound_arm.png",
+  "wound_ribs": "wound_ribs.png",
+  "wound_brain": "wound_brain.png",
+  "wound_mouth": "wound_mouth.png",
+  "wound_eye_left": "wound_eye_left.png",
+  "wound_eye_right": "wound_eye_right.png"
  },
  "gear": {
   "torso/plate": {
@@ -1052,6 +1096,148 @@
    },
    "female": {
     "brown": "gear_behind_quiver_female_brown.png"
+   }
+  },
+  "head/armet": {
+   "male": {
+    "steel": "gear_head_armet.png"
+   },
+   "female": {
+    "steel": "gear_head_armet.png"
+   }
+  },
+  "head/bascinet": {
+   "male": {
+    "steel": "gear_head_bascinet.png"
+   },
+   "female": {
+    "steel": "gear_head_bascinet.png"
+   }
+  },
+  "head/horned": {
+   "male": {
+    "steel": "gear_head_horned.png"
+   },
+   "female": {
+    "steel": "gear_head_horned.png"
+   }
+  },
+  "head/legion": {
+   "male": {
+    "steel": "gear_head_legion.png"
+   },
+   "female": {
+    "steel": "gear_head_legion.png"
+   }
+  },
+  "head/bandana": {
+   "male": {
+    "brown": "gear_head_bandana.png"
+   },
+   "female": {
+    "brown": "gear_head_bandana.png"
+   }
+  },
+  "head/leather_cap": {
+   "male": {
+    "brown": "gear_head_leather_cap.png"
+   },
+   "female": {
+    "brown": "gear_head_leather_cap.png"
+   }
+  },
+  "behind/wings_feathered": {
+   "male": {
+    "black": "gear_behind_wings_feathered_black.png",
+    "white": "gear_behind_wings_feathered_white.png",
+    "blue": "gear_behind_wings_feathered_blue.png",
+    "green": "gear_behind_wings_feathered_green.png",
+    "red": "gear_behind_wings_feathered_red.png",
+    "gold": "gear_behind_wings_feathered_gold.png",
+    "purple": "gear_behind_wings_feathered_purple.png"
+   },
+   "female": {
+    "black": "gear_behind_wings_feathered_black.png",
+    "white": "gear_behind_wings_feathered_white.png",
+    "blue": "gear_behind_wings_feathered_blue.png",
+    "green": "gear_behind_wings_feathered_green.png",
+    "red": "gear_behind_wings_feathered_red.png",
+    "gold": "gear_behind_wings_feathered_gold.png",
+    "purple": "gear_behind_wings_feathered_purple.png"
+   }
+  },
+  "behind/wings_bat": {
+   "male": {
+    "black": "gear_behind_wings_bat_black.png",
+    "white": "gear_behind_wings_bat_white.png",
+    "blue": "gear_behind_wings_bat_blue.png",
+    "green": "gear_behind_wings_bat_green.png",
+    "red": "gear_behind_wings_bat_red.png",
+    "gold": "gear_behind_wings_bat_gold.png",
+    "purple": "gear_behind_wings_bat_purple.png"
+   },
+   "female": {
+    "black": "gear_behind_wings_bat_black.png",
+    "white": "gear_behind_wings_bat_white.png",
+    "blue": "gear_behind_wings_bat_blue.png",
+    "green": "gear_behind_wings_bat_green.png",
+    "red": "gear_behind_wings_bat_red.png",
+    "gold": "gear_behind_wings_bat_gold.png",
+    "purple": "gear_behind_wings_bat_purple.png"
+   }
+  },
+  "behind/tail_cat": {
+   "male": {
+    "black": "gear_behind_tail_cat_black.png",
+    "white": "gear_behind_tail_cat_white.png",
+    "gray": "gear_behind_tail_cat_gray.png",
+    "chestnut": "gear_behind_tail_cat_chestnut.png",
+    "blue": "gear_behind_tail_cat_blue.png",
+    "green": "gear_behind_tail_cat_green.png"
+   },
+   "female": {
+    "black": "gear_behind_tail_cat_black.png",
+    "white": "gear_behind_tail_cat_white.png",
+    "gray": "gear_behind_tail_cat_gray.png",
+    "chestnut": "gear_behind_tail_cat_chestnut.png",
+    "blue": "gear_behind_tail_cat_blue.png",
+    "green": "gear_behind_tail_cat_green.png"
+   }
+  },
+  "behind/tail_fluffy": {
+   "male": {
+    "black": "gear_behind_tail_fluffy_black.png",
+    "white": "gear_behind_tail_fluffy_white.png",
+    "gray": "gear_behind_tail_fluffy_gray.png",
+    "chestnut": "gear_behind_tail_fluffy_chestnut.png",
+    "blue": "gear_behind_tail_fluffy_blue.png",
+    "green": "gear_behind_tail_fluffy_green.png"
+   },
+   "female": {
+    "black": "gear_behind_tail_fluffy_black.png",
+    "white": "gear_behind_tail_fluffy_white.png",
+    "gray": "gear_behind_tail_fluffy_gray.png",
+    "chestnut": "gear_behind_tail_fluffy_chestnut.png",
+    "blue": "gear_behind_tail_fluffy_blue.png",
+    "green": "gear_behind_tail_fluffy_green.png"
+   }
+  },
+  "behind/tail_wolf": {
+   "male": {
+    "black": "gear_behind_tail_wolf_black.png",
+    "white": "gear_behind_tail_wolf_white.png",
+    "gray": "gear_behind_tail_wolf_gray.png",
+    "chestnut": "gear_behind_tail_wolf_chestnut.png",
+    "blue": "gear_behind_tail_wolf_blue.png",
+    "green": "gear_behind_tail_wolf_green.png"
+   },
+   "female": {
+    "black": "gear_behind_tail_wolf_black.png",
+    "white": "gear_behind_tail_wolf_white.png",
+    "gray": "gear_behind_tail_wolf_gray.png",
+    "chestnut": "gear_behind_tail_wolf_chestnut.png",
+    "blue": "gear_behind_tail_wolf_blue.png",
+    "green": "gear_behind_tail_wolf_green.png"
    }
   }
  },
@@ -1818,5 +2004,13 @@
    "fur_brown": "monsterhead_wolf_fur_brown.png",
    "bronze": "monsterhead_wolf_bronze.png"
   }
+ },
+ "wounds": {
+  "arm": "wound_arm.png",
+  "ribs": "wound_ribs.png",
+  "brain": "wound_brain.png",
+  "mouth": "wound_mouth.png",
+  "eye_left": "wound_eye_left.png",
+  "eye_right": "wound_eye_right.png"
  }
 }

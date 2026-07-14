@@ -117,6 +117,7 @@ const FORGE = [
   ['shield', 5, 2, 70], ['pickaxe', 2, 1, 50], ['hatchet', 2, 1, 50], ['mace', 2, 2, 60],
   ['rapier', 2, 1, 50], ['longsword', 4, 2, 70], ['flail', 3, 2, 65],
   ['halberd', 6, 3, 95], ['scythe', 5, 2, 80], ['trident', 5, 2, 75],
+  ['armet', 4, 2, 55], ['bascinet', 3, 2, 50], ['horned_helm', 5, 2, 60], ['legion_helm', 5, 2, 60],
 ];
 for (const m of METALS) {
   for (const [what, dl, bars, xp] of FORGE) {

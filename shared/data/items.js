@@ -57,6 +57,19 @@ for (const m of METALS) {
   def(`${m.id}_shield`, { name: `${m.name} heater shield`, slot: 'shield', req: { defence: m.lvl },
     bonus: { def: s * 0.8 | 0 }, value: m.val * 1.8 | 0,
     vis: { layer: 'shield', sheet: 'heater', color: m.color, glow: gl } });
+  // --- the LPC helmet racks: four further head lines, tint-dyed per tier ---
+  def(`${m.id}_armet`, { name: `${m.name} armet`, slot: 'head', req: { defence: m.lvl },
+    bonus: { def: s * 0.5 | 0 }, value: m.val * 1.5 | 0,
+    vis: { layer: 'head', sheet: 'armet', color: m.color, glow: gl } });
+  def(`${m.id}_bascinet`, { name: `${m.name} bascinet`, slot: 'head', req: { defence: m.lvl },
+    bonus: { def: s * 0.48 | 0 }, value: m.val * 1.4 | 0,
+    vis: { layer: 'head', sheet: 'bascinet', color: m.color, glow: gl } });
+  def(`${m.id}_horned_helm`, { name: `${m.name} horned helm`, slot: 'head', req: { defence: m.lvl },
+    bonus: { def: s * 0.45 | 0, str: 1 + (s * 0.06 | 0) }, value: m.val * 1.7 | 0,
+    vis: { layer: 'head', sheet: 'horned', color: m.color, glow: gl } });
+  def(`${m.id}_legion_helm`, { name: `${m.name} legion helm`, slot: 'head', req: { defence: m.lvl },
+    bonus: { def: s * 0.5 | 0, acc: 1 + (s * 0.05 | 0) }, value: m.val * 1.7 | 0,
+    vis: { layer: 'head', sheet: 'legion', color: m.color, glow: gl } });
   // --- CHAINMAIL line: the mail models, dyed per tier at the compositor (the
   // sheet tints to the metal when no exact palette exists). Lighter, cheaper
   // to craft, a touch less defensive than plate.
@@ -228,6 +241,26 @@ def('leather_boots', { name: 'Leather boots', slot: 'feet', req: {}, bonus: { de
   vis: { layer: 'feet', sheet: 'boots', color: 'brown' } });
 def('quiver', { name: 'Quiver', slot: 'cape', req: {}, bonus: { racc: 2 }, value: 30,
   vis: { layer: 'behind', sheet: 'quiver', color: 'brown' } });
+// Cloth headwear from the LPC racks
+def('bandana', { name: 'Bandana', slot: 'head', req: {}, bonus: { def: 1 }, value: 6,
+  vis: { layer: 'head', sheet: 'bandana', color: 'brown' } });
+def('leather_cap', { name: 'Leather cap', slot: 'head', req: {}, bonus: { def: 2 }, value: 12,
+  vis: { layer: 'head', sheet: 'leather_cap', color: 'brown' } });
+// ---------------------------------------------------------------------------
+// Cosmetic wings & tails — cape-slot vanity that rides the behind layer.
+export const COSMETIC_BACKS = [
+  ['angelic_wings', 'Angelic wings', 'wings_feathered', 'white', 5200],
+  ['raven_wings', 'Raven wings', 'wings_feathered', 'black', 5200],
+  ['azure_wings', 'Azure wings', 'wings_feathered', 'blue', 5200],
+  ['bat_wings', 'Bat wings', 'wings_bat', 'black', 4200],
+  ['blood_bat_wings', 'Blood-bat wings', 'wings_bat', 'red', 4600],
+  ['wolf_tail', 'Wolf tail', 'tail_wolf', 'gray', 900],
+  ['cat_tail', 'Cat tail', 'tail_cat', 'black', 900],
+  ['fox_tail', 'Fox brush', 'tail_fluffy', 'chestnut', 1100],
+];
+for (const [id, name, sheet, color, val] of COSMETIC_BACKS)
+  def(id, { name, slot: 'cape', req: {}, bonus: {}, value: val,
+    vis: { layer: 'behind', sheet, color } });
 
 // ---------------------------------------------------------------------------
 // Magic: staves + robe sets + runes

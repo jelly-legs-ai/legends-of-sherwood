@@ -126,6 +126,9 @@ function drawFrame(ctx, def, m, e, a, now, sx, sy, scale, fi) {
   if (e.tint === 'gold') { // legendary creatures (Golden Stag): gilded + haloed
     ctx.filter = 'sepia(1) saturate(3.4) hue-rotate(8deg) brightness(1.3)';
     ctx.shadowColor = '#ffd75e'; ctx.shadowBlur = 18;
+  } else if (e.tint === 'spectral') { // aethereal dragons: pre-dyed pale, plus a ghostlight halo
+    ctx.shadowColor = '#bfeaff'; ctx.shadowBlur = 16;
+    ctx.globalAlpha *= 0.92;
   }
   ctx.imageSmoothingEnabled = fw >= 128 && boost < 1.5;         // pixel art stays crisp
   ctx.drawImage(im, sxx, syy, fw, fh, flip ? sx - S / 2 : dx, dy, S, drawH);

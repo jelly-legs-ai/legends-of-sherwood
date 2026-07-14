@@ -262,5 +262,44 @@ for (const [leather, sources] of Object.entries(DRAGON_LEATHER_DROPS))
   for (const [mobId, chance] of sources)
     if (MOBS[mobId]) (MOBS[mobId].drops = MOBS[mobId].drops || []).push([leather, 1, chance]);
 
+// ---------------------------------------------------------------------------
+// THE DRAGONFLIGHTS — the OGA flying-dragon rework, dyed per flight and scaled
+// through four life stages. Each flight's levels track its hide tier (blue <
+// green < red < aethereal), hatchlings snap and claw while grown wyrms breathe
+// fire (magic style), and the drop table fattens with every stage: more hide,
+// better bones, the flight's gemstone, and elder rarities. Twin-headed elites
+// crown each flight; the elder twins are full bosses.
+const DRAGONFLIGHTS = [
+  // [color, base lvl, hide item, gemstone]
+  ['blue', 32, 'blue_dragon_leather', 'sapphire'],
+  ['green', 40, 'green_dragon_leather', 'emerald'],
+  ['red', 50, 'red_dragon_leather', 'ruby'],
+  ['aethereal', 62, 'aethereal_dragon_leather', 'diamond'],
+];
+for (const [c, base, hide, gem] of DRAGONFLIGHTS) {
+  const Nm = c[0].toUpperCase() + c.slice(1);
+  const tint = c === 'aethereal' ? 'spectral' : undefined;
+  const L = (o) => Math.min(98, base + o);
+  mob(`${c}_dragon_hatchling`, { name: `${Nm} dragon hatchling`, lvl: L(0), life: L(0) * 3, atk: L(0) * 0.55 | 0, def: L(0) * 0.45 | 0,
+    style: 'melee', aggro: true, sheet: `dragon_${c}`, tint, scale: 0.55, shil: 1.5,
+    drops: [['bones', 1, 1], [hide, 1, 0.15], ['coins', [base, base * 3], 0.8]] });
+  mob(`young_${c}_dragon`, { name: `Young ${c} dragon`, lvl: L(14), life: L(14) * 4.5 | 0, atk: L(14) * 0.6 | 0, def: L(14) * 0.5 | 0,
+    style: 'melee', aggro: true, sheet: `dragon_${c}`, tint, scale: 0.85, shil: 2,
+    drops: [['big_bones', 1, 1], [hide, 1, 0.35], ['coins', [base * 2, base * 5], 0.9], [gem, 1, 0.05]] });
+  mob(`${c}_dragon`, { name: `${Nm} dragon`, lvl: L(30), life: L(30) * 6 | 0, atk: L(30) * 0.7 | 0, def: L(30) * 0.6 | 0,
+    style: 'magic', aggro: true, sheet: `dragon_${c}`, tint, scale: 1.2, shil: 3, respawnMs: 30000,
+    drops: [['big_bones', 1, 1], [hide, [1, 2], 0.7], ['coins', [base * 4, base * 9], 1], [gem, 1, 0.15], ['prayer_restore', 1, 0.15]] });
+  mob(`elder_${c}_dragon`, { name: `Elder ${c} dragon`, lvl: L(44), life: L(44) * 8 | 0, atk: L(44) * 0.8 | 0, def: L(44) * 0.7 | 0,
+    style: 'magic', aggro: true, sheet: `dragon_${c}`, tint, scale: 1.5, shil: 4, respawnMs: 60000,
+    drops: [['ancient_bones', 1, 1], [hide, [2, 4], 1], ['coins', [base * 8, base * 16], 1], [gem, [1, 2], 0.35], ['kings_elixir', 1, 0.12], ['fire_rune', [6, 16], 0.5]] });
+  // twin-headed elites (the rework's two-headed wyrm, dyed to the flight)
+  mob(`twin_headed_${c}_dragon`, { name: `Twin-headed ${c} dragon`, lvl: L(36), life: L(36) * 8 | 0, atk: L(36) * 0.8 | 0, def: L(36) * 0.65 | 0,
+    style: 'magic', aggro: true, sheet: `twin_dragon_${c}`, tint, scale: 1.3, shil: 4, respawnMs: 90000,
+    drops: [['ancient_bones', 1, 1], [hide, [2, 3], 1], ['coins', [base * 8, base * 18], 1], [gem, [1, 2], 0.4], ['titan_brew', 1, 0.12]] });
+  boss(`elder_twin_headed_${c}_dragon`, { name: `Elder twin-headed ${c} dragon`, lvl: L(52), life: L(52) * 14 | 0, atk: L(52) * 0.92 | 0, def: L(52) * 0.8 | 0,
+    style: 'magic', sheet: `twin_dragon_${c}`, tint, scale: 1.6, tier: c === 'aethereal' ? 6 : 5, shil: 6, respawnMs: 240000,
+    drops: [['ancient_bones', [1, 2], 1], [hide, [3, 6], 1], ['coins', [base * 16, base * 34], 1], [gem, [1, 3], 0.6], ['kings_elixir', [1, 2], 0.35], ['sage_elixir', 1, 0.15]] });
+}
+
 // Vis for hair may be absent (helmets); critters are drawn by client code.
 export const CRITTERS =['rat', 'rabbit', 'boar', 'wolf', 'icewolf', 'hawk', 'leech', 'serpent', 'panther', 'treant', 'goat', 'troll', 'sprite', 'spider', 'giant', 'bear', 'stag', 'abyssal'];

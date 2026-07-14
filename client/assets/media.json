@@ -1335,6 +1335,206 @@
     "b": 0.375,
     "w": 0.148
    }
+  },
+  "dragon_red": {
+   "frame": 192,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/dragon_red.png",
+     "w": 576,
+     "h": 768,
+     "frames": 3,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/dragon_red.png",
+     "w": 576,
+     "h": 768,
+     "frames": 3,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.76,
+    "b": 0.057,
+    "w": 0.995
+   }
+  },
+  "dragon_blue": {
+   "frame": 192,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/dragon_blue.png",
+     "w": 576,
+     "h": 768,
+     "frames": 3,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/dragon_blue.png",
+     "w": 576,
+     "h": 768,
+     "frames": 3,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.76,
+    "b": 0.057,
+    "w": 0.995
+   }
+  },
+  "dragon_green": {
+   "frame": 192,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/dragon_green.png",
+     "w": 576,
+     "h": 768,
+     "frames": 3,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/dragon_green.png",
+     "w": 576,
+     "h": 768,
+     "frames": 3,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.76,
+    "b": 0.057,
+    "w": 0.995
+   }
+  },
+  "dragon_aethereal": {
+   "frame": 192,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/dragon_aethereal.png",
+     "w": 576,
+     "h": 768,
+     "frames": 3,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/dragon_aethereal.png",
+     "w": 576,
+     "h": 768,
+     "frames": 3,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.76,
+    "b": 0.057,
+    "w": 0.995
+   }
+  },
+  "twin_dragon_blue": {
+   "frame": 160,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/twin_dragon_blue.png",
+     "w": 480,
+     "h": 640,
+     "frames": 3,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/twin_dragon_blue.png",
+     "w": 480,
+     "h": 640,
+     "frames": 3,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.688,
+    "b": 0.075,
+    "w": 0.887
+   }
+  },
+  "twin_dragon_red": {
+   "frame": 160,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/twin_dragon_red.png",
+     "w": 480,
+     "h": 640,
+     "frames": 3,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/twin_dragon_red.png",
+     "w": 480,
+     "h": 640,
+     "frames": 3,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.688,
+    "b": 0.075,
+    "w": 0.887
+   }
+  },
+  "twin_dragon_green": {
+   "frame": 160,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/twin_dragon_green.png",
+     "w": 480,
+     "h": 640,
+     "frames": 3,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/twin_dragon_green.png",
+     "w": 480,
+     "h": 640,
+     "frames": 3,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.688,
+    "b": 0.075,
+    "w": 0.887
+   }
+  },
+  "twin_dragon_aethereal": {
+   "frame": 160,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/twin_dragon_aethereal.png",
+     "w": 480,
+     "h": 640,
+     "frames": 3,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/twin_dragon_aethereal.png",
+     "w": 480,
+     "h": 640,
+     "frames": 3,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.688,
+    "b": 0.075,
+    "w": 0.887
+   }
   }
  },
  "fx": {

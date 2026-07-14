@@ -217,12 +217,12 @@ npc('seedsman_wilf', {
 });
 npc('westgate_serjeant', {
   name: 'Serjeant Hawise', x: 305, y: 334, tutor: 'strength',
-  vis: gear({ skin: 'light', hair: ['braid', 'black'] }, 'steel_platebody', 'steel_platelegs', 'steel_helm', 'steel_spear'),
+  vis: gear({ skin: 'light', hair: ['braid', 'black'] }, 'steel_platebody', 'steel_platelegs', 'steel_legion_helm', 'steel_spear'),
   lines: ['Westgate Barracks. State your business or move through the gate.', 'The patrols change at every bell. Nothing crosses this wall unseen.'],
 });
 npc('se_captain', {
   name: 'Captain Aldred', x: 344, y: 351, tutor: 'defence',
-  vis: gear({ skin: 'brown', hair: ['buzzcut', 'black'] }, 'silversteel_platebody', 'silversteel_platelegs', 'silversteel_helm', 'silversteel_sword'),
+  vis: gear({ skin: 'brown', hair: ['buzzcut', 'black'] }, 'silversteel_platebody', 'silversteel_platelegs', 'silversteel_armet', 'silversteel_sword'),
   lines: ['Southeast Barracks holds the wall from the fen road to the east gate.', 'Thieves work the market. Guards work the thieves.'],
 });
 // ---- townsfolk: the city crowd ----

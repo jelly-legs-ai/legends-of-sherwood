@@ -68,7 +68,12 @@ export function composite(vis) {
   const wep = vis.weapon ? weaponFiles(vis.weapon[0], vis.weapon[1], sex) : null;
 
   if (wep?.bg) layers.push(wep.bg);
-  if (vis.behind) layers.push(gearFile('behind/quiver', sex, 'brown'));
+  // behind-the-body layer: quiver (legacy truthy flag) or [sheet, color] —
+  // wings and tails ride here, drawn behind the body like the weapon bg
+  if (vis.behind) {
+    const bh = Array.isArray(vis.behind) ? vis.behind : ['quiver', 'brown'];
+    layers.push(gearFile('behind/' + bh[0], sex, bh[1] || 'brown'));
+  }
   layers.push(pick(manifest.bodies, sex, vis.skin || 'light') || pick(manifest.bodies, sex, 'light'));
   if (vis.monster) { // beast-folk: goblin/orc/minotaur/lizard/wolf heads
     const mh = manifest.monsters?.[vis.monster];

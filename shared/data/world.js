@@ -352,6 +352,24 @@ export const SPAWNS = [
   { mob: 'gloom_moth', x: 292, y: 486, r: 14, n: 4 }, { mob: 'gloom_moth', x: 226, y: 508, r: 12, n: 3 },
   { mob: 'web_stalker', x: 316, y: 520, r: 10, n: 2 }, { mob: 'web_stalker', x: 214, y: 78, r: 10, n: 2 },
   { mob: 'royal_moth', x: 262, y: 62, r: 14, n: 3 }, { mob: 'frost_wight', x: 322, y: 66, r: 14, n: 3 },
+  // ---- The dragonflights: each colour holds a habitat, hatchlings at the
+  // fringes and elders in the deepest reaches ----
+  // blue — the high Peaks and alpine tarns
+  { mob: 'blue_dragon_hatchling', x: 445, y: 330, r: 10, n: 3 }, { mob: 'young_blue_dragon', x: 462, y: 312, r: 10, n: 2 },
+  { mob: 'blue_dragon', x: 482, y: 292, r: 9, n: 2 }, { mob: 'elder_blue_dragon', x: 506, y: 272, r: 7, n: 1 },
+  { mob: 'twin_headed_blue_dragon', x: 522, y: 258, r: 4, n: 1 },
+  // green — the Elderglade wildwood
+  { mob: 'green_dragon_hatchling', x: 236, y: 482, r: 10, n: 3 }, { mob: 'young_green_dragon', x: 262, y: 500, r: 10, n: 2 },
+  { mob: 'green_dragon', x: 292, y: 514, r: 9, n: 2 }, { mob: 'elder_green_dragon', x: 316, y: 524, r: 7, n: 1 },
+  { mob: 'twin_headed_green_dragon', x: 334, y: 532, r: 4, n: 1 },
+  // red — the Wild Lands wastes
+  { mob: 'red_dragon_hatchling', x: 372, y: 88, r: 10, n: 3 }, { mob: 'young_red_dragon', x: 390, y: 72, r: 9, n: 2 },
+  { mob: 'red_dragon', x: 406, y: 56, r: 8, n: 2 }, { mob: 'elder_red_dragon', x: 422, y: 42, r: 7, n: 1 },
+  { mob: 'twin_headed_red_dragon', x: 440, y: 34, r: 4, n: 1 },
+  // aethereal — the far northern scar, beside the Tyrant's roost
+  { mob: 'aethereal_dragon_hatchling', x: 268, y: 42, r: 9, n: 2 }, { mob: 'young_aethereal_dragon', x: 284, y: 32, r: 8, n: 2 },
+  { mob: 'aethereal_dragon', x: 310, y: 26, r: 7, n: 1 }, { mob: 'elder_aethereal_dragon', x: 330, y: 22, r: 6, n: 1 },
+  { mob: 'twin_headed_aethereal_dragon', x: 350, y: 16, r: 4, n: 1 },
 ];
 
 // Boss lairs: fixed single spawns
@@ -371,6 +389,11 @@ export const BOSS_SPAWNS = [
   { mob: 'dino_rex', x: 388, y: 52 },          // Wild Lands wastes
   { mob: 'ice_beast', x: 178, y: 40 },         // deep Wild Lands glacier
   { mob: 'dragon_tyrant', x: 300, y: 16 },     // the far northern scar
+  // Elder twin-headed dragons: one boss roost per flight
+  { mob: 'elder_twin_headed_blue_dragon', x: 534, y: 246 },     // highest Peak crag
+  { mob: 'elder_twin_headed_green_dragon', x: 348, y: 538 },    // deepest Elderglade
+  { mob: 'elder_twin_headed_red_dragon', x: 452, y: 26 },       // Wild Lands wastes
+  { mob: 'elder_twin_headed_aethereal_dragon', x: 364, y: 10 }, // beside the scar
 ];
 
 // Teleport anchors (magic spells + respawn)
