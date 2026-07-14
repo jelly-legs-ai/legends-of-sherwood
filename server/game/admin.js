@@ -133,7 +133,7 @@ export function handleAdminMessage(world, ws, msg) {
       // Buyback-and-burn and creator-wallet transfers are handled physically by
       // the operator off-platform — no in-app controls for them here.
       const inflows = world.ledger.log.filter(l => l[1] === 'treasury').slice(-40).reverse();
-      return send({ t: 'treasury', balance: world.ledger.treasuryBalance(), taxBps: Math.round(SHILLING.GE_TREASURY_TAX * 10000), inflows, econ: world.econConfig });
+      return send({ t: 'treasury', balance: world.ledger.treasuryBalance(), taxBps: Math.round(SHILLING.GE_TREASURY_TAX * 10000), inflows, econ: world.econConfig, frozen: world.vault.frozen });
     }
     case 'rewards': {
       if (msg.set) {
@@ -152,8 +152,9 @@ export function handleAdminMessage(world, ws, msg) {
     case 'security':
       return send({ t: 'securityLog', log: world.vault.security.slice(-150).reverse() });
     case 'vault':
-      if (msg.review) world.vault.review(msg.review | 0, !!msg.approve);
-      return send({ t: 'vault', requests: world.vault.requests.slice(-150).reverse(), rules: { large: 1000000, freqN: 3 } });
+      if (msg.freeze !== undefined) world.vault.setFrozen(!!msg.freeze);
+      else if (msg.review) world.vault.review(msg.review | 0, !!msg.approve);
+      return send({ t: 'vault', requests: world.vault.requests.slice(-150).reverse(), rules: { large: 1000000, freqN: 3 }, frozen: world.vault.frozen });
     case 'events': {
       if (msg.create) {
         const e = msg.create;

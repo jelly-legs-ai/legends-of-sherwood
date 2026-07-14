@@ -26,6 +26,7 @@ export class Vault {
     this.bans = {};                // name -> {until, reason}
     this.flags = {};               // name -> [{t, reason}]
     this.security = [];            // audit trail of alerts
+    this.frozen = false;           // emergency global freeze: halts ALL vault transactions
     this.load();
   }
   load() {
@@ -35,14 +36,23 @@ export class Vault {
       this.bans = d.bans || {};
       this.flags = d.flags || {};
       this.security = d.security || [];
+      this.frozen = !!d.frozen;
       nextReq = d.nextReq || (this.requests.length + 1);
     } catch { /* first boot */ }
   }
   save() {
     try {
       if (this.security.length > 400) this.security = this.security.slice(-200);
-      fs.writeFileSync(this.file, JSON.stringify({ requests: this.requests.slice(-500), bans: this.bans, flags: this.flags, security: this.security, nextReq }, null, 1));
+      fs.writeFileSync(this.file, JSON.stringify({ requests: this.requests.slice(-500), bans: this.bans, flags: this.flags, security: this.security, frozen: this.frozen, nextReq }, null, 1));
     } catch (e) { console.error('[vault] save', e.message); }
+  }
+  // Emergency global freeze — one switch that stops every withdrawal and release
+  // until an admin lifts it. Balances stay safely on the ledger meanwhile.
+  setFrozen(on) {
+    this.frozen = !!on;
+    this.alert('vault', on ? '🧊 EMERGENCY FREEZE engaged — all vault transactions halted by admin' : '✅ Emergency freeze lifted — vault transactions resume');
+    this.save();
+    return this.frozen;
   }
 
   // ---------------- security primitives ----------------
@@ -78,6 +88,7 @@ export class Vault {
   // ---------------- withdrawals ----------------
   requestWithdraw(p, amount, address) {
     amount = Math.floor(amount);
+    if (this.frozen) return this.world.send(p, { t: MSG.MSGBOX, m: '🧊 The Vault is under an emergency freeze — withdrawals are temporarily suspended. Your $LoS is safe on the ledger.' });
     // Funds can ONLY go to the wallet the account signed in with. Any address a
     // caller passes is ignored in favour of the bound wallet, so $LoS can never
     // be routed to a different account.
@@ -116,6 +127,7 @@ export class Vault {
   }
   // Admin review of a frozen request
   review(id, approve) {
+    if (this.frozen && approve) return false;   // no releases while the vault is frozen
     const req = this.requests.find(r => r.id === id);
     if (!req || req.status !== 'frozen') return false;
     if (approve) {

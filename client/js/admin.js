@@ -69,6 +69,7 @@ function renderTreasury() {
   const t = state.treasury;
   const e = state.econ || {};
   const oneIn = e.mobDropChance ? Math.round(1 / e.mobDropChance) : 900;
+  const frozen = t && t.frozen;
   main.innerHTML = `<h2>Protocol treasury</h2>
     <div class="cards">
       <div class="card"><b style="color:var(--gold)">${t ? t.balance.toLocaleString() : '…'}</b><span>$LoS in treasury</span></div>
@@ -76,6 +77,18 @@ function renderTreasury() {
       <div class="card"><b>×${e.distMult ?? '…'}</b><span>distribution rate</span></div>
     </div>
     <p style="color:var(--dim);margin-bottom:10px">The treasury grows solely from the ${t ? t.taxBps / 100 : 5}% Grand Exchange trade tax. Buyback-and-burn and creator-wallet transfers are handled physically by the operator, off-platform.</p>
+
+    <h2>Emergency controls</h2>
+    <div style="border:1px solid ${frozen ? '#e0304a' : 'var(--line,#3a3a44)'};border-radius:8px;padding:12px 14px;margin-bottom:16px;background:${frozen ? 'rgba(224,48,74,0.10)' : 'transparent'}">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div style="font-size:22px">${frozen ? '🧊' : '🛡'}</div>
+        <div style="flex:1;min-width:200px">
+          <b style="color:${frozen ? '#ff6a7a' : 'var(--gold)'}">Vault status: ${frozen ? 'FROZEN — all withdrawals suspended' : 'Live — withdrawals processing normally'}</b>
+          <div style="color:var(--dim);font-size:12px;margin-top:2px">A freeze halts every PDA-vault withdrawal and release at once. Player balances stay safe on the ledger; lift the freeze to resume.</div>
+        </div>
+        <button class="act" id="tr-freeze" style="${frozen ? 'background:#2e7d46;border-color:#2e7d46' : 'background:#c0243a;border-color:#c0243a'};color:#fff;font-weight:700;padding:10px 18px">${frozen ? '✅ Lift freeze' : '🧊 FREEZE vault'}</button>
+      </div>
+    </div>
 
     <h2>$LoS award rates</h2>
     <p style="color:var(--dim);margin-bottom:8px">Adjust the base rates at which $LoS is minted to players. The <b>distribution multiplier</b> scales every payout; the rest are per-category base rates.</p>
@@ -102,6 +115,11 @@ function renderTreasury() {
       dungeonFloor: parseFloat(f.dungeonFloor) || 0,
       eventPayout: parseFloat(f.eventPayout) || 0,
     } });
+  };
+  const fb = main.querySelector('#tr-freeze');
+  if (fb) fb.onclick = () => {
+    send({ t: 'vault', freeze: !frozen });                 // toggle the emergency freeze
+    setTimeout(() => send({ t: 'treasury' }), 200);        // refresh the panel state
   };
   send({ t: 'treasury' });
 }
