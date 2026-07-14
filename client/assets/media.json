@@ -1341,17 +1341,38 @@
    "kind": "grid",
    "anims": {
     "idle": {
-     "file": "creatures/dragon_red.png",
+     "file": "creatures/dragon_red_idle.png",
+     "w": 384,
+     "h": 768,
+     "frames": 2,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/dragon_red_walk.png",
+     "w": 768,
+     "h": 768,
+     "frames": 4,
+     "rows": 4
+    },
+    "sprint": {
+     "file": "creatures/dragon_red_sprint.png",
      "w": 576,
      "h": 768,
      "frames": 3,
      "rows": 4
     },
-    "walk": {
-     "file": "creatures/dragon_red.png",
-     "w": 576,
+    "attack": {
+     "file": "creatures/dragon_red_attack.png",
+     "w": 768,
      "h": 768,
-     "frames": 3,
+     "frames": 4,
+     "rows": 4
+    },
+    "death": {
+     "file": "creatures/dragon_red_death.png",
+     "w": 768,
+     "h": 768,
+     "frames": 4,
      "rows": 4
     }
    },
@@ -1366,17 +1387,38 @@
    "kind": "grid",
    "anims": {
     "idle": {
-     "file": "creatures/dragon_blue.png",
+     "file": "creatures/dragon_blue_idle.png",
+     "w": 384,
+     "h": 768,
+     "frames": 2,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/dragon_blue_walk.png",
+     "w": 768,
+     "h": 768,
+     "frames": 4,
+     "rows": 4
+    },
+    "sprint": {
+     "file": "creatures/dragon_blue_sprint.png",
      "w": 576,
      "h": 768,
      "frames": 3,
      "rows": 4
     },
-    "walk": {
-     "file": "creatures/dragon_blue.png",
-     "w": 576,
+    "attack": {
+     "file": "creatures/dragon_blue_attack.png",
+     "w": 768,
      "h": 768,
-     "frames": 3,
+     "frames": 4,
+     "rows": 4
+    },
+    "death": {
+     "file": "creatures/dragon_blue_death.png",
+     "w": 768,
+     "h": 768,
+     "frames": 4,
      "rows": 4
     }
    },
@@ -1391,17 +1433,38 @@
    "kind": "grid",
    "anims": {
     "idle": {
-     "file": "creatures/dragon_green.png",
+     "file": "creatures/dragon_green_idle.png",
+     "w": 384,
+     "h": 768,
+     "frames": 2,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/dragon_green_walk.png",
+     "w": 768,
+     "h": 768,
+     "frames": 4,
+     "rows": 4
+    },
+    "sprint": {
+     "file": "creatures/dragon_green_sprint.png",
      "w": 576,
      "h": 768,
      "frames": 3,
      "rows": 4
     },
-    "walk": {
-     "file": "creatures/dragon_green.png",
-     "w": 576,
+    "attack": {
+     "file": "creatures/dragon_green_attack.png",
+     "w": 768,
      "h": 768,
-     "frames": 3,
+     "frames": 4,
+     "rows": 4
+    },
+    "death": {
+     "file": "creatures/dragon_green_death.png",
+     "w": 768,
+     "h": 768,
+     "frames": 4,
      "rows": 4
     }
    },
@@ -1416,17 +1479,38 @@
    "kind": "grid",
    "anims": {
     "idle": {
-     "file": "creatures/dragon_aethereal.png",
+     "file": "creatures/dragon_aethereal_idle.png",
+     "w": 384,
+     "h": 768,
+     "frames": 2,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/dragon_aethereal_walk.png",
+     "w": 768,
+     "h": 768,
+     "frames": 4,
+     "rows": 4
+    },
+    "sprint": {
+     "file": "creatures/dragon_aethereal_sprint.png",
      "w": 576,
      "h": 768,
      "frames": 3,
      "rows": 4
     },
-    "walk": {
-     "file": "creatures/dragon_aethereal.png",
-     "w": 576,
+    "attack": {
+     "file": "creatures/dragon_aethereal_attack.png",
+     "w": 768,
      "h": 768,
-     "frames": 3,
+     "frames": 4,
+     "rows": 4
+    },
+    "death": {
+     "file": "creatures/dragon_aethereal_death.png",
+     "w": 768,
+     "h": 768,
+     "frames": 4,
      "rows": 4
     }
    },
@@ -1441,17 +1525,38 @@
    "kind": "grid",
    "anims": {
     "idle": {
-     "file": "creatures/twin_dragon_blue.png",
+     "file": "creatures/twin_dragon_blue_idle.png",
+     "w": 320,
+     "h": 640,
+     "frames": 2,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/twin_dragon_blue_walk.png",
+     "w": 640,
+     "h": 640,
+     "frames": 4,
+     "rows": 4
+    },
+    "sprint": {
+     "file": "creatures/twin_dragon_blue_sprint.png",
      "w": 480,
      "h": 640,
      "frames": 3,
      "rows": 4
     },
-    "walk": {
-     "file": "creatures/twin_dragon_blue.png",
-     "w": 480,
+    "attack": {
+     "file": "creatures/twin_dragon_blue_attack.png",
+     "w": 640,
      "h": 640,
-     "frames": 3,
+     "frames": 4,
+     "rows": 4
+    },
+    "death": {
+     "file": "creatures/twin_dragon_blue_death.png",
+     "w": 640,
+     "h": 640,
+     "frames": 4,
      "rows": 4
     }
    },
@@ -1466,17 +1571,38 @@
    "kind": "grid",
    "anims": {
     "idle": {
-     "file": "creatures/twin_dragon_red.png",
+     "file": "creatures/twin_dragon_red_idle.png",
+     "w": 320,
+     "h": 640,
+     "frames": 2,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/twin_dragon_red_walk.png",
+     "w": 640,
+     "h": 640,
+     "frames": 4,
+     "rows": 4
+    },
+    "sprint": {
+     "file": "creatures/twin_dragon_red_sprint.png",
      "w": 480,
      "h": 640,
      "frames": 3,
      "rows": 4
     },
-    "walk": {
-     "file": "creatures/twin_dragon_red.png",
-     "w": 480,
+    "attack": {
+     "file": "creatures/twin_dragon_red_attack.png",
+     "w": 640,
      "h": 640,
-     "frames": 3,
+     "frames": 4,
+     "rows": 4
+    },
+    "death": {
+     "file": "creatures/twin_dragon_red_death.png",
+     "w": 640,
+     "h": 640,
+     "frames": 4,
      "rows": 4
     }
    },
@@ -1491,17 +1617,38 @@
    "kind": "grid",
    "anims": {
     "idle": {
-     "file": "creatures/twin_dragon_green.png",
+     "file": "creatures/twin_dragon_green_idle.png",
+     "w": 320,
+     "h": 640,
+     "frames": 2,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/twin_dragon_green_walk.png",
+     "w": 640,
+     "h": 640,
+     "frames": 4,
+     "rows": 4
+    },
+    "sprint": {
+     "file": "creatures/twin_dragon_green_sprint.png",
      "w": 480,
      "h": 640,
      "frames": 3,
      "rows": 4
     },
-    "walk": {
-     "file": "creatures/twin_dragon_green.png",
-     "w": 480,
+    "attack": {
+     "file": "creatures/twin_dragon_green_attack.png",
+     "w": 640,
      "h": 640,
-     "frames": 3,
+     "frames": 4,
+     "rows": 4
+    },
+    "death": {
+     "file": "creatures/twin_dragon_green_death.png",
+     "w": 640,
+     "h": 640,
+     "frames": 4,
      "rows": 4
     }
    },
@@ -1516,17 +1663,38 @@
    "kind": "grid",
    "anims": {
     "idle": {
-     "file": "creatures/twin_dragon_aethereal.png",
+     "file": "creatures/twin_dragon_aethereal_idle.png",
+     "w": 320,
+     "h": 640,
+     "frames": 2,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/twin_dragon_aethereal_walk.png",
+     "w": 640,
+     "h": 640,
+     "frames": 4,
+     "rows": 4
+    },
+    "sprint": {
+     "file": "creatures/twin_dragon_aethereal_sprint.png",
      "w": 480,
      "h": 640,
      "frames": 3,
      "rows": 4
     },
-    "walk": {
-     "file": "creatures/twin_dragon_aethereal.png",
-     "w": 480,
+    "attack": {
+     "file": "creatures/twin_dragon_aethereal_attack.png",
+     "w": 640,
      "h": 640,
-     "frames": 3,
+     "frames": 4,
+     "rows": 4
+    },
+    "death": {
+     "file": "creatures/twin_dragon_aethereal_death.png",
+     "w": 640,
+     "h": 640,
+     "frames": 4,
      "rows": 4
     }
    },
@@ -1534,6 +1702,209 @@
     "h": 0.688,
     "b": 0.075,
     "w": 0.887
+   }
+  },
+  "farm_chicken": {
+   "frame": 32,
+   "kind": "grid",
+   "anims": {
+    "walk": {
+     "file": "creatures/farm_chicken_walk.png",
+     "w": 128,
+     "h": 128,
+     "frames": 4,
+     "rows": 4
+    },
+    "idle": {
+     "file": "creatures/farm_chicken_idle.png",
+     "w": 128,
+     "h": 128,
+     "frames": 4,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.844,
+    "b": 0.094,
+    "w": 0.938
+   }
+  },
+  "farm_cow": {
+   "frame": 128,
+   "kind": "grid",
+   "anims": {
+    "walk": {
+     "file": "creatures/farm_cow_walk.png",
+     "w": 512,
+     "h": 512,
+     "frames": 4,
+     "rows": 4
+    },
+    "idle": {
+     "file": "creatures/farm_cow_idle.png",
+     "w": 512,
+     "h": 512,
+     "frames": 4,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.555,
+    "b": 0.125,
+    "w": 0.68
+   }
+  },
+  "farm_pig": {
+   "frame": 128,
+   "kind": "grid",
+   "anims": {
+    "walk": {
+     "file": "creatures/farm_pig_walk.png",
+     "w": 512,
+     "h": 512,
+     "frames": 4,
+     "rows": 4
+    },
+    "idle": {
+     "file": "creatures/farm_pig_idle.png",
+     "w": 512,
+     "h": 512,
+     "frames": 4,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.375,
+    "b": 0.281,
+    "w": 0.469
+   }
+  },
+  "farm_sheep": {
+   "frame": 128,
+   "kind": "grid",
+   "anims": {
+    "walk": {
+     "file": "creatures/farm_sheep_walk.png",
+     "w": 512,
+     "h": 512,
+     "frames": 4,
+     "rows": 4
+    },
+    "idle": {
+     "file": "creatures/farm_sheep_idle.png",
+     "w": 512,
+     "h": 512,
+     "frames": 4,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.383,
+    "b": 0.305,
+    "w": 0.422
+   }
+  },
+  "farm_llama": {
+   "frame": 128,
+   "kind": "grid",
+   "anims": {
+    "walk": {
+     "file": "creatures/farm_llama_walk.png",
+     "w": 512,
+     "h": 512,
+     "frames": 4,
+     "rows": 4
+    },
+    "idle": {
+     "file": "creatures/farm_llama_idle.png",
+     "w": 512,
+     "h": 512,
+     "frames": 4,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.539,
+    "b": 0.266,
+    "w": 0.391
+   }
+  },
+  "golem_ice": {
+   "frame": 96,
+   "kind": "grid",
+   "anims": {
+    "walk": {
+     "file": "creatures/golem_ice_walk.png",
+     "w": 672,
+     "h": 384,
+     "frames": 7,
+     "rows": 4
+    },
+    "attack": {
+     "file": "creatures/golem_ice_attack.png",
+     "w": 672,
+     "h": 384,
+     "frames": 7,
+     "rows": 4
+    },
+    "death": {
+     "file": "creatures/golem_ice_death.png",
+     "w": 672,
+     "h": 192,
+     "frames": 14,
+     "cols": 7
+    },
+    "idle": {
+     "file": "creatures/golem_ice_walk.png",
+     "w": 672,
+     "h": 384,
+     "frames": 7,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.646,
+    "b": 0.021,
+    "w": 0.573
+   }
+  },
+  "golem_stone": {
+   "frame": 96,
+   "kind": "grid",
+   "anims": {
+    "walk": {
+     "file": "creatures/golem_stone_walk.png",
+     "w": 672,
+     "h": 384,
+     "frames": 7,
+     "rows": 4
+    },
+    "attack": {
+     "file": "creatures/golem_stone_attack.png",
+     "w": 672,
+     "h": 384,
+     "frames": 7,
+     "rows": 4
+    },
+    "death": {
+     "file": "creatures/golem_stone_death.png",
+     "w": 672,
+     "h": 192,
+     "frames": 14,
+     "cols": 7
+    },
+    "idle": {
+     "file": "creatures/golem_stone_walk.png",
+     "w": 672,
+     "h": 384,
+     "frames": 7,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.646,
+    "b": 0.021,
+    "w": 0.573
    }
   }
  },

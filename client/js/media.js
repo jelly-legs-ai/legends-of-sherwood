@@ -129,6 +129,8 @@ function drawFrame(ctx, def, m, e, a, now, sx, sy, scale, fi) {
   } else if (e.tint === 'spectral') { // aethereal dragons: pre-dyed pale, plus a ghostlight halo
     ctx.shadowColor = '#bfeaff'; ctx.shadowBlur = 16;
     ctx.globalAlpha *= 0.92;
+  } else if (e.tint === 'frost') { // ice golems: rimed sheet + a cold-mist aura
+    ctx.shadowColor = '#9fd8ff'; ctx.shadowBlur = 13;
   }
   ctx.imageSmoothingEnabled = fw >= 128 && boost < 1.5;         // pixel art stays crisp
   ctx.drawImage(im, sxx, syy, fw, fh, flip ? sx - S / 2 : dx, dy, S, drawH);

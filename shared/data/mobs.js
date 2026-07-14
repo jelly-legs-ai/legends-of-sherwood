@@ -134,16 +134,20 @@ mob('brown_bear', { name: 'Brown bear', lvl: 30, life: 90, atk: 18, def: 16, cri
 
 // ---- Farm animals: passive; gathered with tools (bucket/shears), not killed.
 // `farm` lists what each yields: milk (bucket), wool/alpaca_wool (shears).
-mob('cow', { name: 'Cow', lvl: 2, life: 20, atk: 0, def: 2, critter: 'cow', style: 'melee', scale: 1.15, farm: { milk: 'milk', shearXp: 0, milkXp: 20 },
+// The pasture stock uses the LPC farm-animal sheets (4-dir walk + a grazing
+// idle); the eat animation plays whenever they stand still.
+mob('cow', { name: 'Cow', lvl: 2, life: 20, atk: 0, def: 2, sheet: 'farm_cow', style: 'melee', scale: 0.85, farm: { milk: 'milk', shearXp: 0, milkXp: 20 },
   drops: [['bones', 1, 1], ['cow_hide', 1, 0.6], ['raw_venison', 1, 0.3]] });
-mob('sheep', { name: 'Sheep', lvl: 1, life: 12, atk: 0, def: 1, critter: 'sheep', style: 'melee', scale: 0.95, farm: { milk: 'milk', wool: 'wool', milkXp: 14, shearXp: 18 },
+mob('sheep', { name: 'Sheep', lvl: 1, life: 12, atk: 0, def: 1, sheet: 'farm_sheep', style: 'melee', scale: 0.7, farm: { milk: 'milk', wool: 'wool', milkXp: 14, shearXp: 18 },
   drops: [['bones', 1, 1], ['wool', [1, 2], 0.5]] });
-mob('pig_farm', { name: 'Pig', lvl: 3, life: 16, atk: 1, def: 2, critter: 'pig', style: 'melee', scale: 0.9,
+mob('pig_farm', { name: 'Pig', lvl: 3, life: 16, atk: 1, def: 2, sheet: 'farm_pig', style: 'melee', scale: 0.7,
   drops: [['bones', 1, 1], ['raw_venison', 1, 0.5]] });
 mob('horse', { name: 'Horse', lvl: 6, life: 40, atk: 0, def: 6, critter: 'horse', style: 'melee', scale: 1.25,
   drops: [['bones', 1, 1]] });
-mob('alpaca', { name: 'Alpaca', lvl: 4, life: 22, atk: 0, def: 3, critter: 'alpaca', style: 'melee', scale: 1.0, farm: { wool: 'alpaca_wool', shearXp: 30 },
+mob('llama', { name: 'Llama', lvl: 4, life: 22, atk: 0, def: 3, sheet: 'farm_llama', style: 'melee', scale: 0.85, farm: { wool: 'alpaca_wool', shearXp: 30 },
   drops: [['bones', 1, 1], ['alpaca_wool', 1, 0.4]] });
+mob('chicken', { name: 'Chicken', lvl: 1, life: 4, atk: 0, def: 1, sheet: 'farm_chicken', style: 'melee', scale: 0.38,
+  drops: [['bones', 1, 1], ['feathers', [1, 4], 1]] });
 mob('farm_dog', { name: 'Farm dog', lvl: 3, life: 18, atk: 3, def: 3, critter: 'farmdog', style: 'melee', speed: 3.2,
   drops: [['bones', 1, 1]] });
 
@@ -182,8 +186,12 @@ mob('pebble_imp', { name: 'Pebble imp', lvl: 16, life: 36, atk: 8, def: 9, sheet
   drops: [['coins', [4, 14], 0.8], ['copper_ore', 1, 0.4], ['tin_ore', 1, 0.4], ['iron_ore', 1, 0.2]] });
 mob('cave_bat', { name: 'Cave bat', lvl: 14, life: 30, atk: 8, def: 6, sheet: 'cave_bat', style: 'melee', aggro: true, speed: 3.6,
   drops: [['bones', 1, 1], ['coins', [3, 12], 0.6]] });
-mob('stone_golem', { name: 'Stone golem', lvl: 55, life: 170, atk: 32, def: 34, sheet: 'stone_golem', style: 'melee', aggro: true, speed: 1.8,
+mob('stone_golem', { name: 'Stone golem', lvl: 55, life: 170, atk: 32, def: 34, sheet: 'golem_stone', scale: 1.15, style: 'melee', aggro: true, speed: 1.8,
   drops: [['big_bones', 1, 1], ['coal', [1, 3], 0.5], ['silver_ore', 1, 0.3], ['gold_ore', 1, 0.15], ['sapphire', 1, 0.08], ['emerald', 1, 0.04], ['tome_mining', 1, 0.005]] });
+// Its rimed northern cousin: the same ancient frame sheathed in ice, wreathed
+// in a frost aura (tint 'frost' adds the render-time halo).
+mob('ice_golem', { name: 'Ice golem', lvl: 66, life: 230, atk: 40, def: 42, sheet: 'golem_ice', tint: 'frost', scale: 1.2, style: 'melee', aggro: true, speed: 1.7,
+  drops: [['big_bones', 1, 1], ['water_rune', [4, 12], 0.6], ['mithril_ore', 1, 0.25], ['silver_ore', 1, 0.3], ['sapphire', 1, 0.12], ['diamond', 1, 0.02], ['cobalt_charm', 1, 0.2]] });
 mob('crag_raptor', { name: 'Crag raptor', lvl: 60, life: 176, atk: 37, def: 28, sheet: 'archeopteryx', style: 'melee', aggro: true, speed: 3.6, scale: 0.9,
   drops: [['big_bones', 1, 1], ['feathers', [8, 20], 1], ['raw_venison', 1, 0.4], ['amber_charm', 1, 0.2]] });
 // Northmoor / winter

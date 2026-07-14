@@ -318,7 +318,8 @@ export const SPAWNS = [
   // ---- farm animals: pastures by the hamlets (passive; milk/shear, not fight) ----
   { mob: 'cow', x: 200, y: 366, r: 6, n: 4 }, { mob: 'sheep', x: 194, y: 370, r: 6, n: 5 },
   { mob: 'pig_farm', x: 189, y: 364, r: 4, n: 3 }, { mob: 'horse', x: 204, y: 362, r: 5, n: 2 },
-  { mob: 'farm_dog', x: 196, y: 360, r: 4, n: 1 }, { mob: 'alpaca', x: 190, y: 372, r: 4, n: 3 },
+  { mob: 'farm_dog', x: 196, y: 360, r: 4, n: 1 }, { mob: 'llama', x: 190, y: 372, r: 4, n: 3 },
+  { mob: 'chicken', x: 198, y: 363, r: 4, n: 5 }, { mob: 'chicken', x: 249, y: 350, r: 4, n: 4 },   // hen runs
   { mob: 'cow', x: 250, y: 350, r: 6, n: 3 }, { mob: 'sheep', x: 256, y: 352, r: 6, n: 4 },   // Loxley allotments
   { mob: 'sheep', x: 62, y: 426, r: 5, n: 3 }, { mob: 'pig_farm', x: 58, y: 424, r: 4, n: 2 }, // Bay
   { mob: 'sheep', x: 145, y: 255, r: 4, n: 3 },   // Hathersage fold
@@ -351,6 +352,7 @@ export const SPAWNS = [
   { mob: 'winter_wolf', x: 236, y: 152, r: 16, n: 5 }, { mob: 'winter_wolf', x: 316, y: 142, r: 14, n: 4 },
   { mob: 'wild_reindeer', x: 276, y: 168, r: 16, n: 5 }, { mob: 'wild_reindeer', x: 330, y: 190, r: 12, n: 4 },
   { mob: 'frost_wight', x: 258, y: 120, r: 14, n: 4 }, { mob: 'lost_spirit', x: 352, y: 172, r: 10, n: 3 },
+  { mob: 'ice_golem', x: 246, y: 132, r: 10, n: 2 }, { mob: 'ice_golem', x: 214, y: 66, r: 10, n: 2 },   // rimed sentinels
   { mob: 'lost_spirit', x: 342, y: 368, r: 6, n: 2 },
   // Elderglade deep & Wild Lands
   { mob: 'gloom_moth', x: 292, y: 486, r: 14, n: 4 }, { mob: 'gloom_moth', x: 226, y: 508, r: 12, n: 3 },

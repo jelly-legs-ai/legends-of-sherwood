@@ -465,7 +465,7 @@ for (const t of ['small_fishing_net', 'fishing_rod', 'harpoon', 'tinderbox', 'kn
 // Farm produce (from milking cows/sheep and shearing sheep/alpacas)
 def('milk', { name: 'Bucket of milk', value: 12, material: true });
 def('wool', { name: 'Wool', stack: true, value: 8, material: true });
-def('alpaca_wool', { name: 'Alpaca wool', stack: true, value: 22, material: true });
+def('alpaca_wool', { name: 'Llama wool', stack: true, value: 22, material: true });   // id kept for saves; the herd is llamas now
 def('cheese', { name: 'Cheese', value: 30, food: true, heal: 6 });
 def('ball_of_wool', { name: 'Ball of wool', stack: true, value: 14, material: true });
 def('fishing_bait', { name: 'Fishing bait', stack: true, value: 1 });

@@ -63,6 +63,47 @@ function artOf(img, cell) {
   return { h: +(((y1 - y0 + 1) / cell).toFixed(3)), b: +(((cell - 1 - y1) / cell).toFixed(3)), w: +(((x1 - x0 + 1) / cell).toFixed(3)) };
 }
 
+// Copy one repacked cell into a new sheet with offset + alpha fade.
+function putCell(dst, packed, cell, srcFrame, dstCol, row, dx = 0, dy = 0, alpha = 1) {
+  const cellImg = makeImage(cell, cell);
+  blit(cellImg, 0, 0, packed, srcFrame * cell, row * cell, cell, cell);
+  if (alpha < 1) for (let i = 3; i < cellImg.data.length; i += 4) cellImg.data[i] = cellImg.data[i] * alpha | 0;
+  // clamp the paste inside the destination cell so offsets never bleed
+  const bx = dstCol * cell, by = row * cell;
+  const sx = Math.max(0, -dx), sy = Math.max(0, -dy);
+  blit(dst, bx + Math.max(0, dx), by + Math.max(0, dy), cellImg, sx, sy, cell - Math.abs(dx), cell - Math.abs(dy));
+}
+// Per-row facing vector for our [S,N,W,E] sheet order — attacks lunge forward.
+const ROW_FWD = [[0, 1], [0, -1], [-1, 0], [1, 0]];
+
+// The source pack ships ONE 3-frame powered-flight flap (a sprint). We derive
+// the full set: a gentle 2-frame hover idle, a slowed 4-frame walk, a 4-frame
+// swoop-strike attack (wind-up, lunge along the facing, recover), a 4-frame
+// collapse-and-fade death, and the raw flap kept as 'sprint' for mounts.
+function buildAnims(packed, cell) {
+  const mk = (cols) => makeImage(cols * cell, 4 * cell);
+  const sheets = {
+    idle: mk(2), walk: mk(4), sprint: mk(3), attack: mk(4), death: mk(4),
+  };
+  for (let row = 0; row < 4; row++) {
+    const [fx, fy] = ROW_FWD[row];
+    for (const [c, f] of [[0, 1], [1, 2]].values()) putCell(sheets.idle, packed, cell, f, c, row);
+    for (const [c, f] of [[0, 0], [1, 1], [2, 2], [3, 1]].values()) putCell(sheets.walk, packed, cell, f, c, row);
+    for (let c = 0; c < 3; c++) putCell(sheets.sprint, packed, cell, c, c, row);
+    // attack: wings up, coil back, lunge forward, recover
+    putCell(sheets.attack, packed, cell, 2, 0, row);
+    putCell(sheets.attack, packed, cell, 1, 1, row, -fx * 5, -fy * 5);
+    putCell(sheets.attack, packed, cell, 0, 2, row, fx * 12, fy * 12);
+    putCell(sheets.attack, packed, cell, 1, 3, row, fx * 5, fy * 5);
+    // death: falter, drop, crumple, fade
+    putCell(sheets.death, packed, cell, 1, 0, row, 0, 2, 1);
+    putCell(sheets.death, packed, cell, 0, 1, row, 0, 7, 0.85);
+    putCell(sheets.death, packed, cell, 0, 2, row, 0, 13, 0.6);
+    putCell(sheets.death, packed, cell, 0, 3, row, 0, 19, 0.35);
+  }
+  return sheets;
+}
+
 // [outPrefix, srcFile, cw, ch, cols, cell, baseHue, dyes {name: [deg, desat, lift]}]
 const JOBS = [
   ['dragon', 'flying_dragon-red-RGB.png', 191, 161, 3, 192, 'red', {
@@ -76,19 +117,17 @@ for (const [prefix, file, cw, chh, cols, cell, , dyes] of JOBS) {
   const img = decode(fs.readFileSync(path.join(SRC, file)));
   const packed = repack(img, cw, chh, cols, cell);
   const art = artOf(packed, cell);
+  const anims = buildAnims(packed, cell);
   for (const [color, dye] of Object.entries(dyes)) {
-    const data = dye ? rotateHue(packed.data, dye[0], dye[1], dye[2]) : packed.data;
-    const name = `${prefix}_${color}.png`;
-    fs.writeFileSync(path.join(OUT, name), encode(packed.w, packed.h, data));
-    media.creatures[`${prefix}_${color}`] = {
-      frame: cell, kind: 'grid',
-      anims: {
-        idle: { file: `creatures/${name}`, w: packed.w, h: packed.h, frames: cols, rows: 4 },
-        walk: { file: `creatures/${name}`, w: packed.w, h: packed.h, frames: cols, rows: 4 },
-      },
-      art,
-    };
-    console.log(`${prefix}_${color}: ${packed.w}x${packed.h} cell ${cell} art`, art);
+    const entry = { frame: cell, kind: 'grid', anims: {}, art };
+    for (const [anim, sheet] of Object.entries(anims)) {
+      const data = dye ? rotateHue(sheet.data, dye[0], dye[1], dye[2]) : sheet.data;
+      const name = `${prefix}_${color}_${anim}.png`;
+      fs.writeFileSync(path.join(OUT, name), encode(sheet.w, sheet.h, data));
+      entry.anims[anim] = { file: `creatures/${name}`, w: sheet.w, h: sheet.h, frames: sheet.w / cell, rows: 4 };
+    }
+    media.creatures[`${prefix}_${color}`] = entry;
+    console.log(`${prefix}_${color}: ${Object.keys(entry.anims).join(',')} art`, art);
   }
 }
 fs.writeFileSync(MEDIA, JSON.stringify(media, null, 1));
