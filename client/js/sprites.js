@@ -498,7 +498,96 @@ function blobs(g, list, fill, outline) {
   g.fillStyle = fill; for (const [x, y, rx, ry] of list) { g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, 7); g.fill(); }
 }
 
+// Front (dir 2, toward camera) and back (dir 0, walking away) views of the
+// four-legged animals: a narrow foreshortened body, symmetric features, the
+// face only when it looks at you — and the tail only when it doesn't.
+function drawQuadFB(g, st, s, swing, bob, type, pose = {}) {
+  const front = pose.dir === 2;
+  const cx = 32, cy = 40 - bob;
+  const bw = (st.len ?? 15) * s * 0.42, bh = (st.ht ?? 8) * s * 1.15;   // foreshortened barrel
+  const legLen = (st.leg ?? 6) * s, legW = Math.max(2, (st.legW ?? 3) * s);
+  const legY = cy + bh - 1;
+  const hoof = st.hoof || '#241c16';
+  // ground contact shadow
+  g.fillStyle = 'rgba(0,0,0,0.18)';
+  g.beginPath(); g.ellipse(cx, legY + legLen + 1, bw * 1.5, 2.2 * s, 0, 0, 7); g.fill();
+  // the visible leg pair, striding alternately (vertical scissor toward camera)
+  for (const [side, ph] of [[-1, swing], [1, -swing]]) {
+    const lx = cx + side * bw * 0.55, lift = Math.max(0, ph * 1.6 * s);
+    px(g, lx - legW / 2 - 1, legY - lift, legW + 2, legLen - lift + 1, OUTLINE);
+    px(g, lx - legW / 2, legY - lift, legW, legLen - lift, st.sh);
+    px(g, lx - legW / 2, legY + legLen - lift - Math.max(2, legLen * 0.3), legW, Math.max(2, legLen * 0.3), hoof);
+  }
+  // haunches flanking the barrel
+  blobs(g, [
+    [cx - bw * 0.7, cy + bh * 0.25, bw * 0.55, bh * 0.55],
+    [cx + bw * 0.7, cy + bh * 0.25, bw * 0.55, bh * 0.55],
+    [cx, cy, bw, bh],
+  ], st.body, OUTLINE);
+  // form shading: lit crown, shaded flanks
+  g.save();
+  g.beginPath(); g.ellipse(cx, cy, bw * 1.05, bh * 1.02, 0, 0, 7); g.clip();
+  oval(g, cx, cy + bh * 0.55, bw * 0.95, bh * 0.5, st.sh);
+  g.globalAlpha = 0.85; oval(g, cx, cy - bh * 0.45, bw * 0.8, bh * 0.42, st.hi); g.globalAlpha = 1;
+  g.restore();
+  if (st.hump) oval(g, cx, cy - bh * 0.55, bw * 0.8, bh * 0.4, st.body, OUTLINE);
+  if (st.wool) for (let i = -2; i <= 2; i++) oval(g, cx + i * bw * 0.42, cy - bh * 0.35 + (i % 2) * 2, bw * 0.34, bh * 0.3, st.hi, OUTLINE);
+  if (st.cowspots) { oval(g, cx - bw * 0.45, cy - bh * 0.1, bw * 0.32, bh * 0.3, '#3a332c'); oval(g, cx + bw * 0.4, cy + bh * 0.3, bw * 0.28, bh * 0.24, '#3a332c'); }
+  if (st.udder && front) oval(g, cx, cy + bh * 0.72, bw * 0.34, bh * 0.18, '#e79aa2', OUTLINE);
+  if (st.shell) { oval(g, cx, cy - bh * 0.1, bw * 0.9, bh * 0.7, st.sh, OUTLINE); g.strokeStyle = st.hi; g.lineWidth = 1; g.beginPath(); g.moveTo(cx, cy - bh * 0.7); g.lineTo(cx, cy + bh * 0.5); g.stroke(); }
+  if (st.spikes) { g.fillStyle = st.sh; for (let i = -2; i <= 2; i++) { g.beginPath(); g.moveTo(cx + i * 3 - 1.3, cy - bh * 0.5); g.lineTo(cx + i * 3, cy - bh * 0.5 - 4); g.lineTo(cx + i * 3 + 1.3, cy - bh * 0.5); g.fill(); } }
+  // wings (whelps) flare symmetrically behind the body
+  if (st.wings) {
+    const flap = swing * 4;
+    g.fillStyle = st.sh;
+    for (const sd of [-1, 1]) {
+      g.beginPath(); g.moveTo(cx + sd * bw * 0.6, cy - bh * 0.4);
+      g.quadraticCurveTo(cx + sd * (bw + 12), cy - bh - 6 - flap, cx + sd * (bw + 15), cy - flap);
+      g.quadraticCurveTo(cx + sd * bw, cy - bh * 0.1, cx + sd * bw * 0.6, cy - bh * 0.2); g.fill();
+    }
+  }
+  // tail shows on the way OUT
+  if (!front) {
+    if (st.tail === 'bush') { oval(g, cx, cy + bh * 0.15, 4.5 * s, 5.5 * s, st.body, OUTLINE); oval(g, cx, cy + bh * 0.35, 3 * s, 3.4 * s, st.hi); }
+    else if (st.tail === 'long') { g.strokeStyle = OUTLINE; g.lineWidth = 3.6 * s; g.beginPath(); g.moveTo(cx, cy); g.quadraticCurveTo(cx + swing * 2, cy + bh * 0.8, cx - swing * 2, cy + bh + 4); g.stroke(); g.strokeStyle = st.sh; g.lineWidth = 2 * s; g.stroke(); }
+    else if (st.tail === 'puff') oval(g, cx, cy + bh * 0.3, 2.8 * s, 2.8 * s, '#f4efe4', OUTLINE);
+    else if (st.tail === 'thin' || st.tail === 'curl') { g.strokeStyle = st.sh; g.lineWidth = 1.6; g.beginPath(); g.moveTo(cx, cy + bh * 0.1); g.quadraticCurveTo(cx + 2, cy + bh * 0.7, cx - 1 + swing, cy + bh + 3); g.stroke(); }
+  }
+  // head above the body (a touch lower when the carriage is low)
+  const hr = (st.headR ?? 5.5) * s;
+  const hy = cy - bh - hr * (st.headLow ? 0.35 : 0.6) + (st.longneck || st.horsemane ? -4 * s : 0);
+  if (st.longneck || st.horsemane) { g.strokeStyle = OUTLINE; g.lineWidth = 5.5 * s; g.lineCap = 'round'; g.beginPath(); g.moveTo(cx, cy - bh * 0.4); g.lineTo(cx, hy + hr * 0.4); g.stroke(); g.strokeStyle = st.body; g.lineWidth = 4.2 * s; g.stroke(); }
+  oval(g, cx, hy, hr * 0.95, hr, st.body, OUTLINE);
+  if (front) oval(g, cx, hy - hr * 0.3, hr * 0.55, hr * 0.45, st.hi);
+  // ears ride both sides
+  if (st.ears === 'tall') for (const sd of [-1, 1]) { oval(g, cx + sd * hr * 0.55, hy - hr - 2.5, 1.7 * s, 4.4 * s, st.body, OUTLINE); if (front) oval(g, cx + sd * hr * 0.55, hy - hr - 2.5, 0.8 * s, 2.8 * s, '#e8b0b0'); }
+  else if (st.ears === 'point') for (const sd of [-1, 1]) { g.fillStyle = OUTLINE; g.beginPath(); g.moveTo(cx + sd * hr * 0.8 - 2, hy - hr + 2); g.lineTo(cx + sd * hr * 0.8, hy - hr - 4); g.lineTo(cx + sd * hr * 0.8 + 2, hy - hr + 2); g.fill(); g.fillStyle = st.sh; g.beginPath(); g.moveTo(cx + sd * hr * 0.8 - 1, hy - hr + 1.4); g.lineTo(cx + sd * hr * 0.8, hy - hr - 2.4); g.lineTo(cx + sd * hr * 0.8 + 1, hy - hr + 1.4); g.fill(); }
+  else if (st.ears === 'round') for (const sd of [-1, 1]) oval(g, cx + sd * hr * 0.75, hy - hr * 0.95, 2 * s, 2 * s, st.body, OUTLINE);
+  else if (st.ears === 'flop') for (const sd of [-1, 1]) { g.fillStyle = st.sh; g.beginPath(); g.ellipse(cx + sd * hr * 0.85, hy - hr * 0.2, 1.7 * s, 3.2 * s, sd * 0.4, 0, 7); g.fill(); g.strokeStyle = OUTLINE; g.lineWidth = 0.8; g.stroke(); }
+  if (st.horns === 'curl') for (const sd of [-1, 1]) { g.strokeStyle = '#e8dcc0'; g.lineWidth = 2.2; g.beginPath(); g.moveTo(cx + sd * hr * 0.5, hy - hr + 1); g.quadraticCurveTo(cx + sd * (hr + 4), hy - hr - 4, cx + sd * (hr + 2), hy - hr - 7); g.stroke(); }
+  if (st.antlers) { g.strokeStyle = '#b98a3c'; g.lineWidth = 2; for (const sd of [-1, 1]) { g.beginPath(); g.moveTo(cx + sd * hr * 0.5, hy - hr); g.lineTo(cx + sd * (hr * 0.5 + 3), hy - hr - 7); g.moveTo(cx + sd * (hr * 0.5 + 1.5), hy - hr - 4); g.lineTo(cx + sd * (hr * 0.5 + 5), hy - hr - 5); g.stroke(); } }
+  if (st.mane || st.horsemane) { g.fillStyle = st.sh; for (let i = -2; i <= 2; i++) { g.beginPath(); g.moveTo(cx + i * 2.6, hy - hr + (front ? 0 : 1)); g.lineTo(cx + i * 2.6 + 1.3, hy - hr - 4); g.lineTo(cx + i * 2.6 + 2.6, hy - hr + (front ? 0 : 1)); g.fill(); } }
+  if (front) {
+    // the face: both eyes, a centred snout, and species trimmings
+    if (st.stripes) for (const sd of [-1, 1]) px(g, cx + sd * hr * 0.45 - 0.8, hy - hr * 0.8, 1.6, hr * 1.4, '#e8e8ec');
+    if (pose.hurt > 0.3) { eyeX(g, cx - hr * 0.45, hy - hr * 0.15); eyeX(g, cx + hr * 0.45, hy - hr * 0.15); }
+    else { eye(g, cx - hr * 0.45, hy - hr * 0.15, st.sleek ? 1.7 : 1.5); eye(g, cx + hr * 0.45, hy - hr * 0.15, st.sleek ? 1.7 : 1.5); }
+    if (st.snout === 'boar' || st.snout === 'long') { oval(g, cx, hy + hr * 0.45, 2.6 * s, 1.9 * s, st.hi, OUTLINE); px(g, cx - 1.4, hy + hr * 0.45, 1, 1.4, '#1c1418'); px(g, cx + 0.6, hy + hr * 0.45, 1, 1.4, '#1c1418'); }
+    else if (st.snout === 'point') { g.fillStyle = st.sh; g.beginPath(); g.moveTo(cx - 1.6, hy + hr * 0.2); g.lineTo(cx, hy + hr * 0.75); g.lineTo(cx + 1.6, hy + hr * 0.2); g.fill(); px(g, cx - 0.7, hy + hr * 0.62, 1.4, 1.4, '#d99'); }
+    else oval(g, cx, hy + hr * 0.5, 1.8 * s, 1.3 * s, st.hi);
+    if (st.tusks) { px(g, cx - hr * 0.5, hy + hr * 0.45, 1.4, 3, '#f4ecd8'); px(g, cx + hr * 0.5 - 1.4, hy + hr * 0.45, 1.4, 3, '#f4ecd8'); }
+    if (st.beard) px(g, cx - 1, hy + hr * 0.8, 2, 4, '#e8e0d0');
+    if (pose.atk > 0.35) maw(g, cx, hy + hr * 0.75, 2 * s, pose.atk);
+  } else {
+    // walking away: just the back of the skull and a neck-ridge shade
+    g.strokeStyle = st.sh; g.lineWidth = 1.2; g.globalAlpha = 0.6;
+    g.beginPath(); g.moveTo(cx, hy - hr * 0.6); g.lineTo(cx, hy + hr * 0.5); g.stroke();
+    g.globalAlpha = 1;
+  }
+}
+
 function drawQuad(g, st, s, swing, bob, type, pose = {}) {
+  if (pose.dir === 0 || pose.dir === 2) return drawQuadFB(g, st, s, swing, bob, type, pose);
   const cx = 30, cy = 40 - bob;
   // Per-species build: length/height/leg carve a recognisable silhouette rather
   // than one shared oval. Unset falls back to the old generic proportions.
@@ -601,9 +690,31 @@ function drawQuad(g, st, s, swing, bob, type, pose = {}) {
   if (st.antlers) { g.strokeStyle = '#b98a3c'; g.lineWidth = 2; g.shadowColor = '#ffe08a'; g.shadowBlur = 6; for (const dx of [-2, 4]) { g.beginPath(); g.moveTo(hx + dx, hy - hr); g.lineTo(hx + dx - 2, hy - hr - 7); g.moveTo(hx + dx - 2, hy - hr - 4); g.lineTo(hx + dx - 5, hy - hr - 5); g.moveTo(hx + dx - 1, hy - hr - 6); g.lineTo(hx + dx + 2, hy - hr - 9); g.stroke(); } g.shadowBlur = 0; }
 }
 
-function drawBird(g, st, s, swing) {
+function drawBird(g, st, s, swing, pose = {}) {
   const cx = 32, cy = 36;
   const flap = swing * 6;
+  if (pose.dir === 0 || pose.dir === 2) {
+    const front = pose.dir === 2;
+    // symmetric wings beating either side of a foreshortened body
+    for (const sd of [-1, 1]) {
+      g.fillStyle = sd < 0 ? st.sh : st.body;
+      g.beginPath(); g.moveTo(cx + sd * 3, cy - 2);
+      g.quadraticCurveTo(cx + sd * 16, cy - 8 - flap, cx + sd * 21, cy + 2 - flap);
+      g.quadraticCurveTo(cx + sd * 11, cy + 3, cx + sd * 3, cy + 2); g.closePath(); g.fill();
+      g.strokeStyle = OUTLINE; g.lineWidth = 1; g.stroke();
+    }
+    oval(g, cx, cy + 1, 5.5 * s, 8 * s, st.body, OUTLINE);
+    oval(g, cx, cy + 4, 3.6 * s, 4 * s, front ? st.hi : st.sh);
+    oval(g, cx, cy - 8 * s, 4 * s, 4 * s, st.body, OUTLINE);
+    if (front) {
+      eye(g, cx - 2, cy - 8 * s - 1, 1.3); eye(g, cx + 2, cy - 8 * s - 1, 1.3);
+      g.fillStyle = '#e0a83c'; g.beginPath(); g.moveTo(cx - 1.6, cy - 7 * s); g.lineTo(cx, cy - 5 * s); g.lineTo(cx + 1.6, cy - 7 * s); g.fill();
+    } else {
+      g.fillStyle = st.sh; g.beginPath(); g.moveTo(cx - 3, cy + 8); g.lineTo(cx, cy + 15); g.lineTo(cx + 3, cy + 8); g.fill();
+      g.strokeStyle = OUTLINE; g.lineWidth = 0.8; g.stroke();
+    }
+    return;
+  }
   // far wing
   g.fillStyle = st.sh; g.beginPath(); g.moveTo(cx, cy); g.quadraticCurveTo(cx - 14, cy - 6 - flap, cx - 20, cy + 2 - flap); g.quadraticCurveTo(cx - 10, cy + 2, cx, cy + 3); g.fill();
   // body
@@ -622,7 +733,29 @@ function drawBird(g, st, s, swing) {
   g.fillStyle = st.sh; g.beginPath(); g.moveTo(cx - 5, cy + 4); g.lineTo(cx - 12, cy + 9); g.lineTo(cx - 4, cy + 8); g.fill();
 }
 
-function drawSnake(g, st, s, frame) {
+function drawSnake(g, st, s, frame, pose = {}) {
+  if (pose.dir === 0 || pose.dir === 2) {
+    const front = pose.dir === 2;
+    // slither along the depth axis: a vertical serpentine, head nearest (front)
+    // or farthest (back)
+    const path = (lw, col, off = 0) => {
+      g.strokeStyle = col; g.lineWidth = lw; g.lineCap = 'round'; g.beginPath();
+      for (let i = 0; i <= 8; i++) {
+        const y = 22 + i * 4.2, x = 32 + Math.sin(i * 0.9 + frame * 0.5) * 4 * s + off;
+        i ? g.lineTo(x, y) : g.moveTo(x, y);
+      }
+      g.stroke();
+    };
+    path(9 * s, OUTLINE); path(6.5 * s, st.body); path(2 * s, st.hi, -1);
+    const hy = front ? 22 + 8 * 4.2 : 22;
+    const hx = 32 + Math.sin((front ? 8 : 0) * 0.9 + frame * 0.5) * 4 * s;
+    oval(g, hx, hy + (front ? 2 : -2), 4.2 * s, 3.4 * s, st.body, OUTLINE);
+    if (front) {
+      eye(g, hx - 1.8, hy + 1, 1.2); eye(g, hx + 1.8, hy + 1, 1.2);
+      g.strokeStyle = '#d33'; g.lineWidth = 1; g.beginPath(); g.moveTo(hx, hy + 5); g.lineTo(hx - 1.4, hy + 8); g.moveTo(hx, hy + 5); g.lineTo(hx + 1.4, hy + 8); g.stroke();
+    }
+    return;
+  }
   g.strokeStyle = OUTLINE; g.lineWidth = 9 * s;
   g.lineCap = 'round';
   const path = (lw, col) => { g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); g.moveTo(12, 44); for (let i = 0; i <= 8; i++) { const x = 12 + i * 4.6; const y = 40 + Math.sin(i * 0.9 + frame * 0.5) * 5 * s; g.lineTo(x, y); } g.stroke(); };
@@ -637,7 +770,23 @@ function drawSnake(g, st, s, frame) {
   g.strokeStyle = '#d33'; g.lineWidth = 1; g.beginPath(); g.moveTo(hx + 6, hy); g.lineTo(hx + 10, hy - 1); g.moveTo(hx + 6, hy); g.lineTo(hx + 10, hy + 1); g.stroke();
 }
 
-function drawWorm(g, st, s, frame) {
+function drawWorm(g, st, s, frame, pose = {}) {
+  if (pose.dir === 0 || pose.dir === 2) {
+    const front = pose.dir === 2;
+    // segments stacked along the depth axis; the head segment faces the camera
+    for (let i = 0; i <= 6; i++) {
+      const k = front ? i : 6 - i;                           // draw far-to-near
+      const y = front ? 26 + k * 4 : 50 - k * 4;
+      const x = 32 + Math.sin(k * 0.8 + frame * 0.6) * 2.4 * s;
+      const r = (k === 6 ? 6 : 3.6 + k * 0.35) * s;
+      oval(g, x, y, r, r * 0.85, k === 6 ? st.hi : st.body, OUTLINE);
+      if (k === 6 && front) {
+        eye(g, x - 2, y - 1.5, 1.2); eye(g, x + 2, y - 1.5, 1.2);
+        oval(g, x, y + 2, 2, 2.2, '#7a1f1f');                // sucker mouth
+      }
+    }
+    return;
+  }
   for (let i = 6; i >= 0; i--) {
     const x = 18 + i * 4, y = 42 - Math.sin(i * 0.8 + frame * 0.6) * 3 * s;
     const r = (i === 6 ? 6 : 5 - i * 0.2) * s;
@@ -648,8 +797,9 @@ function drawWorm(g, st, s, frame) {
   oval(g, 18 + 6 * 4 + 4, 42, 2, 2.4, '#7a1f1f');
 }
 
-function drawTreant(g, st, s, swing) {
+function drawTreant(g, st, s, swing, pose = {}) {
   const cx = 32;
+  const away = pose.dir === 0;   // seen from behind: bark, no face
   // root legs
   for (const dx of [-6, 6]) { px(g, cx + dx - 2, 50 + (dx > 0 ? swing : -swing), 5, 8, OUTLINE); px(g, cx + dx - 1, 50 + (dx > 0 ? swing : -swing), 3, 7, st.bark); }
   // trunk
@@ -665,10 +815,15 @@ function drawTreant(g, st, s, swing) {
   oval(g, cx, 22, 15 * s, 11 * s, st.leaf, '#24401f');
   oval(g, cx - 6, 18, 8 * s, 6 * s, st.leafHi);
   oval(g, cx + 7, 20, 7 * s, 5 * s, st.leafHi);
-  // face
-  eye(g, cx - 3, 40, 1.8); eye(g, cx + 3, 40, 1.8);
-  g.fillStyle = '#e6c890'; px(g, cx - 3, 40 - 2, 1, 1, '#e6c890'); px(g, cx + 3, 40 - 2, 1, 1, '#e6c890');
-  g.strokeStyle = '#2a1e12'; g.lineWidth = 1.4; g.beginPath(); g.arc(cx, 44, 3, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
+  // face on the near side only; from behind it's just weathered bark
+  if (!away) {
+    eye(g, cx - 3, 40, 1.8); eye(g, cx + 3, 40, 1.8);
+    g.fillStyle = '#e6c890'; px(g, cx - 3, 40 - 2, 1, 1, '#e6c890'); px(g, cx + 3, 40 - 2, 1, 1, '#e6c890');
+    g.strokeStyle = '#2a1e12'; g.lineWidth = 1.4; g.beginPath(); g.arc(cx, 44, 3, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
+  } else {
+    g.strokeStyle = st.barkHi; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(cx - 3, 34); g.lineTo(cx - 4, 47); g.moveTo(cx + 3, 33); g.lineTo(cx + 4, 46); g.stroke();
+  }
 }
 
 function drawBrute(g, st, s, swing, bob, pose = {}) {
@@ -686,15 +841,24 @@ function drawBrute(g, st, s, swing, bob, pose = {}) {
   oval(g, cx - 13, 47 + swing * 3, 4, 4, st.sh, OUTLINE); oval(g, cx + 13, 47 - swing * 3, 4, 4, st.sh, OUTLINE);
   // head
   oval(g, cx, top + 6, 7 * s, 6.5 * s, st.body, OUTLINE);
-  oval(g, cx - 2, top + 3, 3.5 * s, 3 * s, st.hi);
-  if (pose.hurt > 0.3) { eyeX(g, cx - 3, top + 6); eyeX(g, cx + 3, top + 6); }
-  else { eye(g, cx - 3, top + 6, 1.6); eye(g, cx + 3, top + 6, 1.6); }
-  // brow + mouth (a roaring maw on the attack lunge)
-  g.strokeStyle = st.sh; g.lineWidth = 2; g.beginPath(); g.moveTo(cx - 6, top + 3); g.lineTo(cx + 6, top + 3); g.stroke();
-  if (pose.atk > 0.35) { g.fillStyle = '#2a0e10'; oval(g, cx, top + 10, 3, 1.4 + pose.atk * 2, '#2a0e10'); }
-  else { g.strokeStyle = '#2a1a1a'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(cx - 4, top + 10); g.lineTo(cx + 4, top + 10); g.stroke(); }
-  // tusks / frost / horns / cracked stone
-  px(g, cx - 3, top + 9, 1.5, 3, '#f4ecd8'); px(g, cx + 2, top + 9, 1.5, 3, '#f4ecd8');
+  const away = pose.dir === 0;   // seen from behind: hulking shoulders, no face
+  if (!away) {
+    oval(g, cx - 2, top + 3, 3.5 * s, 3 * s, st.hi);
+    if (pose.hurt > 0.3) { eyeX(g, cx - 3, top + 6); eyeX(g, cx + 3, top + 6); }
+    else { eye(g, cx - 3, top + 6, 1.6); eye(g, cx + 3, top + 6, 1.6); }
+    // brow + mouth (a roaring maw on the attack lunge)
+    g.strokeStyle = st.sh; g.lineWidth = 2; g.beginPath(); g.moveTo(cx - 6, top + 3); g.lineTo(cx + 6, top + 3); g.stroke();
+    if (pose.atk > 0.35) { g.fillStyle = '#2a0e10'; oval(g, cx, top + 10, 3, 1.4 + pose.atk * 2, '#2a0e10'); }
+    else { g.strokeStyle = '#2a1a1a'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(cx - 4, top + 10); g.lineTo(cx + 4, top + 10); g.stroke(); }
+    // tusks
+    px(g, cx - 3, top + 9, 1.5, 3, '#f4ecd8'); px(g, cx + 2, top + 9, 1.5, 3, '#f4ecd8');
+  } else {
+    // back of the skull + a spine ridge down the torso
+    oval(g, cx, top + 4, 4 * s, 2.6 * s, st.sh);
+    g.strokeStyle = st.sh; g.lineWidth = 1.6;
+    g.beginPath(); g.moveTo(cx, top + 12); g.lineTo(cx, 44); g.stroke();
+    for (let i = 0; i < 3; i++) { g.beginPath(); g.moveTo(cx - 3, top + 16 + i * 7); g.lineTo(cx + 3, top + 16 + i * 7); g.stroke(); }
+  }
   if (st.frost) { g.shadowColor = '#bfe0ff'; g.shadowBlur = 8; oval(g, cx, 38, 11 * s, 10 * s, 'rgba(200,230,255,0.10)'); g.shadowBlur = 0; }
   if (st.horns) { g.fillStyle = '#3a2018'; for (const dx of [-5, 3]) { g.beginPath(); g.moveTo(cx + dx, top + 1); g.lineTo(cx + dx - 1, top - 6); g.lineTo(cx + dx + 3, top + 1); g.fill(); } }
   if (st.cracks) { g.strokeStyle = st.sh; g.lineWidth = 1; g.beginPath(); g.moveTo(cx - 4, 32); g.lineTo(cx - 1, 38); g.lineTo(cx - 5, 44); g.moveTo(cx + 5, 34); g.lineTo(cx + 2, 40); g.stroke(); }
@@ -711,8 +875,30 @@ function drawWisp(g, st, frame) {
   eye(g, cx - 1.5, cy - 1, 1); eye(g, cx + 2.5, cy - 1, 1);
 }
 
-function drawSpider(g, st, s, swing) {
+function drawSpider(g, st, s, swing, pose = {}) {
   const cx = 32, cy = 40;
+  if (pose.dir === 0 || pose.dir === 2) {
+    const front = pose.dir === 2;
+    // scuttling along the depth axis: symmetric legs, head near (front) or far
+    g.strokeStyle = OUTLINE; g.lineWidth = 2;
+    for (let i = 0; i < 4; i++) {
+      const ph = ((i % 2) ? swing : -swing) * 3;
+      const ly = cy - 5 + i * 3;
+      g.beginPath(); g.moveTo(cx - 3, ly); g.lineTo(cx - 12, ly - 4 + ph); g.stroke();
+      g.beginPath(); g.moveTo(cx + 3, ly); g.lineTo(cx + 12, ly - 4 - ph); g.stroke();
+    }
+    oval(g, cx, cy - (front ? 2 : -1), 7.5 * s, 6.5 * s, st.body, OUTLINE);   // abdomen
+    oval(g, cx - 2, cy - (front ? 4 : 1), 3.6 * s, 2.8 * s, st.hi);
+    const hy = front ? cy + 5.5 * s : cy - 6.5 * s;
+    oval(g, cx, hy, 4 * s, 3.4 * s, st.body, OUTLINE);                        // head
+    if (front) {
+      eye(g, cx - 1.6, hy - 1, 1.1); eye(g, cx + 1.6, hy - 1, 1.1);
+      px(g, cx - 2.4, hy + 1, 1, 1, '#a33'); px(g, cx + 1.4, hy + 1, 1, 1, '#a33');
+      g.strokeStyle = OUTLINE; g.lineWidth = 1.2;                             // fangs
+      g.beginPath(); g.moveTo(cx - 1.4, hy + 2.4); g.lineTo(cx - 1, hy + 4.4); g.moveTo(cx + 1.4, hy + 2.4); g.lineTo(cx + 1, hy + 4.4); g.stroke();
+    }
+    return;
+  }
   // 8 legs (4 per side, animated)
   g.strokeStyle = OUTLINE; g.lineWidth = 2;
   for (let i = 0; i < 4; i++) {

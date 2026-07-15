@@ -194,6 +194,48 @@ export function itemIcon(id) {
       }
       px(g, -1.4, -15, 2.8, 3, pal[1]);
     });
+  } else if (name.includes('_rapier')) {
+    diag(g, () => {
+      g.strokeStyle = INK; g.lineWidth = 3; g.beginPath(); g.moveTo(0, -14); g.lineTo(0, 6); g.stroke();
+      g.strokeStyle = pal[0]; g.lineWidth = 1.6; g.beginPath(); g.moveTo(0, -14); g.lineTo(0, 6); g.stroke();
+      g.strokeStyle = pal[2]; g.lineWidth = 0.8; g.beginPath(); g.moveTo(-0.5, -13); g.lineTo(-0.5, 5); g.stroke();
+      g.strokeStyle = pal[1]; g.lineWidth = 1.8; g.beginPath(); g.arc(0, 8, 4, Math.PI * 1.15, Math.PI * 1.85); g.stroke();  // swept guard
+      px(g, -1.2, 8, 2.4, 6, '#5e4426'); px(g, -1.6, 14, 3.2, 2, pal[1]);
+    });
+  } else if (name.includes('_flail')) {
+    diag(g, () => {
+      shaft(g, 0, 13);
+      g.fillStyle = pal[1]; for (const [lx, ly] of [[-2, -2], [-4, -5], [-5, -8]]) { g.beginPath(); g.arc(lx, ly, 1.2, 0, 7); g.fill(); }  // chain
+      g.fillStyle = pal[0]; g.beginPath(); g.arc(-7, -11, 4.6, 0, 7); g.fill();
+      g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
+      g.fillStyle = pal[2];
+      for (let a = 0; a < 6; a++) { const ang = a * Math.PI / 3; g.beginPath(); g.moveTo(-7 + Math.cos(ang) * 4, -11 + Math.sin(ang) * 4); g.lineTo(-7 + Math.cos(ang) * 7.4, -11 + Math.sin(ang) * 7.4); g.lineTo(-7 + Math.cos(ang + 0.6) * 4, -11 + Math.sin(ang + 0.6) * 4); g.fill(); }
+    });
+  } else if (name.includes('_halberd')) {
+    diag(g, () => {
+      shaft(g, -15, 15);
+      g.fillStyle = pal[0]; g.beginPath(); g.moveTo(1, -14); g.quadraticCurveTo(10, -14.5, 9, -6); g.quadraticCurveTo(5, -8, 1, -6); g.closePath(); g.fill();  // axe face
+      g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
+      g.fillStyle = pal[2]; g.beginPath(); g.moveTo(-1.4, -15); g.lineTo(0, -20); g.lineTo(1.4, -15); g.fill();               // top spike
+      g.fillStyle = pal[1]; g.beginPath(); g.moveTo(-1, -12); g.lineTo(-5, -10); g.lineTo(-1, -8); g.fill();                   // rear hook
+    });
+  } else if (name.includes('_scythe')) {
+    diag(g, () => {
+      shaft(g, -13, 15);
+      g.strokeStyle = INK; g.lineWidth = 3.6; g.beginPath(); g.moveTo(0, -13); g.quadraticCurveTo(12, -13, 13, -3); g.stroke();
+      g.strokeStyle = pal[0]; g.lineWidth = 2.2; g.beginPath(); g.moveTo(0, -13); g.quadraticCurveTo(12, -13, 13, -3); g.stroke();
+      g.strokeStyle = pal[2]; g.lineWidth = 0.9; g.beginPath(); g.moveTo(1, -12); g.quadraticCurveTo(11, -12, 12, -4); g.stroke();
+    });
+  } else if (name.includes('_trident')) {
+    diag(g, () => {
+      shaft(g, -10, 15);
+      g.strokeStyle = pal[0]; g.lineWidth = 2;
+      g.beginPath(); g.moveTo(0, -10); g.lineTo(0, -19); g.stroke();                                    // centre prong
+      g.beginPath(); g.moveTo(-5, -10); g.lineTo(-5, -16); g.moveTo(5, -10); g.lineTo(5, -16); g.stroke(); // side prongs
+      g.beginPath(); g.moveTo(-5, -10); g.lineTo(5, -10); g.stroke();                                   // crossbar
+      g.fillStyle = pal[2];
+      for (const [tx, ty] of [[0, -19], [-5, -16], [5, -16]]) { g.beginPath(); g.moveTo(tx - 1.4, ty); g.lineTo(tx, ty - 3.6); g.lineTo(tx + 1.4, ty); g.fill(); }
+    });
   } else if (/bow$/.test(name)) {
     diag(g, () => {
       g.strokeStyle = INK; g.lineWidth = 3.6; g.beginPath(); g.arc(-3, 0, 13, -Math.PI / 2.15, Math.PI / 2.15); g.stroke();
