@@ -3836,7 +3836,12 @@
    "ui/books/48.png",
    "ui/books/49.png",
    "ui/books/50.png"
-  ]
+  ],
+  "hanging_signs": {
+   "file": "env/hanging_signs.png",
+   "frame": 32,
+   "cols": 4
+  }
  },
  "packed": {},
  "trees": {
@@ -3874,6 +3879,131 @@
    "file": "env/tree_frostpine_tree.png",
    "w": 85,
    "h": 109
+  },
+  "signpost_arrow": {
+   "file": "env/decor_signpost_arrow.png",
+   "w": 30,
+   "h": 32
+  },
+  "signpost_board": {
+   "file": "env/decor_signpost_board.png",
+   "w": 30,
+   "h": 32
+  },
+  "signpost_cross": {
+   "file": "env/decor_signpost_cross.png",
+   "w": 22,
+   "h": 32
+  },
+  "scarecrow": {
+   "file": "env/decor_scarecrow.png",
+   "w": 32,
+   "h": 61
+  },
+  "grave_board": {
+   "file": "env/decor_grave_board.png",
+   "w": 30,
+   "h": 32
+  },
+  "grave_slab": {
+   "file": "env/decor_grave_slab.png",
+   "w": 30,
+   "h": 32
+  },
+  "grave_cross": {
+   "file": "env/decor_grave_cross.png",
+   "w": 22,
+   "h": 32
+  },
+  "wash_line": {
+   "file": "env/decor_wash_line.png",
+   "w": 89,
+   "h": 40
+  },
+  "wash_line_full": {
+   "file": "env/decor_wash_line_full.png",
+   "w": 96,
+   "h": 26
+  },
+  "rocks_grey": {
+   "file": "env/decor_rocks_grey.png",
+   "w": 121,
+   "h": 84
+  },
+  "spire_grey": {
+   "file": "env/decor_spire_grey.png",
+   "w": 95,
+   "h": 96
+  },
+  "dolmen_grey": {
+   "file": "env/decor_dolmen_grey.png",
+   "w": 192,
+   "h": 127
+  },
+  "crag_grey": {
+   "file": "env/decor_crag_grey.png",
+   "w": 186,
+   "h": 248
+  },
+  "rocks_dark": {
+   "file": "env/decor_rocks_dark.png",
+   "w": 120,
+   "h": 84
+  },
+  "spire_dark": {
+   "file": "env/decor_spire_dark.png",
+   "w": 95,
+   "h": 96
+  },
+  "dolmen_dark": {
+   "file": "env/decor_dolmen_dark.png",
+   "w": 192,
+   "h": 127
+  },
+  "crag_dark": {
+   "file": "env/decor_crag_dark.png",
+   "w": 186,
+   "h": 248
+  },
+  "rocks_black": {
+   "file": "env/decor_rocks_black.png",
+   "w": 120,
+   "h": 84
+  },
+  "spire_black": {
+   "file": "env/decor_spire_black.png",
+   "w": 95,
+   "h": 96
+  },
+  "dolmen_black": {
+   "file": "env/decor_dolmen_black.png",
+   "w": 192,
+   "h": 127
+  },
+  "crag_black": {
+   "file": "env/decor_crag_black.png",
+   "w": 186,
+   "h": 248
+  },
+  "rocks_sand": {
+   "file": "env/decor_rocks_sand.png",
+   "w": 120,
+   "h": 84
+  },
+  "spire_sand": {
+   "file": "env/decor_spire_sand.png",
+   "w": 95,
+   "h": 96
+  },
+  "dolmen_sand": {
+   "file": "env/decor_dolmen_sand.png",
+   "w": 192,
+   "h": 127
+  },
+  "crag_sand": {
+   "file": "env/decor_crag_sand.png",
+   "w": 186,
+   "h": 248
   }
  }
 }

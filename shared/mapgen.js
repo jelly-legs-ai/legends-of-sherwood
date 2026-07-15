@@ -445,16 +445,16 @@ export function heightAt(x, y) {
 
 // ---- scattered gather nodes --------------------------------------------------------
 const SCATTER = {
-  LOXLEY: [['tree', 0.02], ['oak_tree', 0.005]],
-  MEADOWS: [['tree', 0.016], ['oak_tree', 0.004]],
-  BAY: [['tree', 0.012]],
-  SHERWOOD: [['tree', 0.045], ['oak_tree', 0.02], ['willow_tree', 0.008], ['maple_tree', 0.006], ['yew_tree', 0.0025]],
-  ELDERGLADE: [['maple_tree', 0.02], ['yew_tree', 0.006], ['elm_tree', 0.003], ['willow_tree', 0.012]],
-  FENWOLD: [['willow_tree', 0.02], ['tree', 0.008]],
-  NORTHMOOR: [['frostpine_tree', 0.006], ['tree', 0.004]],
-  PEAKS: [['iron_rock', 0.007], ['coal_rock', 0.007], ['silver_rock', 0.0022], ['mithril_rock', 0.0018], ['gold_rock', 0.0015]],
-  WILDLANDS: [['sylvanite_rock', 0.0015], ['frostpine_tree', 0.005]],
-  ALPINE: [['frostpine_tree', 0.01], ['silver_rock', 0.003], ['mithril_rock', 0.0022], ['gold_rock', 0.0022], ['sylvanite_rock', 0.0012]],
+  LOXLEY: [['tree', 0.02], ['oak_tree', 0.005], ['rocks_grey', 0.0012]],
+  MEADOWS: [['tree', 0.016], ['oak_tree', 0.004], ['rocks_grey', 0.0012]],
+  BAY: [['tree', 0.012], ['rocks_sand', 0.002], ['spire_sand', 0.0005]],
+  SHERWOOD: [['tree', 0.045], ['oak_tree', 0.02], ['willow_tree', 0.008], ['maple_tree', 0.006], ['yew_tree', 0.0025], ['rocks_dark', 0.001]],
+  ELDERGLADE: [['maple_tree', 0.02], ['yew_tree', 0.006], ['elm_tree', 0.003], ['willow_tree', 0.012], ['rocks_dark', 0.001]],
+  FENWOLD: [['willow_tree', 0.02], ['tree', 0.008], ['grave_cross', 0.0006], ['rocks_dark', 0.0008]],
+  NORTHMOOR: [['frostpine_tree', 0.006], ['tree', 0.004], ['rocks_dark', 0.002], ['spire_dark', 0.0006], ['grave_slab', 0.0005]],
+  PEAKS: [['iron_rock', 0.007], ['coal_rock', 0.007], ['silver_rock', 0.0022], ['mithril_rock', 0.0018], ['gold_rock', 0.0015], ['rocks_grey', 0.004], ['spire_grey', 0.0012], ['crag_grey', 0.0006]],
+  WILDLANDS: [['sylvanite_rock', 0.0015], ['frostpine_tree', 0.005], ['rocks_black', 0.003], ['spire_black', 0.001], ['crag_black', 0.0006]],
+  ALPINE: [['frostpine_tree', 0.01], ['silver_rock', 0.003], ['mithril_rock', 0.0022], ['gold_rock', 0.0022], ['sylvanite_rock', 0.0012], ['rocks_grey', 0.0035], ['crag_grey', 0.0008]],
 };
 const NODE_OK_TILES = new Set([TILE.GRASS, TILE.MEADOW, TILE.FOREST, TILE.DEEPFOREST, TILE.JUNGLE, TILE.SWAMP, TILE.TUNDRA, TILE.SNOW, TILE.SCREE, TILE.DIRT]);
 

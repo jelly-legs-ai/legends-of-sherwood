@@ -195,6 +195,14 @@ export const POIS = [
   // --- Meadows ---
   ['air_altar', 150, 300], ['roman_ruin', 178, 386], ['rabbit_run', 200, 330], ['rabbit_run', 210, 344],
   ['bird_snare', 226, 332], ['bird_snare', 208, 352], ['bird_snare', 288, 290], ['bird_snare', 462, 272],
+  // world decor: scarecrows by the allotments, washing lines in the villages,
+  // waymark signposts along the roads, graves by barrow & chapel, dolmen landmarks
+  ['scarecrow', 159, 318], ['scarecrow', 61, 422], ['scarecrow', 219, 336],
+  ['wash_line', 152, 312], ['wash_line_full', 186, 396], ['wash_line', 246, 338],
+  ['signpost_arrow', 222, 296], ['signpost_cross', 276, 297], ['signpost_board', 326, 269],
+  ['signpost_arrow', 248, 295], ['signpost_cross', 298, 279],
+  ['grave_cross', 338, 368], ['grave_cross', 342, 372], ['grave_slab', 340, 366], ['grave_board', 344, 370],
+  ['dolmen_grey', 452, 260], ['dolmen_dark', 300, 174], ['dolmen_black', 396, 108],
   ['rabbit_run', 190, 320], ['herb_patch', 160, 320], ['allotment', 158, 316], ['allotment', 162, 316],
   // --- Fenwold ---
   ['water_altar', 420, 430], ['fen_totem', 0, 0],

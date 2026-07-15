@@ -387,6 +387,24 @@ const DECOR = {
   hay_bale: 'A bale of sweet-smelling hay.',
   shop_sign: 'A painted trade sign swinging on iron chains.',
   archery_butt: "A straw archery butt on the contest green. The Sheriff's men practise here.",
+  // OGA decor pass: waymarks, graves, farmstead clutter and standing stones
+  signpost_arrow: 'A carved fingerpost pointing down the road.',
+  signpost_board: 'A plank notice-board, its letters long faded.',
+  signpost_cross: 'A crossroads waymark, arms flung to the four winds.',
+  scarecrow: 'A ragged scarecrow keeping the crows honest.',
+  grave_board: 'A humble wooden grave marker. Someone tends it still.',
+  grave_slab: 'A moss-eaten grave slab, its name lost to the years.',
+  grave_cross: 'A weathered grave cross leaning with the wind.',
+  wash_line: 'A washing line strung between posts, linens flapping.',
+  wash_line_full: 'A full washing line — someone did the whole household.',
+  rocks_grey: 'A tumble of grey boulders.', rocks_dark: 'Dark weathered boulders.',
+  rocks_black: 'Coal-black rocks, sharp underfoot.', rocks_sand: 'Sun-baked sandstone boulders.',
+  spire_grey: 'Wind-carved stone spires.', spire_dark: 'Jagged dark spires.',
+  spire_black: 'Needles of black rock.', spire_sand: 'Sandstone needles rising from the drift.',
+  dolmen_grey: 'An ancient dolmen — older than any kingdom.', dolmen_dark: 'A brooding dolmen of dark stone.',
+  dolmen_black: 'A black dolmen. The air hums strangely here.', dolmen_sand: 'A sandstone dolmen half-buried in drift.',
+  crag_grey: 'A great grey crag.', crag_dark: 'A looming dark crag.',
+  crag_black: 'A jagged black crag.', crag_sand: 'A wind-worn sandstone crag.',
 };
 function nodeDisplayName(type) {
   const n = NODES[type];
