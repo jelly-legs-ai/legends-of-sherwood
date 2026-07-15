@@ -41,9 +41,17 @@ function pick(obj, ...keys) { let o = obj; for (const k of keys) { if (!o) retur
 // exact palette file when one exists and tint a neutral sheet otherwise — so
 // new metals (mithril) dye correctly on every armour line.
 const FORCE_DYE = new Set(['torso/chainmail', 'head/mail']);
+// Wings ship one design each; the colour variants are baked by hue-tinting the
+// light feathers (blue) or multiply-darkening them (black). `mul` darkens.
+const WING_TINT = { white: null, blue: { tint: '#4aa0e0' }, red: { tint: '#d24a3a' }, black: { mul: '#2a2a30' }, gray: { mul: '#8a8a90' } };
 function gearFile(sheetKey, sex, color) {
   const g = pick(manifest.gear, sheetKey, sex);
   if (!g) return null;
+  if (sheetKey.includes('wings_')) {
+    const base = g.default || Object.values(g).find(Boolean);
+    const w = WING_TINT[color];
+    return w ? { f: base, ...w } : base;
+  }
   const neutral = g.steel || g.iron || Object.values(g).find(Boolean);
   if (FORCE_DYE.has(sheetKey) && METAL_TINT[color] && color !== 'steel' && color !== 'iron')
     return { f: neutral, tint: METAL_TINT[color] };
@@ -79,10 +87,14 @@ function compositeInto(c, vis) {
 
   if (wep?.bg) layers.push(wep.bg);
   // behind-the-body layer: quiver (legacy truthy flag) or [sheet, color] —
-  // wings and tails ride here, drawn behind the body like the weapon bg
+  // wings and tails ride here, drawn behind the body like the weapon bg. Wings
+  // also get a FRONT layer (drawn after the body) so the near wing wraps over
+  // the shoulder correctly.
+  let wingFront = null;
   if (vis.behind) {
     const bh = Array.isArray(vis.behind) ? vis.behind : ['quiver', 'brown'];
     layers.push(gearFile('behind/' + bh[0], sex, bh[1] || 'brown'));
+    if (String(bh[0]).startsWith('wings_')) wingFront = gearFile('wingfront/' + bh[0], sex, bh[1] || 'white');
   }
   layers.push(pick(manifest.bodies, sex, vis.skin || 'light') || pick(manifest.bodies, sex, 'light'));
   if (vis.monster) { // beast-folk: goblin/orc/minotaur/lizard/wolf heads
@@ -107,6 +119,7 @@ function compositeInto(c, vis) {
   if (vis.hands) layers.push(gearL('hands/gloves', vis.hands));
   if (vis.shoulders) layers.push(gearL('shoulders/' + vis.shoulders[0], vis.shoulders));
   if (vis.head) layers.push(gearL('head/' + vis.head[0], vis.head));
+  if (wingFront) layers.push(wingFront);   // near wing wraps over the body
   // NB: the free LPC heater-shield sheet is all but empty (no per-pose art), so
   // shields are drawn procedurally at render time via drawHeldShield() instead.
   if (wep?.fg) layers.push(wep.fg);
@@ -126,7 +139,7 @@ function compositeInto(c, vis) {
       const im = img(f);
       if (!im.complete || !im.naturalWidth) continue;
       const h = Math.min(H, im.naturalHeight);
-      let src = spec.tint ? tinted(im, spec.tint) : im;
+      let src = spec.tint ? tinted(im, spec.tint) : spec.mul ? tintedMul(im, spec.mul) : im;
       if (spec.fx) src = decorated(src, spec.fx);
       if (spec.rows === 'shoot') {
         // patch only the shoot rows (16-19) — used to lend firing art to bows
@@ -181,6 +194,23 @@ function tinted(im, tint) {
   g.drawImage(im, 0, 0);
   g.globalCompositeOperation = 'color';
   g.fillStyle = tint; g.fillRect(0, 0, c.width, c.height);
+  g.globalCompositeOperation = 'destination-in';
+  g.drawImage(im, 0, 0);
+  tintCache.set(key, c);
+  return c;
+}
+// Multiply-darken toward a colour (for black/grey wings where a hue shift can't
+// dim white feathers). Preserves alpha.
+function tintedMul(im, col) {
+  const key = im.src + '|mul|' + col;
+  let c = tintCache.get(key);
+  if (c) return c;
+  c = document.createElement('canvas');
+  c.width = im.naturalWidth; c.height = im.naturalHeight;
+  const g = c.getContext('2d');
+  g.drawImage(im, 0, 0);
+  g.globalCompositeOperation = 'multiply';
+  g.fillStyle = col; g.fillRect(0, 0, c.width, c.height);
   g.globalCompositeOperation = 'destination-in';
   g.drawImage(im, 0, 0);
   tintCache.set(key, c);

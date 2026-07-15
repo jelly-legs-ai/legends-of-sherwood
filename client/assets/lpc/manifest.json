@@ -734,7 +734,11 @@
   "wep_glowsword_slash_fg_blue": "wep_glowsword_slash_fg_blue.png",
   "wep_glowsword_slash_bg_blue": "wep_glowsword_slash_bg_blue.png",
   "wep_glowsword_slash_fg_red": "wep_glowsword_slash_fg_red.png",
-  "wep_glowsword_slash_bg_red": "wep_glowsword_slash_bg_red.png"
+  "wep_glowsword_slash_bg_red": "wep_glowsword_slash_bg_red.png",
+  "wing_feathered_back": "gear_wing_feathered_back.png",
+  "wing_feathered_front": "gear_wing_feathered_front.png",
+  "wing_bat_back": "gear_wing_bat_back.png",
+  "wing_bat_front": "gear_wing_bat_front.png"
  },
  "gear": {
   "torso/plate": {
@@ -1177,42 +1181,18 @@
   },
   "behind/wings_feathered": {
    "male": {
-    "black": "gear_behind_wings_feathered_black.png",
-    "white": "gear_behind_wings_feathered_white.png",
-    "blue": "gear_behind_wings_feathered_blue.png",
-    "green": "gear_behind_wings_feathered_green.png",
-    "red": "gear_behind_wings_feathered_red.png",
-    "gold": "gear_behind_wings_feathered_gold.png",
-    "purple": "gear_behind_wings_feathered_purple.png"
+    "default": "gear_wing_feathered_back.png"
    },
    "female": {
-    "black": "gear_behind_wings_feathered_black.png",
-    "white": "gear_behind_wings_feathered_white.png",
-    "blue": "gear_behind_wings_feathered_blue.png",
-    "green": "gear_behind_wings_feathered_green.png",
-    "red": "gear_behind_wings_feathered_red.png",
-    "gold": "gear_behind_wings_feathered_gold.png",
-    "purple": "gear_behind_wings_feathered_purple.png"
+    "default": "gear_wing_feathered_back.png"
    }
   },
   "behind/wings_bat": {
    "male": {
-    "black": "gear_behind_wings_bat_black.png",
-    "white": "gear_behind_wings_bat_white.png",
-    "blue": "gear_behind_wings_bat_blue.png",
-    "green": "gear_behind_wings_bat_green.png",
-    "red": "gear_behind_wings_bat_red.png",
-    "gold": "gear_behind_wings_bat_gold.png",
-    "purple": "gear_behind_wings_bat_purple.png"
+    "default": "gear_wing_bat_back.png"
    },
    "female": {
-    "black": "gear_behind_wings_bat_black.png",
-    "white": "gear_behind_wings_bat_white.png",
-    "blue": "gear_behind_wings_bat_blue.png",
-    "green": "gear_behind_wings_bat_green.png",
-    "red": "gear_behind_wings_bat_red.png",
-    "gold": "gear_behind_wings_bat_gold.png",
-    "purple": "gear_behind_wings_bat_purple.png"
+    "default": "gear_wing_bat_back.png"
    }
   },
   "behind/tail_cat": {
@@ -1307,6 +1287,22 @@
    },
    "female": {
     "steel": "gear_wrists_bracers.png"
+   }
+  },
+  "wingfront/wings_feathered": {
+   "male": {
+    "default": "gear_wing_feathered_front.png"
+   },
+   "female": {
+    "default": "gear_wing_feathered_front.png"
+   }
+  },
+  "wingfront/wings_bat": {
+   "male": {
+    "default": "gear_wing_bat_front.png"
+   },
+   "female": {
+    "default": "gear_wing_bat_front.png"
    }
   }
  },

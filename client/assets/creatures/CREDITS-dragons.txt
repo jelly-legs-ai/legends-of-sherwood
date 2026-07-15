@@ -20,3 +20,7 @@ GPL 3.0), auto-extracted and rescaled by tools/add-trees.mjs.
 UPDATE: the tree_*.png billboards are now from ElizaWy's LPC Terrain
 (https://github.com/ElizaWy/LPC, CC-BY-SA 3.0), extracted/trimmed by
 tools/add-elizawy-trees.mjs — replacing the earlier bluecarrot16 trees.
+
+Wing cosmetics (gear_wing_*.png) use "LPC Wings — New Animations" by
+ElizaWy et al. (https://opengameart.org/content/lpc-wings-new-animations,
+CC-BY-SA 3.0) — back + front layers, tinted per colour.
