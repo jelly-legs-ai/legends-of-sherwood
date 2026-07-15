@@ -41,6 +41,7 @@ export class Player {
     this.dungeonBest = 0;
     this.task = null;                             // taskboard {id, n}
     this.pets = [];                               // claimed roster [{id, xp}] — untradable
+    this.social = { friends: [], blocked: [], guild: null };  // social lists (bottom system rail)
     this.activePet = null;                        // roster index of the active pet
     this.activePetEnt = null;                     // live pet entity id (not persisted)
     this.abilityCds = {};
@@ -283,7 +284,7 @@ export class Player {
       bank: this.bank, quests: this.quests, kills: this.kills, milestonesPaid: this.milestonesPaid,
       pouch: this.pouch, coinPouch: this.coinPouch, farm: this.farm, house: this.house, relics: this.relics, dungeonBest: this.dungeonBest,
       task: this.task, x: this.x, y: this.y, hp: this.hp, style: this.style,
-      pets: this.pets, activePet: this.activePet, wallet: this.wallet,
+      pets: this.pets, activePet: this.activePet, wallet: this.wallet, social: this.social,
     };
   }
   load(s) {
@@ -295,6 +296,7 @@ export class Player {
       dungeonBest: s.dungeonBest ?? 0, task: s.task ?? null, hp: s.hp, style: s.style ?? 'balanced',
       pets: Array.isArray(s.pets) ? s.pets : [], activePet: s.activePet ?? null,
       wallet: s.wallet ?? this.wallet,
+      social: s.social && typeof s.social === 'object' ? { friends: [], blocked: [], guild: null, ...s.social } : { friends: [], blocked: [], guild: null },
     });
     if (typeof s.x === 'number' && typeof s.y === 'number') { this.x = s.x; this.y = s.y; }
     this.plane = PLANE.OVERWORLD; // always rejoin the overworld

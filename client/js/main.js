@@ -78,6 +78,9 @@ G.net.on(MSG.WELCOME, (m) => {
   G.bal = m.bal; G.coinPouch = m.coinPouch || 0; G.milestones = m.milestones || {}; G.style = m.style;
   G.houseFurniture = (m.house && m.house.furniture) || {};
   G.pets = m.pets || []; G.activePet = m.activePet ?? null;
+  G.social = m.social || { friends: [], blocked: [], guild: null };
+  G.seed = m.seed;
+  try { G.muted = !!localStorage.getItem('los_muted'); } catch { }
   $('#login').classList.add('hidden');
   $('#hud').classList.remove('hidden');
   UI.initUI(G);
@@ -97,6 +100,7 @@ G.net.on(MSG.WELCOME, (m) => {
   UI.chatLine(`<span class="sys">Welcome to Sherwood, ${m.name}. Robin Hood awaits in Loxley — look for the ❗</span>`);
   UI.updateOrbs();
 });
+G.net.on('social', (m) => { G.social = m.social || G.social; if (String(G.tab || '').startsWith('sys_')) UI.renderPanel(); });
 G.net.on(MSG.SNAP, (m) => {
   const now = performance.now();
   for (const d of m.enter) {

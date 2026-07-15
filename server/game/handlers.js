@@ -41,6 +41,8 @@ export function handleMessage(world, ws, msg) {
   switch (msg.t) {
     case MSG.MOVE: return onMove(world, p, msg);
     case MSG.STOP: p.path = null; p.vel = null; return;
+    case MSG.UNSTUCK: return onUnstuck(world, p);
+    case 'social': return onSocial(world, p, msg);
     case MSG.ATTACK: return onAttack(world, p, msg);
     case MSG.ACTION: return onAction(world, p, msg);
     case MSG.MAKE: return onMake(world, p, msg);
@@ -147,7 +149,14 @@ function onHello(world, ws, msg) {
   // Bind the sign-in wallet once; a previously bound wallet is immutable. A
   // client-supplied connected address is honoured only for a brand-new binding.
   if (!p.wallet) p.wallet = (typeof msg.wallet === 'string' && VALID_WALLET.test(msg.wallet)) ? msg.wallet.slice(0, 48) : walletFor(name);
-  if (isBlocked(p.plane, p.x | 0, p.y | 0)) { p.x = COMBAT.PLAYER_RESPAWN.x + 0.5; p.y = COMBAT.PLAYER_RESPAWN.y + 0.5; }
+  // Never spawn embedded in an obstacle: snap to the nearest solid ground so a
+  // returning player whose saved tile is now blocked (a shifted building, a new
+  // node) can always move.
+  if (isBlocked(p.plane, p.x | 0, p.y | 0)) {
+    const s = nearestWalkable(p.plane, p.x | 0, p.y | 0, 12);
+    if (s) { p.x = s[0] + 0.5; p.y = s[1] + 0.5; }
+    else { p.plane = PLANE.OVERWORLD; p.x = COMBAT.PLAYER_RESPAWN.x + 0.5; p.y = COMBAT.PLAYER_RESPAWN.y + 0.5; }
+  }
   world.addEntity(p);
   world.players.set(name, p);
   world.sockets.set(p.id, ws);
@@ -171,7 +180,7 @@ function sendWelcome(world, p) {
     xp: p.xp, inv: p.inv, equip: p.equip, quests: p.quests, style: p.style,
     bal: world.ledger.balance(p.name), pouch: p.pouch, coinPouch: p.coinPouch, sex: p.sex, skin: p.skin, hair: p.hair,
     milestones: p.milestonesPaid, dungeonBest: p.dungeonBest, house: p.house, task: p.task,
-    pets: p.pets, activePet: p.activePet,
+    pets: p.pets, activePet: p.activePet, social: p.social,
     x: p.x, y: p.y, plane: p.plane,
   });
   // respawn the active pet on (re)connect
@@ -197,6 +206,48 @@ function onMove(world, p, msg) {
   p.pathGoal = p.path ? { x: tx, y: ty } : null;   // remember the true destination for multi-leg routing
   p.target = null;
   p.action = null;
+}
+
+// "Player stuck?" — relocate to the nearest solid ground. Handles spawning on
+// an obstacle, a desynced position, or being hemmed in. Clears any in-flight
+// action/path so the player is free to move again immediately.
+function onUnstuck(world, p) {
+  if (p.hp <= 0) return;
+  p.vel = null; p.path = null; p.pathGoal = null; p.pendingAction = null; p.action = null; p.target = null;
+  let spot = nearestWalkable(p.plane, p.x | 0, p.y | 0, 20);
+  if (!spot) {   // hopelessly hemmed in — fall back to the overworld respawn square
+    p.plane = PLANE.OVERWORLD;
+    spot = nearestWalkable(PLANE.OVERWORLD, COMBAT.PLAYER_RESPAWN.x | 0, COMBAT.PLAYER_RESPAWN.y | 0, 20)
+      || [COMBAT.PLAYER_RESPAWN.x | 0, COMBAT.PLAYER_RESPAWN.y | 0];
+  }
+  p.x = spot[0] + 0.5; p.y = spot[1] + 0.5;
+  world.gridMove(p);
+  world.send(p, { t: MSG.RESPAWN, x: p.x, y: p.y });
+  world.send(p, { t: MSG.MSGBOX, m: 'You wriggle free onto solid ground.' });
+}
+
+// Friends / blocked / guild lists (bottom system rail). Best-effort, persisted
+// with the player; the client re-renders from the echoed 'social' state.
+function onSocial(world, p, msg) {
+  const s = p.social || (p.social = { friends: [], blocked: [], guild: null });
+  const clean = (n) => String(n || '').replace(/[^a-zA-Z0-9_ -]/g, '').trim().slice(0, 20);
+  switch (msg.op) {
+    case 'add': {
+      const kind = msg.kind === 'blocked' ? 'blocked' : 'friends';
+      const n = clean(msg.name);
+      if (n && n.toLowerCase() !== p.name.toLowerCase() && !s[kind].some(x => x.toLowerCase() === n.toLowerCase()) && s[kind].length < 100) s[kind].push(n);
+      break;
+    }
+    case 'remove': {
+      const kind = msg.kind === 'blocked' ? 'blocked' : 'friends';
+      const n = clean(msg.name);
+      s[kind] = s[kind].filter(x => x.toLowerCase() !== n.toLowerCase());
+      break;
+    }
+    case 'guildFound': { const n = clean(msg.name); if (n && !s.guild) s.guild = { name: n, members: [p.name] }; break; }
+    case 'guildLeave': s.guild = null; break;
+  }
+  world.send(p, { t: 'social', social: s });
 }
 
 const PATH_DIRS = [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [-1, -1], [1, -1], [-1, 1]];

@@ -53,7 +53,15 @@ const devcmd = async () => (_devcmd ??= await import('./devcmd.js'));
 export function initUI(game) {
   G = game;
   for (const b of document.querySelectorAll('#tabs button'))
-    b.onclick = () => { document.querySelectorAll('#tabs button').forEach(x => x.classList.remove('on')); b.classList.add('on'); G.tab = b.dataset.tab; renderPanel(); };
+    b.onclick = () => { setActiveTab(b.dataset.tab); };
+  // bottom system rail: social + settings. Logout leaves immediately; the rest
+  // open a system panel in the same side pane.
+  for (const b of document.querySelectorAll('#systabs button'))
+    b.onclick = () => {
+      const s = b.dataset.sys;
+      if (s === 'logout') { if (confirm('Log out of Sherwood?')) location.reload(); return; }
+      setActiveTab('sys_' + s);
+    };
   $('#bigwin-x').onclick = () => closeWin();
   $('#cpouch-wrap').onclick = () => openCoinPouch();
   $('#chat-in').addEventListener('keydown', async (e) => {
@@ -76,6 +84,15 @@ export function initUI(game) {
   renderPanel();
 }
 
+// Light up the correct rail (top OR bottom) for the active tab and re-render.
+function setActiveTab(tab) {
+  G.tab = tab;
+  const sys = tab.startsWith('sys_') ? tab.slice(4) : null;
+  document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', !sys && x.dataset.tab === tab));
+  document.querySelectorAll('#systabs button').forEach(x => x.classList.toggle('on', sys && x.dataset.sys === sys));
+  renderPanel();
+}
+
 // ---------------- side panel ----------------
 export function renderPanel() {
   if (!G || !G.me) return;
@@ -89,7 +106,81 @@ export function renderPanel() {
     case 'prayer': return renderPrayers(p);
     case 'magic': return renderMagic(p);
     case 'pets': return renderPets(p);
+    case 'sys_friends': return renderFriends(p);
+    case 'sys_blocked': return renderBlocked(p);
+    case 'sys_guild': return renderGuild(p);
+    case 'sys_settings': return renderSettings(p);
   }
+}
+
+// ---------------- system panels (bottom rail) ----------------
+function renderSettings(p) {
+  p.innerHTML = '<div class="craft-cat">Settings</div>';
+  const wrap = document.createElement('div'); wrap.className = 'sys-panel';
+  // Player stuck? — asks the server to relocate onto solid ground
+  const stuck = document.createElement('div'); stuck.className = 'sys-row';
+  stuck.innerHTML = '<div><b>🧍 Player stuck?</b><div class="sys-note">Wedged on an obstacle or spawn point? Pop free onto solid ground.</div></div>';
+  const btn = document.createElement('button'); btn.className = 'wood-btn'; btn.textContent = 'Free me';
+  btn.onclick = () => { G.net.send({ t: MSG.UNSTUCK }); toast('Wriggling free…'); };
+  stuck.appendChild(btn); wrap.appendChild(stuck);
+  // sound toggle (client-side)
+  const snd = document.createElement('div'); snd.className = 'sys-row';
+  const on = G.muted ? 'Off' : 'On';
+  snd.innerHTML = `<div><b>🔊 Sound</b></div>`;
+  const sb = document.createElement('button'); sb.className = 'wood-btn'; sb.textContent = on;
+  sb.onclick = () => { G.muted = !G.muted; sb.textContent = G.muted ? 'Off' : 'On'; try { localStorage.setItem('los_muted', G.muted ? '1' : ''); } catch { } };
+  snd.appendChild(sb); wrap.appendChild(snd);
+  const info = document.createElement('div'); info.className = 'sys-note';
+  info.innerHTML = `Signed in as <b>${G.me?.name || '?'}</b> · world seed ${G.seed ?? '—'}`;
+  wrap.appendChild(info);
+  p.appendChild(wrap);
+}
+function socialPanel(p, title, kind, empty) {
+  p.innerHTML = `<div class="craft-cat">${title}</div>`;
+  const wrap = document.createElement('div'); wrap.className = 'sys-panel';
+  const list = (G.social && G.social[kind]) || [];
+  if (!list.length) { const n = document.createElement('div'); n.className = 'sys-note'; n.textContent = empty; wrap.appendChild(n); }
+  else for (const name of list) {
+    const row = document.createElement('div'); row.className = 'sys-row';
+    row.innerHTML = `<span>${name}</span>`;
+    const rm = document.createElement('button'); rm.className = 'wood-btn'; rm.textContent = '✕';
+    rm.onclick = () => { G.net.send({ t: 'social', op: 'remove', kind, name }); };
+    row.appendChild(rm); wrap.appendChild(row);
+  }
+  const add = document.createElement('div'); add.className = 'sys-row';
+  const inp = document.createElement('input'); inp.placeholder = kind === 'blocked' ? 'Block a player…' : 'Add a player…';
+  inp.maxLength = 20; inp.style.cssText = 'flex:1;min-width:0;background:#0d0a05;border:1px solid var(--trim);color:#e8dcc0;padding:4px 6px;border-radius:4px';
+  const go = document.createElement('button'); go.className = 'wood-btn'; go.textContent = '+';
+  go.onclick = () => { const v = inp.value.trim(); if (v) { G.net.send({ t: 'social', op: 'add', kind, name: v }); inp.value = ''; } };
+  inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') go.click(); });
+  add.appendChild(inp); add.appendChild(go); wrap.appendChild(add);
+  p.appendChild(wrap);
+}
+function renderFriends(p) { socialPanel(p, 'Friends', 'friends', 'No friends added yet. Add a player by name to see when they are online.'); }
+function renderBlocked(p) { socialPanel(p, 'Blocked', 'blocked', 'No one blocked. Blocked players cannot message or duel-invite you.'); }
+function renderGuild(p) {
+  p.innerHTML = '<div class="craft-cat">Guild</div>';
+  const wrap = document.createElement('div'); wrap.className = 'sys-panel';
+  const g = G.social && G.social.guild;
+  if (g && g.name) {
+    const row = document.createElement('div'); row.className = 'sys-row';
+    row.innerHTML = `<div><b>🛡️ ${g.name}</b><div class="sys-note">${(g.members || []).length} members</div></div>`;
+    const leave = document.createElement('button'); leave.className = 'wood-btn'; leave.textContent = 'Leave';
+    leave.onclick = () => { if (confirm(`Leave ${g.name}?`)) G.net.send({ t: 'social', op: 'guildLeave' }); };
+    row.appendChild(leave); wrap.appendChild(row);
+  } else {
+    const n = document.createElement('div'); n.className = 'sys-note';
+    n.textContent = 'You are not in a guild. Found one or join an existing band of outlaws.';
+    wrap.appendChild(n);
+    const row = document.createElement('div'); row.className = 'sys-row';
+    const inp = document.createElement('input'); inp.placeholder = 'Guild name…'; inp.maxLength = 24;
+    inp.style.cssText = 'flex:1;min-width:0;background:#0d0a05;border:1px solid var(--trim);color:#e8dcc0;padding:4px 6px;border-radius:4px';
+    inp.addEventListener('keydown', e => e.stopPropagation());
+    const found = document.createElement('button'); found.className = 'wood-btn'; found.textContent = 'Found';
+    found.onclick = () => { const v = inp.value.trim(); if (v) G.net.send({ t: 'social', op: 'guildFound', name: v }); };
+    row.appendChild(inp); row.appendChild(found); wrap.appendChild(row);
+  }
+  p.appendChild(wrap);
 }
 
 function iconCanvas(id) {

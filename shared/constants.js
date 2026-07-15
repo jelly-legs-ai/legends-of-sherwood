@@ -145,7 +145,7 @@ export const MSG = {
   DROP: 'drop', PICKUP: 'pickup', USE_ITEM: 'useItem', CAST: 'cast', PRAYER: 'prayer',
   GE: 'ge', DUEL: 'duel', BANK: 'bank', MAKE: 'make', BURY: 'bury', EAT: 'eat',
   ABILITY: 'ability', STYLE: 'style', QUEST: 'quest', DUNGEON: 'dungeon', SUMMON: 'summon',
-  HOUSE: 'house', EMOTE: 'emote', RESPAWN: 'respawn',
+  HOUSE: 'house', EMOTE: 'emote', RESPAWN: 'respawn', UNSTUCK: 'unstuck',
   // server -> client
   WELCOME: 'welcome', SNAP: 'snap', ENTER: 'enter', LEAVE: 'leave', SELF: 'self',
   MSGBOX: 'msg', DIALOGUE: 'dialogue', FX: 'fx', HIT: 'hit', LEVELUP: 'levelup',
