@@ -1314,6 +1314,226 @@
    "female": {
     "steel": "gear_shield_kite_female.png"
    }
+  },
+  "head/barbuta": {
+   "male": {
+    "brass": "gear_head_barbuta_male_brass.png",
+    "bronze": "gear_head_barbuta_male_bronze.png",
+    "copper": "gear_head_barbuta_male_copper.png",
+    "gold": "gear_head_barbuta_male_gold.png",
+    "iron": "gear_head_barbuta_male_iron.png",
+    "silver": "gear_head_barbuta_male_silver.png",
+    "steel": "gear_head_barbuta_male_steel.png"
+   },
+   "female": {
+    "brass": "gear_head_barbuta_female_brass.png",
+    "bronze": "gear_head_barbuta_female_bronze.png",
+    "copper": "gear_head_barbuta_female_copper.png",
+    "gold": "gear_head_barbuta_female_gold.png",
+    "iron": "gear_head_barbuta_female_iron.png",
+    "silver": "gear_head_barbuta_female_silver.png",
+    "steel": "gear_head_barbuta_female_steel.png"
+   }
+  },
+  "head/norman": {
+   "male": {
+    "brass": "gear_head_norman_male_brass.png",
+    "bronze": "gear_head_norman_male_bronze.png",
+    "copper": "gear_head_norman_male_copper.png",
+    "gold": "gear_head_norman_male_gold.png",
+    "iron": "gear_head_norman_male_iron.png",
+    "silver": "gear_head_norman_male_silver.png",
+    "steel": "gear_head_norman_male_steel.png"
+   },
+   "female": {
+    "brass": "gear_head_norman_female_brass.png",
+    "bronze": "gear_head_norman_female_bronze.png",
+    "copper": "gear_head_norman_female_copper.png",
+    "gold": "gear_head_norman_female_gold.png",
+    "iron": "gear_head_norman_female_iron.png",
+    "silver": "gear_head_norman_female_silver.png",
+    "steel": "gear_head_norman_female_steel.png"
+   }
+  },
+  "head/nasal": {
+   "male": {
+    "brass": "gear_head_nasal_male_brass.png",
+    "bronze": "gear_head_nasal_male_bronze.png",
+    "copper": "gear_head_nasal_male_copper.png",
+    "gold": "gear_head_nasal_male_gold.png",
+    "iron": "gear_head_nasal_male_iron.png",
+    "silver": "gear_head_nasal_male_silver.png",
+    "steel": "gear_head_nasal_male_steel.png"
+   },
+   "female": {
+    "brass": "gear_head_nasal_female_brass.png",
+    "bronze": "gear_head_nasal_female_bronze.png",
+    "copper": "gear_head_nasal_female_copper.png",
+    "gold": "gear_head_nasal_female_gold.png",
+    "iron": "gear_head_nasal_female_iron.png",
+    "silver": "gear_head_nasal_female_silver.png",
+    "steel": "gear_head_nasal_female_steel.png"
+   }
+  },
+  "head/spangenhelm_viking": {
+   "male": {
+    "brass": "gear_head_spangenhelm_viking_male_brass.png",
+    "bronze": "gear_head_spangenhelm_viking_male_bronze.png",
+    "copper": "gear_head_spangenhelm_viking_male_copper.png",
+    "gold": "gear_head_spangenhelm_viking_male_gold.png",
+    "iron": "gear_head_spangenhelm_viking_male_iron.png",
+    "silver": "gear_head_spangenhelm_viking_male_silver.png",
+    "steel": "gear_head_spangenhelm_viking_male_steel.png"
+   },
+   "female": {
+    "brass": "gear_head_spangenhelm_viking_female_brass.png",
+    "bronze": "gear_head_spangenhelm_viking_female_bronze.png",
+    "copper": "gear_head_spangenhelm_viking_female_copper.png",
+    "gold": "gear_head_spangenhelm_viking_female_gold.png",
+    "iron": "gear_head_spangenhelm_viking_female_iron.png",
+    "silver": "gear_head_spangenhelm_viking_female_silver.png",
+    "steel": "gear_head_spangenhelm_viking_female_steel.png"
+   }
+  },
+  "head/sugarloaf": {
+   "male": {
+    "brass": "gear_head_sugarloaf_male_brass.png",
+    "bronze": "gear_head_sugarloaf_male_bronze.png",
+    "copper": "gear_head_sugarloaf_male_copper.png",
+    "gold": "gear_head_sugarloaf_male_gold.png",
+    "iron": "gear_head_sugarloaf_male_iron.png",
+    "silver": "gear_head_sugarloaf_male_silver.png",
+    "steel": "gear_head_sugarloaf_male_steel.png"
+   },
+   "female": {
+    "brass": "gear_head_sugarloaf_female_brass.png",
+    "bronze": "gear_head_sugarloaf_female_bronze.png",
+    "copper": "gear_head_sugarloaf_female_copper.png",
+    "gold": "gear_head_sugarloaf_female_gold.png",
+    "iron": "gear_head_sugarloaf_female_iron.png",
+    "silver": "gear_head_sugarloaf_female_silver.png",
+    "steel": "gear_head_sugarloaf_female_steel.png"
+   }
+  },
+  "head/flattop": {
+   "male": {
+    "brass": "gear_head_flattop_male_brass.png",
+    "bronze": "gear_head_flattop_male_bronze.png",
+    "copper": "gear_head_flattop_male_copper.png",
+    "gold": "gear_head_flattop_male_gold.png",
+    "iron": "gear_head_flattop_male_iron.png",
+    "silver": "gear_head_flattop_male_silver.png",
+    "steel": "gear_head_flattop_male_steel.png"
+   },
+   "female": {
+    "brass": "gear_head_flattop_female_brass.png",
+    "bronze": "gear_head_flattop_female_bronze.png",
+    "copper": "gear_head_flattop_female_copper.png",
+    "gold": "gear_head_flattop_female_gold.png",
+    "iron": "gear_head_flattop_female_iron.png",
+    "silver": "gear_head_flattop_female_silver.png",
+    "steel": "gear_head_flattop_female_steel.png"
+   }
+  },
+  "head/morion": {
+   "male": {
+    "brass": "gear_head_morion_male_brass.png",
+    "bronze": "gear_head_morion_male_bronze.png",
+    "copper": "gear_head_morion_male_copper.png",
+    "gold": "gear_head_morion_male_gold.png",
+    "iron": "gear_head_morion_male_iron.png",
+    "silver": "gear_head_morion_male_silver.png",
+    "steel": "gear_head_morion_male_steel.png"
+   },
+   "female": {
+    "brass": "gear_head_morion_female_brass.png",
+    "bronze": "gear_head_morion_female_bronze.png",
+    "copper": "gear_head_morion_female_copper.png",
+    "gold": "gear_head_morion_female_gold.png",
+    "iron": "gear_head_morion_female_iron.png",
+    "silver": "gear_head_morion_female_silver.png",
+    "steel": "gear_head_morion_female_steel.png"
+   }
+  },
+  "head/close": {
+   "male": {
+    "brass": "gear_head_close_male_brass.png",
+    "bronze": "gear_head_close_male_bronze.png",
+    "copper": "gear_head_close_male_copper.png",
+    "gold": "gear_head_close_male_gold.png",
+    "iron": "gear_head_close_male_iron.png",
+    "silver": "gear_head_close_male_silver.png",
+    "steel": "gear_head_close_male_steel.png"
+   },
+   "female": {
+    "brass": "gear_head_close_female_brass.png",
+    "bronze": "gear_head_close_female_bronze.png",
+    "copper": "gear_head_close_female_copper.png",
+    "gold": "gear_head_close_female_gold.png",
+    "iron": "gear_head_close_female_iron.png",
+    "silver": "gear_head_close_female_silver.png",
+    "steel": "gear_head_close_female_steel.png"
+   }
+  },
+  "head/winged": {
+   "male": {
+    "gold": "gear_head_winged_male.png"
+   },
+   "female": {
+    "gold": "gear_head_winged_female.png"
+   }
+  },
+  "head/pointed_hat": {
+   "male": {
+    "black": "gear_head_pointed_hat_male_black.png",
+    "brown": "gear_head_pointed_hat_male_brown.png",
+    "gray": "gear_head_pointed_hat_male_gray.png",
+    "red": "gear_head_pointed_hat_male_red.png",
+    "teal": "gear_head_pointed_hat_male_teal.png",
+    "yellow": "gear_head_pointed_hat_male_yellow.png"
+   },
+   "female": {
+    "black": "gear_head_pointed_hat_female_black.png",
+    "brown": "gear_head_pointed_hat_female_brown.png",
+    "gray": "gear_head_pointed_hat_female_gray.png",
+    "red": "gear_head_pointed_hat_female_red.png",
+    "teal": "gear_head_pointed_hat_female_teal.png",
+    "yellow": "gear_head_pointed_hat_female_yellow.png"
+   }
+  },
+  "head/pointed_hat_buckle": {
+   "male": {
+    "black": "gear_head_pointed_hat_buckle_male_black.png",
+    "brown": "gear_head_pointed_hat_buckle_male_brown.png",
+    "gray": "gear_head_pointed_hat_buckle_male_gray.png",
+    "red": "gear_head_pointed_hat_buckle_male_red.png",
+    "teal": "gear_head_pointed_hat_buckle_male_teal.png",
+    "yellow": "gear_head_pointed_hat_buckle_male_yellow.png"
+   },
+   "female": {
+    "black": "gear_head_pointed_hat_buckle_female_black.png",
+    "brown": "gear_head_pointed_hat_buckle_female_brown.png",
+    "gray": "gear_head_pointed_hat_buckle_female_gray.png",
+    "red": "gear_head_pointed_hat_buckle_female_red.png",
+    "teal": "gear_head_pointed_hat_buckle_female_teal.png",
+    "yellow": "gear_head_pointed_hat_buckle_female_yellow.png"
+   }
+  },
+  "head/celestial": {
+   "male": {
+    "default": "gear_head_celestial_male.png"
+   },
+   "female": {
+    "default": "gear_head_celestial_female.png"
+   }
+  },
+  "head/celestial_moon": {
+   "male": {
+    "default": "gear_head_celestial_moon_male.png"
+   },
+   "female": {
+    "default": "gear_head_celestial_moon_female.png"
+   }
   }
  },
  "weapons": {
@@ -1943,6 +2163,86 @@
      "bg": {
       "blue": "wep_glowsword_slash_bg_blue.png",
       "red": "wep_glowsword_slash_bg_red.png"
+     }
+    }
+   }
+  },
+  "staff_diamond": {
+   "fg": {
+    "default": "wep_staff_diamond_fg.png"
+   },
+   "bg": {
+    "default": "wep_staff_diamond_bg.png"
+   },
+   "perAnim": {
+    "thrust": {
+     "fg": {
+      "default": "wep_staff_diamond_thrust_fg.png"
+     },
+     "bg": {
+      "default": "wep_staff_diamond_thrust_bg.png"
+     }
+    }
+   }
+  },
+  "staff_loop": {
+   "fg": {
+    "default": "wep_staff_loop_fg.png"
+   },
+   "bg": {
+    "default": "wep_staff_loop_bg.png"
+   },
+   "perAnim": {
+    "thrust": {
+     "fg": {
+      "default": "wep_staff_loop_thrust_fg.png"
+     },
+     "bg": {
+      "default": "wep_staff_loop_thrust_bg.png"
+     }
+    }
+   }
+  },
+  "staff_gnarled": {
+   "fg": {
+    "default": "wep_staff_gnarled_fg.png"
+   },
+   "bg": {
+    "default": "wep_staff_gnarled_bg.png"
+   },
+   "perAnim": {
+    "thrust": {
+     "fg": {
+      "default": "wep_staff_gnarled_thrust_fg.png"
+     },
+     "bg": {
+      "default": "wep_staff_gnarled_thrust_bg.png"
+     }
+    }
+   }
+  },
+  "crystal_staff": {
+   "fg": {
+    "blue": "wep_crystal_blue_fg.png",
+    "green": "wep_crystal_green_fg.png",
+    "red": "wep_crystal_red_fg.png"
+   },
+   "bg": {
+    "blue": "wep_crystal_blue_bg.png",
+    "green": "wep_crystal_green_bg.png",
+    "red": "wep_crystal_red_bg.png"
+   },
+   "perAnim": {
+    "thrust": {
+     "fg": {
+      "blue": "wep_crystal_blue_thrust_fg.png",
+      "green": "wep_crystal_green_thrust_fg.png",
+      "red": "wep_crystal_red_thrust_fg.png"
+     },
+     "bg": {
+      "blue": "wep_crystal_blue_thrust_bg.png",
+      "green": "wep_crystal_green_thrust_bg.png",
+      "red": "wep_crystal_red_thrust_bg.png"
      }
     }
    }

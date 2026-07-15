@@ -121,6 +121,8 @@ const FORGE = [
   ['halberd', 6, 3, 95], ['scythe', 5, 2, 80], ['trident', 5, 2, 75],
   ['scimitar', 3, 1, 60], ['saber', 2, 1, 55], ['katana', 4, 2, 75], ['broadsword', 5, 2, 80], ['greatsword', 8, 3, 120],
   ['armet', 4, 2, 55], ['bascinet', 3, 2, 50], ['horned_helm', 5, 2, 60], ['legion_helm', 5, 2, 60],
+  ['barbuta', 4, 2, 55], ['norman', 3, 1, 45], ['nasal', 2, 1, 40], ['spangenhelm_viking', 4, 2, 55],
+  ['sugarloaf', 5, 2, 60], ['flattop', 4, 2, 55], ['morion', 3, 1, 48], ['close', 6, 2, 65],
 ];
 for (const m of METALS) {
   for (const [what, dl, bars, xp] of FORGE) {

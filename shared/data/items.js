@@ -70,6 +70,15 @@ for (const m of METALS) {
   def(`${m.id}_legion_helm`, { name: `${m.name} legion helm`, slot: 'head', req: { defence: m.lvl },
     bonus: { def: s * 0.5 | 0, acc: 1 + (s * 0.05 | 0) }, value: m.val * 1.7 | 0,
     vis: { layer: 'head', sheet: 'legion', color: m.color, glow: gl } });
+  // --- helmets mega-pack lines: eight further head silhouettes per tier ---
+  for (const [hs, hn, dmul, vmul] of [
+    ['barbuta', 'barbuta', 0.52, 1.5], ['norman', 'norman helm', 0.46, 1.3],
+    ['nasal', 'nasal helm', 0.42, 1.2], ['spangenhelm_viking', 'viking spangenhelm', 0.48, 1.5],
+    ['sugarloaf', 'sugarloaf helm', 0.54, 1.6], ['flattop', 'flat-top helm', 0.5, 1.4],
+    ['morion', 'morion', 0.44, 1.3], ['close', 'close helm', 0.56, 1.7],
+  ]) def(`${m.id}_${hs}`, { name: `${m.name} ${hn}`, slot: 'head', req: { defence: m.lvl },
+    bonus: { def: s * dmul | 0 }, value: m.val * vmul | 0,
+    vis: { layer: 'head', sheet: hs, color: m.color, glow: gl } });
   // --- CHAINMAIL line: the mail models, dyed per tier at the compositor (the
   // sheet tints to the metal when no exact palette exists). Lighter, cheaper
   // to craft, a touch less defensive than plate.
@@ -297,6 +306,50 @@ for (const st of STAVES) {
     twoHand: true, req: { magic: st.lvl }, bonus: { macc: s * 1.1 | 0, mdmg: s * 0.3 | 0 }, value: st.val,
     vis: { layer: 'weapon', type: 'staff', color: st.color, glow: st.gem } });
 }
+// The carved staves (LPC more-weapons): diamond-head and loop-head models in
+// three tinted woods each, the gnarled walker, and the three crystal staves.
+const CARVED_STAVES = [
+  ['ash_diamond_staff', 'Ash diamond staff', 12, 'staff_diamond', 'ashwood', 90, '#9ad2e8'],
+  ['elm_diamond_staff', 'Elm diamond staff', 35, 'staff_diamond', 'elmwood', 700, '#7ac8f0'],
+  ['yew_diamond_staff', 'Yew diamond staff', 58, 'staff_diamond', 'yewwood', 3600, '#b07fe0'],
+  ['ash_loop_staff', 'Ash loop staff', 18, 'staff_loop', 'ashwood', 160, '#9ad2e8'],
+  ['elm_loop_staff', 'Elm loop staff', 42, 'staff_loop', 'elmwood', 1200, '#7ac8f0'],
+  ['yew_loop_staff', 'Yew loop staff', 64, 'staff_loop', 'yewwood', 5200, '#b07fe0'],
+  ['gnarled_walker', 'Gnarled walker', 28, 'staff_gnarled', 'walnut', 380, '#5aa03c'],
+  ['azure_crystal_staff', 'Azure crystal staff', 70, 'crystal_staff', 'blue', 8200, '#5fa8dc'],
+  ['verdant_crystal_staff', 'Verdant crystal staff', 80, 'crystal_staff', 'green', 15000, '#7fe07f'],
+  ['blood_crystal_staff', 'Blood crystal staff', 90, 'crystal_staff', 'red', 26000, '#e0304a'],
+];
+for (const [id, name, lvl, type, color, val, gem] of CARVED_STAVES) {
+  const s = T(lvl);
+  def(id, { name, slot: 'weapon', kind: 'staff', style: 'magic', anim: 'spellcast', speed: 3000,
+    twoHand: true, req: { magic: lvl }, bonus: { macc: s * 1.15 | 0, mdmg: s * 0.32 | 0 }, value: val,
+    vis: { layer: 'weapon', type, color, glow: gem } });
+}
+// Mage headwear: pointed hats up the ladder, crowned by the celestial hats.
+const MAGE_HATS = [
+  ['apprentice_hat', 'Apprentice hat', 1, 'pointed_hat', 'brown', 12],
+  ['adept_hat', 'Adept hat', 20, 'pointed_hat', 'teal', 240],
+  ['grey_wizard_hat', 'Grey wizard hat', 32, 'pointed_hat', 'gray', 520],
+  ['arcane_hat', 'Arcane hat', 45, 'pointed_hat', 'red', 1600],
+  ['master_hat', 'Master hat', 58, 'pointed_hat_buckle', 'black', 4400],
+  ['warlock_hat', 'Warlock hat', 68, 'pointed_hat_buckle', 'red', 9000],
+];
+for (const [id, name, lvl, sheet, color, val] of MAGE_HATS) {
+  const s = T(lvl);
+  def(id, { name, slot: 'head', req: { magic: lvl }, bonus: { macc: s * 0.4 | 0, def: s * 0.18 | 0 }, value: val,
+    vis: { layer: 'head', sheet, color } });
+}
+def('celestial_hat', { name: 'Celestial hat', slot: 'head', req: { magic: 78 },
+  bonus: { macc: T(78) * 0.5 | 0, mdmg: T(78) * 0.12 | 0, def: T(78) * 0.2 | 0 }, value: 22000,
+  vis: { layer: 'head', sheet: 'celestial', color: 'default', glow: '#9ad2e8' } });
+def('celestial_moon_hat', { name: 'Hat of the Waning Moon', slot: 'head', req: { magic: 88 },
+  bonus: { macc: T(88) * 0.55 | 0, mdmg: T(88) * 0.15 | 0, def: T(88) * 0.22 | 0 }, value: 46000, unique: true,
+  vis: { layer: 'head', sheet: 'celestial_moon', color: 'default', glow: '#c8b8ff' } });
+// The gilded winged helm — the mark of a master ranger (50+).
+def('gilded_winged_helm', { name: 'Gilded winged helm', slot: 'head', req: { ranged: 50 },
+  bonus: { racc: T(50) * 0.45 | 0, def: T(50) * 0.4 | 0 }, value: 14000,
+  vis: { layer: 'head', sheet: 'winged', color: 'gold', glow: '#ffe27a' } });
 // Mage vestments, reworked: each order dresses distinctly — novice in plain
 // blue cloth, friars in humble walnut wool, druids in rune-stitched forest
 // green, and the archdruid in white silk shot through with living runes and

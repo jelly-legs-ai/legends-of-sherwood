@@ -54,7 +54,13 @@ function drawHide(g, slot, dh) {
 
 // Distinct helm icons per head design (keyed off the item's vis.sheet), so the
 // full helm, chainmail hood, armet, bascinet, horned helm and legion helm each
-// read as their own silhouette instead of one shared basic helm.
+// read as their own silhouette instead of one shared basic helm. The mega-pack
+// lines alias to their closest silhouette.
+const HELM_STYLE = {
+  greathelm: 'greathelm', mail: 'mail', armet: 'armet', bascinet: 'bascinet', horned: 'horned', legion: 'legion',
+  barbuta: 'armet', norman: 'basic', nasal: 'basic', spangenhelm_viking: 'horned',
+  sugarloaf: 'bascinet', flattop: 'greathelm', morion: 'legion', close: 'armet', winged: 'armet',
+};
 function drawHelm(g, pal, sheet) {
   const lite = pal[2], base = pal[0], shade = pal[1];
   if (sheet === 'mail') {
@@ -442,9 +448,24 @@ export function itemIcon(id) {
       g.strokeStyle = '#ffffff80'; g.lineWidth = 0.8; g.stroke();  // inner shine
       g.restore();
     }
-  } else if (def.vis?.layer === 'head' && /^(greathelm|mail|armet|bascinet|horned|legion)$/.test(def.vis.sheet || '')) {
-    drawHelm(g, pal, def.vis.sheet);
+  } else if (def.vis?.layer === 'head' && HELM_STYLE[def.vis.sheet]) {
+    drawHelm(g, pal, HELM_STYLE[def.vis.sheet]);
     if (name.includes('trollkings')) { g.fillStyle = '#ffd75e'; for (const o of [-6, 0, 6]) { g.beginPath(); g.moveTo(16 + o, 5); g.lineTo(14 + o, 9); g.lineTo(18 + o, 9); g.fill(); } }
+    if (def.vis.sheet === 'winged') { // gilded wing flashes on the master ranger helm
+      g.fillStyle = '#ffe27a';
+      g.beginPath(); g.moveTo(7, 12); g.quadraticCurveTo(1, 7, 3, 3); g.quadraticCurveTo(6, 8, 10, 10); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(25, 12); g.quadraticCurveTo(31, 7, 29, 3); g.quadraticCurveTo(26, 8, 22, 10); g.closePath(); g.fill();
+      g.strokeStyle = INK; g.lineWidth = 0.8; g.stroke();
+    }
+  } else if (def.vis?.layer === 'head' && /^(pointed_hat|pointed_hat_buckle|celestial|celestial_moon)$/.test(def.vis.sheet || '')) {
+    // pointed mage hat: brim + cone in the hat's cloth colour
+    const c = { brown: '#7a5a34', teal: '#3c8c8c', gray: '#8a8a92', red: '#a03030', black: '#34343c', yellow: '#d8b44e', default: '#3c5c9c' }[def.vis.color] || '#3c5c9c';
+    g.fillStyle = c;
+    g.beginPath(); g.ellipse(16, 21, 11, 4, 0, 0, 7); g.fill(); g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
+    g.beginPath(); g.moveTo(9, 20); g.quadraticCurveTo(13, 8, 19, 5); g.quadraticCurveTo(19, 13, 23, 20); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = '#ffffff2e'; g.beginPath(); g.moveTo(11, 19); g.quadraticCurveTo(14, 10, 18, 7); g.lineTo(16, 12); g.quadraticCurveTo(13, 15, 12.4, 19); g.fill();
+    if (def.vis.sheet.includes('buckle')) { g.fillStyle = '#d8b44e'; g.fillRect(13.4, 17, 5, 3); g.strokeRect(13.4, 17, 5, 3); }
+    if (def.vis.sheet.startsWith('celestial')) { g.fillStyle = '#ffe27a'; for (const [sx2, sy2] of [[20, 9], [14, 13], [22, 15]]) { g.beginPath(); g.arc(sx2, sy2, 1.1, 0, 7); g.fill(); } }
   } else if (name.includes('hood') || name.includes('cowl') || def.vis?.sheet === 'hood') {
     const c = { black: '#3a3a42', green: '#4a7a34', forest: '#2f5c22', blue: '#3c5c9c', brown: '#7a5a34', white: '#d8d5c8', charcoal: '#4a4a52' }[def.vis?.color] || '#6a6a5a';
     g.fillStyle = c;
