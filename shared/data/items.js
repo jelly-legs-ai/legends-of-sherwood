@@ -81,7 +81,7 @@ for (const m of METALS) {
     vis: { layer: 'torso', sheet: 'chainmail', color: m.color, glow: gl } });
   def(`${m.id}_arrow`, { name: `${m.name} arrow`, slot: 'ammo', stack: true, req: {},
     bonus: { rstr: s * 0.8 | 0 }, value: Math.max(1, m.val / 8 | 0), ammoTier: m.lvl, ammoKind: 'arrow', color: m.color });
-  def(`${m.id}_bar`, { name: `${m.name} bar`, stack: false, value: m.val, material: true });
+  def(`${m.id}_bar`, { name: `${m.name} bar`, stack: false, value: m.val, material: true, micon: ['barIcons', METALS.indexOf(m)] });
   def(`${m.id}_pickaxe`, { name: `${m.name} pickaxe`, slot: 'weapon', kind: 'pickaxe', style: 'melee', anim: 'slash',
     speed: 3000, req: { attack: Math.max(1, m.lvl - 4) }, tool: 'pickaxe', toolTier: m.lvl,
     bonus: { acc: s * 0.4 | 0, str: s * 0.3 | 0 }, value: m.val * 1.5 | 0,
@@ -339,6 +339,9 @@ export const ORES = [
   { id: 'sylvanite_ore', lvl: 80, xp: 140, val: 700 },
 ];
 for (const o of ORES) def(o.id, { name: o.id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), stack: false, value: o.val, material: true });
+// LPC ore-chunk icons (media.sheets.oreIcons file-list order)
+['copper_ore', 'tin_ore', 'iron_ore', 'coal', 'silver_ore', 'mithril_ore', 'gold_ore', 'sylvanite_ore', 'rune_essence']
+  .forEach((id, i) => { if (ITEMS[id]) ITEMS[id].micon = ['oreIcons', i]; });
 export const GEMS = [
   { id: 'sapphire', lvl: 20, val: 120 }, { id: 'emerald', lvl: 35, val: 260 },
   { id: 'ruby', lvl: 50, val: 550 }, { id: 'diamond', lvl: 70, val: 1500 },

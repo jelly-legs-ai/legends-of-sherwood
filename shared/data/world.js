@@ -203,6 +203,9 @@ export const POIS = [
   ['signpost_arrow', 248, 295], ['signpost_cross', 298, 279],
   ['grave_cross', 338, 368], ['grave_cross', 342, 372], ['grave_slab', 340, 366], ['grave_board', 344, 370],
   ['dolmen_grey', 452, 260], ['dolmen_dark', 300, 174], ['dolmen_black', 396, 108],
+  // blacksmith workshop dressing beside the Loxley forge + Nottingham smithy
+  ['quench_trough', 249, 340], ['toolbench', 249, 336],
+  ['quench_trough', 306, 336], ['toolbench', 306, 332],
   ['rabbit_run', 190, 320], ['herb_patch', 160, 320], ['allotment', 158, 316], ['allotment', 162, 316],
   // --- Fenwold ---
   ['water_altar', 420, 430], ['fen_totem', 0, 0],

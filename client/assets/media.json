@@ -3841,6 +3841,51 @@
    "file": "env/hanging_signs.png",
    "frame": 32,
    "cols": 4
+  },
+  "oreIcons": [
+   "env/ic_ore_copper_ore.png",
+   "env/ic_ore_tin_ore.png",
+   "env/ic_ore_iron_ore.png",
+   "env/ic_ore_coal.png",
+   "env/ic_ore_silver_ore.png",
+   "env/ic_ore_mithril_ore.png",
+   "env/ic_ore_gold_ore.png",
+   "env/ic_ore_sylvanite_ore.png",
+   "env/ic_ore_rune_essence.png"
+  ],
+  "barIcons": [
+   "env/ic_bar_copper.png",
+   "env/ic_bar_bronze.png",
+   "env/ic_bar_iron.png",
+   "env/ic_bar_steel.png",
+   "env/ic_bar_mithril.png",
+   "env/ic_bar_damasked.png",
+   "env/ic_bar_silversteel.png",
+   "env/ic_bar_sylvan.png"
+  ],
+  "forge": {
+   "file": "env/st_forge.png",
+   "cell": 96,
+   "cellW": 96,
+   "cellH": 96,
+   "cols": 4,
+   "frames": 4
+  },
+  "kiln": {
+   "file": "env/st_kiln.png",
+   "cell": 256,
+   "cellW": 256,
+   "cellH": 247,
+   "cols": 3,
+   "frames": 3
+  },
+  "door": {
+   "file": "env/st_door.png",
+   "cell": 64,
+   "cellW": 64,
+   "cellH": 68,
+   "cols": 4,
+   "frames": 4
   }
  },
  "packed": {},
@@ -4049,6 +4094,96 @@
    "file": "env/decor_sign_blank.png",
    "w": 32,
    "h": 28
+  },
+  "copper_rock": {
+   "file": "env/st_copper_rock.png",
+   "w": 62,
+   "h": 59
+  },
+  "tin_rock": {
+   "file": "env/st_tin_rock.png",
+   "w": 62,
+   "h": 59
+  },
+  "iron_rock": {
+   "file": "env/st_iron_rock.png",
+   "w": 62,
+   "h": 59
+  },
+  "coal_rock": {
+   "file": "env/st_coal_rock.png",
+   "w": 62,
+   "h": 59
+  },
+  "silver_rock": {
+   "file": "env/st_silver_rock.png",
+   "w": 62,
+   "h": 59
+  },
+  "mithril_rock": {
+   "file": "env/st_mithril_rock.png",
+   "w": 62,
+   "h": 59
+  },
+  "gold_rock": {
+   "file": "env/st_gold_rock.png",
+   "w": 62,
+   "h": 59
+  },
+  "sylvanite_rock": {
+   "file": "env/st_sylvanite_rock.png",
+   "w": 62,
+   "h": 59
+  },
+  "essence_rock": {
+   "file": "env/st_essence_rock.png",
+   "w": 62,
+   "h": 59
+  },
+  "smith_anvil": {
+   "file": "env/st_smith_anvil.png",
+   "w": 95,
+   "h": 48
+  },
+  "quench_trough": {
+   "file": "env/st_quench_trough.png",
+   "w": 128,
+   "h": 64
+  },
+  "toolbench": {
+   "file": "env/st_toolbench.png",
+   "w": 125,
+   "h": 72
+  },
+  "bakery_stall": {
+   "file": "env/st_bakery_stall.png",
+   "w": 112,
+   "h": 96
+  },
+  "cloth_stall": {
+   "file": "env/st_cloth_stall.png",
+   "w": 112,
+   "h": 96
+  },
+  "spice_stall": {
+   "file": "env/st_spice_stall.png",
+   "w": 112,
+   "h": 96
+  },
+  "fur_stall": {
+   "file": "env/st_fur_stall.png",
+   "w": 112,
+   "h": 96
+  },
+  "silver_stall": {
+   "file": "env/st_silver_stall.png",
+   "w": 112,
+   "h": 96
+  },
+  "gem_stall": {
+   "file": "env/st_gem_stall.png",
+   "w": 112,
+   "h": 96
   }
  }
 }

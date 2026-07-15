@@ -405,6 +405,9 @@ const DECOR = {
   dolmen_black: 'A black dolmen. The air hums strangely here.', dolmen_sand: 'A sandstone dolmen half-buried in drift.',
   crag_grey: 'A great grey crag.', crag_dark: 'A looming dark crag.',
   crag_black: 'A jagged black crag.', crag_sand: 'A wind-worn sandstone crag.',
+  quench_trough: 'A quenching trough — the water hisses when hot steel goes in.',
+  toolbench: "The smith's bench: tongs, punches and half-finished work.",
+  smith_anvil: 'A battle-scarred anvil, rung by ten thousand hammer blows.',
 };
 function nodeDisplayName(type) {
   const n = NODES[type];

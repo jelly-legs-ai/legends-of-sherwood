@@ -926,6 +926,15 @@ export class Renderer {
 
   drawNode(ctx, node, now) {
     const [sx, sy] = this.screenOf(0, node.x + 0.5, node.y + 0.5);
+    // the smith's forge roars with a live fire: 4-frame LPC forge animation
+    if (node.type === 'furnace' && MEDIA.sheets?.forge) {
+      const f = MEDIA.sheets.forge, im = mimg(f.file);
+      if (im && im.complete && im.naturalWidth) {
+        const fi = 1 + Math.floor(now / 220) % 3;                 // frames 1-3 are lit
+        ctx.drawImage(im, fi * f.cellW, 0, f.cellW, f.cellH, sx - 30, sy - 52, 60, Math.round(60 * f.cellH / f.cellW));
+        return;
+      }
+    }
     if (node.type === 'ge_counter') { this.drawGEcounter(ctx, sx, sy, false, node.x, node.y); return; }
     if (node.type === 'ge_window') { this.drawGEcounter(ctx, sx, sy, true, node.x, node.y); return; }
     if (node.type === 'ge_rope') { this.drawGErope(ctx, sx, sy, node.x, node.y); return; }
@@ -1223,6 +1232,21 @@ export class Renderer {
         const cxw = b.x + b.w / 2, cyw = b.y + b.h / 2;
         const [ccx, ccy] = this.screenOf(0, cxw, cyw);
         if (ccx < -140 || ccx > W + 140 || ccy < -160 || ccy > H + 160) continue;
+        // animated door: closed at rest, swinging open as the player nears —
+        // the LPC door sprite sits on the door tile of the wall
+        const doorSheet = MEDIA.sheets?.door;
+        if (doorSheet) {
+          const dim = mimg(doorSheet.file);
+          if (dim && dim.complete && dim.naturalWidth) {
+            const door = b.door || 'S';
+            const ddx = door === 'W' ? b.x : door === 'E' ? b.x + b.w : b.x + b.w / 2;
+            const ddy = door === 'N' ? b.y : door === 'S' ? b.y + b.h : b.y + b.h / 2;
+            const dd = Math.hypot(me.rx - ddx, me.ry - ddy);
+            const open = Math.max(0, Math.min(3, Math.round((2.6 - dd) * 1.6)));   // 0 closed .. 3 wide open
+            const [dsx, dsy] = this.screenOf(0, ddx, ddy);
+            ctx.drawImage(dim, open * doorSheet.cellW, 0, doorSheet.cellW, doorSheet.cellH, dsx - 17, dsy - 40, 34, 36);
+          }
+        }
         // hanging trade sign beside the door lintel — players read the shop at
         // a glance. Drawn before the roof fade so it stays up even when the
         // roof melts away as you step inside; sways gently on its bracket.
