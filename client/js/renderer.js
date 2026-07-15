@@ -941,6 +941,16 @@ export class Renderer {
       const map = { furn_wooden_chair: 'museum_bench', furn_oak_table: 'bank_booth', furn_bed: 'bakery_stall', furn_bookcase: 'ge_booth', furn_house_altar: 'chapel_altar', furn_stone_range: 'range', furn_workbench: 'anvil', furn_trophy_hall: 'gem_stall', furn_greenwood_throne: 'obelisk' };
       type = map[type] || 'museum_bench';
     }
+    // LPC tree art (media.trees) draws the standing tree; depleted nodes fall
+    // through to the procedural stump, as do trees whose image is still loading
+    const tm = !node.off && MEDIA.trees?.[type];
+    if (tm) {
+      const tim = mimg(tm.file);
+      if (tim && tim.complete && tim.naturalWidth) {
+        ctx.drawImage(tim, sx - tm.w / 2, sy - tm.h + 14);
+        return;
+      }
+    }
     const spr = nodeSprite(type, node.off);
     // gentle bob for fishing spots
     const bob = /spot/.test(type) ? Math.sin(now / 400 + node.x) * 2 : 0;

@@ -2624,5 +2624,37 @@
    "ui/books/50.png"
   ]
  },
- "packed": {}
+ "packed": {},
+ "trees": {
+  "tree": {
+   "file": "env/tree_tree.png",
+   "w": 104,
+   "h": 119
+  },
+  "oak_tree": {
+   "file": "env/tree_oak_tree.png",
+   "w": 80,
+   "h": 120
+  },
+  "elm_tree": {
+   "file": "env/tree_elm_tree.png",
+   "w": 84,
+   "h": 88
+  },
+  "willow_tree": {
+   "file": "env/tree_willow_tree.png",
+   "w": 80,
+   "h": 120
+  },
+  "maple_tree": {
+   "file": "env/tree_maple_tree.png",
+   "w": 80,
+   "h": 120
+  },
+  "yew_tree": {
+   "file": "env/tree_yew_tree.png",
+   "w": 80,
+   "h": 120
+  }
+ }
 }

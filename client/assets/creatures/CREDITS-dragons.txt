@@ -12,3 +12,7 @@ tools/add-farm-golems.mjs.
 Golem sheets (golem_*.png) are from "LPC Golem" —
 https://opengameart.org/content/lpc-golem (CC-BY 3.0 / GPL 3.0 / OGA-BY 3.0),
 re-packed and dyed (rimed ice + plain stone) by tools/add-farm-golems.mjs.
+
+Tree images (client/assets/env/tree_*.png) are from "LPC Trees" by
+bluecarrot16 — https://opengameart.org/content/lpc-trees (CC-BY-SA 3.0 /
+GPL 3.0), auto-extracted and rescaled by tools/add-trees.mjs.
