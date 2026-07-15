@@ -557,7 +557,7 @@ for (const [id, name, speed, fly, sheet, val, tint] of MOUNTS)
 // Unique boss drops
 def('sheriffs_blade', { name: "The Sheriff's blade", slot: 'weapon', kind: 'sword', style: 'melee', anim: 'slash',
   speed: 2200, req: { attack: 70 }, bonus: { acc: 92, str: 88 }, value: 45000, unique: true,
-  vis: { layer: 'weapon', type: 'sword', color: 'gold', glow: '#ffe27a' } });
+  vis: { layer: 'weapon', type: 'rapier', color: 'gold', glow: '#ffe27a' } });   // the Sheriff duels with a gilded rapier
 def('gisbornes_cowl', { name: "Gisborne's cowl", slot: 'head', req: { ranged: 70 }, bonus: { def: 30, racc: 34 }, value: 38000, unique: true,
   vis: { layer: 'head', sheet: 'hood', color: 'black' } });
 def('fenwyrm_scale', { name: 'Fenwyrm scale', value: 9000, material: true, unique: true });
