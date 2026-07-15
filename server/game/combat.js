@@ -209,7 +209,7 @@ function spellImpact(spell) {
 
 export function mobAttack(world, m, t, now) {
   const def = MOBS[m.type];
-  if (now - (m.lastAttack || 0) < 2800) return;
+  if (now - (m.lastAttack || 0) < (def.atkMs || 2800)) return;   // colossi swing slow
   if (!t || t.hp <= 0 || (t.kind !== 'player' && t.kind !== 'mob')) return;
   m.lastAttack = now;
   m.dir = Math.abs(t.x - m.x) > Math.abs(t.y - m.y) ? (t.x > m.x ? 3 : 1) : (t.y > m.y ? 2 : 0);

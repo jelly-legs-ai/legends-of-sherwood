@@ -540,7 +540,7 @@ export class World {
     else if (t) {
       // always square up to the target — mobs face whoever they're fighting
       m.dir = Math.abs(t.x - m.x) > Math.abs(t.y - m.y) ? (t.x > m.x ? 3 : 1) : (t.y > m.y ? 2 : 0);
-      const range = def.style === 'melee' ? 1.5 : 6;
+      const range = def.reach || (def.style === 'melee' ? 1.5 : 6);
       const d = Math.hypot(t.x - m.x, t.y - m.y);
       if (d > range) this.moveEntity(m, t.x, t.y, def.speed || 2.2, dt), m.anim = 'walk';
       else { m.anim = 'idle'; mobAttack(this, m, t, now); }

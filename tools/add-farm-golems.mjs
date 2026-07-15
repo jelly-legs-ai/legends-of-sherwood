@@ -35,23 +35,70 @@ function artOf(img, cellW, cellH) {
   return { h: +(((y1 - y0 + 1) / cellH).toFixed(3)), b: +(((cellH - 1 - y1) / cellH).toFixed(3)), w: +(((x1 - x0 + 1) / cellW).toFixed(3)) };
 }
 
-// ---- farm animals: walk + eat(-> idle), 4 cols x 4 dirs ---------------------
+// ---- farm animals ------------------------------------------------------------
+// From the pack's two sheets (walk cycle + eat cycle) we derive the full set:
+// IDLE   = standing (walk frame 0) with an occasional graze dip, not the old
+//          endless grazing loop;
+// WALK   = the walk cycle with every step doubled (the raw cycle read as a run);
+// ATTACK = a synthesized headbutt/peck — head-down eat frames lunged along the
+//          facing direction;
+// DEATH  = keel over: sink and fade.
+function cellCopy(img, cell, frame, row) {
+  const c = makeImage(cell, cell);
+  blit(c, 0, 0, img, frame * cell, row * cell, cell, cell);
+  return c;
+}
+function putFrame(dst, cellImg, cell, col, row, dx = 0, dy = 0, alpha = 1) {
+  const c = makeImage(cell, cell);
+  blit(c, 0, 0, cellImg);
+  if (alpha < 1) for (let i = 3; i < c.data.length; i += 4) c.data[i] = c.data[i] * alpha | 0;
+  blit(dst, col * cell + Math.max(0, dx), row * cell + Math.max(0, dy), c,
+    Math.max(0, -dx), Math.max(0, -dy), cell - Math.abs(dx), cell - Math.abs(dy));
+}
+const ROW_FWD = [[0, 1], [0, -1], [-1, 0], [1, 0]];   // our [S,N,W,E] rows
 const FARM = [
   ['farm_chicken', 'chicken', 32], ['farm_cow', 'cow', 128], ['farm_pig', 'pig', 128],
   ['farm_sheep', 'sheep', 128], ['farm_llama', 'llama', 128],
 ];
 for (const [key, src, cell] of FARM) {
   const suffix = src === 'llama' ? '_0' : '';
-  const entry = { frame: cell, kind: 'grid', anims: {} };
-  for (const [anim, file] of [['walk', `${src}_walk${suffix}.png`], ['idle', `${src}_eat${suffix}.png`]]) {
-    const img = reorderRows(decode(fs.readFileSync(path.join(SRC, file))), cell, cell, 4);
+  const walkImg = reorderRows(decode(fs.readFileSync(path.join(SRC, `${src}_walk${suffix}.png`))), cell, cell, 4);
+  const eatImg = reorderRows(decode(fs.readFileSync(path.join(SRC, `${src}_eat${suffix}.png`))), cell, cell, 4);
+  const lunge = Math.max(2, Math.round(cell * 0.06));
+  const sheets = {
+    idle: makeImage(12 * cell, 4 * cell), walk: makeImage(8 * cell, 4 * cell),
+    attack: makeImage(4 * cell, 4 * cell), death: makeImage(4 * cell, 4 * cell),
+  };
+  for (let row = 0; row < 4; row++) {
+    const [fx, fy] = ROW_FWD[row];
+    const stand = cellCopy(walkImg, cell, 0, row);
+    const w = (f) => cellCopy(walkImg, cell, f, row);
+    const e = (f) => cellCopy(eatImg, cell, f, row);
+    // idle: stand 8 beats, then one graze dip (eat 0-1-1-0)
+    [stand, stand, stand, stand, stand, stand, stand, stand, e(0), e(1), e(1), e(0)]
+      .forEach((c, i) => putFrame(sheets.idle, c, cell, i, row));
+    // walk: each step doubled — the raw 4-frame cycle read as a sprint
+    [w(0), w(0), w(1), w(1), w(2), w(2), w(3), w(3)]
+      .forEach((c, i) => putFrame(sheets.walk, c, cell, i, row));
+    // attack: rear back, then a head-down lunge along the facing
+    putFrame(sheets.attack, stand, cell, 0, row, -fx * (lunge >> 1), -fy * (lunge >> 1));
+    putFrame(sheets.attack, e(0), cell, 1, row, fx * lunge, fy * lunge);
+    putFrame(sheets.attack, e(1), cell, 2, row, fx * lunge * 2, fy * lunge * 2);
+    putFrame(sheets.attack, stand, cell, 3, row);
+    // death: keel over — sink and fade
+    putFrame(sheets.death, stand, cell, 0, row, 0, Math.round(cell * 0.02), 1);
+    putFrame(sheets.death, e(1), cell, 1, row, 0, Math.round(cell * 0.06), 0.85);
+    putFrame(sheets.death, e(1), cell, 2, row, 0, Math.round(cell * 0.11), 0.6);
+    putFrame(sheets.death, e(1), cell, 3, row, 0, Math.round(cell * 0.16), 0.35);
+  }
+  const entry = { frame: cell, kind: 'grid', anims: {}, art: artOf(walkImg, cell, cell) };
+  for (const [anim, sheet] of Object.entries(sheets)) {
     const name = `${key}_${anim}.png`;
-    fs.writeFileSync(path.join(OUT, name), encode(img.w, img.h, img.data));
-    entry.anims[anim] = { file: `creatures/${name}`, w: img.w, h: img.h, frames: 4, rows: 4 };
-    if (anim === 'walk') entry.art = artOf(img, cell, cell);
+    fs.writeFileSync(path.join(OUT, name), encode(sheet.w, sheet.h, sheet.data));
+    entry.anims[anim] = { file: `creatures/${name}`, w: sheet.w, h: sheet.h, frames: sheet.w / cell, rows: 4 };
   }
   media.creatures[key] = entry;
-  console.log(key, 'art', entry.art);
+  console.log(key, Object.keys(entry.anims).join(','), 'art', entry.art);
 }
 
 // ---- the LPC golem: repack to 96px cells, dye ice + stone -------------------

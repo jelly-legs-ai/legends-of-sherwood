@@ -186,11 +186,14 @@ mob('pebble_imp', { name: 'Pebble imp', lvl: 16, life: 36, atk: 8, def: 9, sheet
   drops: [['coins', [4, 14], 0.8], ['copper_ore', 1, 0.4], ['tin_ore', 1, 0.4], ['iron_ore', 1, 0.2]] });
 mob('cave_bat', { name: 'Cave bat', lvl: 14, life: 30, atk: 8, def: 6, sheet: 'cave_bat', style: 'melee', aggro: true, speed: 3.6,
   drops: [['bones', 1, 1], ['coins', [3, 12], 0.6]] });
-mob('stone_golem', { name: 'Stone golem', lvl: 55, life: 170, atk: 32, def: 34, sheet: 'golem_stone', scale: 1.15, style: 'melee', aggro: true, speed: 1.8,
+// Golems are COLOSSI: two-and-a-half men tall, ponderous (half walking pace,
+// half attack cadence via atkMs) but hitting a quarter harder, with the long
+// reach their stone arms deserve.
+mob('stone_golem', { name: 'Stone golem', lvl: 55, life: 170, atk: 40, def: 34, sheet: 'golem_stone', scale: 2.9, style: 'melee', aggro: true, speed: 0.9, atkMs: 4200, reach: 2.6,
   drops: [['big_bones', 1, 1], ['coal', [1, 3], 0.5], ['silver_ore', 1, 0.3], ['gold_ore', 1, 0.15], ['sapphire', 1, 0.08], ['emerald', 1, 0.04], ['tome_mining', 1, 0.005]] });
 // Its rimed northern cousin: the same ancient frame sheathed in ice, wreathed
 // in a frost aura (tint 'frost' adds the render-time halo).
-mob('ice_golem', { name: 'Ice golem', lvl: 66, life: 230, atk: 40, def: 42, sheet: 'golem_ice', tint: 'frost', scale: 1.2, style: 'melee', aggro: true, speed: 1.7,
+mob('ice_golem', { name: 'Ice golem', lvl: 66, life: 230, atk: 50, def: 42, sheet: 'golem_ice', tint: 'frost', scale: 3.0, style: 'melee', aggro: true, speed: 0.85, atkMs: 4200, reach: 2.6,
   drops: [['big_bones', 1, 1], ['water_rune', [4, 12], 0.6], ['mithril_ore', 1, 0.25], ['silver_ore', 1, 0.3], ['sapphire', 1, 0.12], ['diamond', 1, 0.02], ['cobalt_charm', 1, 0.2]] });
 mob('crag_raptor', { name: 'Crag raptor', lvl: 60, life: 176, atk: 37, def: 28, sheet: 'archeopteryx', style: 'melee', aggro: true, speed: 3.6, scale: 0.9,
   drops: [['big_bones', 1, 1], ['feathers', [8, 20], 1], ['raw_venison', 1, 0.4], ['amber_charm', 1, 0.2]] });

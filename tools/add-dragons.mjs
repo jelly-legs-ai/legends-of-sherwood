@@ -83,11 +83,13 @@ const ROW_FWD = [[0, 1], [0, -1], [-1, 0], [1, 0]];
 function buildAnims(packed, cell) {
   const mk = (cols) => makeImage(cols * cell, 4 * cell);
   const sheets = {
-    idle: mk(2), walk: mk(4), sprint: mk(3), attack: mk(4), death: mk(4),
+    idle: mk(8), walk: mk(4), sprint: mk(3), attack: mk(4), death: mk(4),
   };
   for (let row = 0; row < 4; row++) {
     const [fx, fy] = ROW_FWD[row];
-    for (const [c, f] of [[0, 1], [1, 2]].values()) putCell(sheets.idle, packed, cell, f, c, row);
+    // idle: the FULL wing range (low-mid-high-mid) so the flap reads wide,
+    // each step doubled to halve the tempo — a slow, easy hover
+    for (const [c, f] of [[0, 0], [1, 0], [2, 1], [3, 1], [4, 2], [5, 2], [6, 1], [7, 1]].values()) putCell(sheets.idle, packed, cell, f, c, row);
     for (const [c, f] of [[0, 0], [1, 1], [2, 2], [3, 1]].values()) putCell(sheets.walk, packed, cell, f, c, row);
     for (let c = 0; c < 3; c++) putCell(sheets.sprint, packed, cell, c, c, row);
     // attack: wings up, coil back, lunge forward, recover
