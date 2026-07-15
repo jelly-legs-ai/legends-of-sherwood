@@ -62,5 +62,15 @@ function add(name, im) {
   for (const [name, [cx, cy]] of Object.entries(SIGNS)) add(`sign_${name}`, crop(im, cx * 32, cy * 32, 32, 32));
 }
 
+// --- desert dressing: adobe awning/pergola + arabic palms and rug ------------
+{
+  const adobe = decode(fs.readFileSync(path.join(O, 'lpc-adobe-building-set/adobe6.png')));
+  add('adobe_awning', crop(adobe, 84, 216, 84, 48));
+  add('adobe_pergola', crop(adobe, 258, 28, 100, 120));
+  const arabic = decode(fs.readFileSync(path.join(O, 'lpc-arabic-elements/arabic1.png')));
+  add('potted_palm', crop(arabic, 52, 128, 56, 70));
+  add('sun_rug', crop(arabic, 184, 244, 180, 100));
+}
+
 fs.writeFileSync(MEDIA, JSON.stringify(media, null, 1));
 console.log('media.json updated');

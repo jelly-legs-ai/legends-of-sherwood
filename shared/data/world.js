@@ -61,6 +61,17 @@ export const TOWNS = {
       { x: 42, y: 426, w: 7, h: 5, door: 'N', name: "The Mermaid's Rest" },
     ],
   },
+  sunfall: {
+    // the adobe trading post of the Sunfall Sands: cream-plastered walls,
+    // flat sun-baked roofs and awninged bazaars around a dusty caravan square
+    name: 'Sunfall Trading Post', cx: 110, cy: 482, r: 13, adobe: true,
+    buildings: [
+      { x: 102, y: 472, w: 7, h: 5, door: 'S', name: 'Caravanserai Inn' },
+      { x: 113, y: 473, w: 6, h: 5, door: 'S', name: 'The Sand Bazaar' },
+      { x: 101, y: 488, w: 6, h: 5, door: 'N', name: "Coppersmith's Forge" },
+      { x: 112, y: 489, w: 7, h: 5, door: 'N', name: "The Waterseller's Shop" },
+    ],
+  },
   frosthollow: {
     name: 'Frosthollow', cx: 300, cy: 130, r: 13, snowy: true,
     buildings: [
@@ -206,6 +217,11 @@ export const POIS = [
   // blacksmith workshop dressing beside the Loxley forge + Nottingham smithy
   ['quench_trough', 249, 340], ['toolbench', 249, 336],
   ['quench_trough', 306, 336], ['toolbench', 306, 332],
+  // Sunfall Trading Post dressing: palms, a caravan rug, awnings + a desert dolmen
+  ['potted_palm', 106, 478], ['potted_palm', 116, 486], ['potted_palm', 99, 483],
+  ['sun_rug', 108, 483], ['adobe_awning', 116, 479], ['adobe_pergola', 104, 488],
+  ['dolmen_sand', 140, 470], ['bird_snare', 125, 475],
+  ['furnace', 103, 490], ['anvil', 105, 490],   // the Coppersmith works out front
   ['rabbit_run', 190, 320], ['herb_patch', 160, 320], ['allotment', 158, 316], ['allotment', 162, 316],
   // --- Fenwold ---
   ['water_altar', 420, 430], ['fen_totem', 0, 0],
@@ -296,6 +312,10 @@ export const SPAWNS = [
   { mob: 'barbarian', x: 250, y: 150, r: 8, n: 6 }, { mob: 'barbarian_chief', x: 250, y: 150, r: 3, n: 1 },
   { mob: 'barbarian', x: 470, y: 180, r: 8, n: 6 }, { mob: 'barbarian_chief', x: 470, y: 180, r: 3, n: 1 },
   { mob: 'turkey', x: 218, y: 338, r: 8, n: 4 },
+  // the Sunfall Sands: dune worms burrow the dunes, imps prowl the scree
+  { mob: 'dune_worm', x: 130, y: 470, r: 16, n: 6 }, { mob: 'dune_worm', x: 95, y: 495, r: 14, n: 5 },
+  { mob: 'grass_snake', x: 140, y: 485, r: 14, n: 4 }, { mob: 'imp', x: 150, y: 465, r: 12, n: 4 },
+  { mob: 'imp_raider', x: 158, y: 480, r: 12, n: 3 }, { mob: 'crag_eagle', x: 145, y: 495, r: 14, n: 3 },
   { mob: 'rabbit', x: 205, y: 335, r: 14, n: 8 }, { mob: 'rabbit', x: 175, y: 360, r: 14, n: 6 },
   { mob: 'goblin', x: 222, y: 300, r: 12, n: 6 }, { mob: 'goblin', x: 195, y: 385, r: 14, n: 6 },
   { mob: 'boar', x: 180, y: 300, r: 16, n: 6 }, { mob: 'boar', x: 150, y: 270, r: 16, n: 6 },

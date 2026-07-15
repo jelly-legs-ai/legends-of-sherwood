@@ -651,6 +651,23 @@ function chunkCanvas(plane, cx, cy) {
       };
       const faceL = () => { g.beginPath(); g.moveTo(lx - TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx - TW / 2, ly - wh); g.closePath(); };
       const faceR = () => { g.beginPath(); g.moveTo(lx + TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx + TW / 2, ly - wh); g.closePath(); };
+      // the Sunfall Sands build in adobe: cream sun-baked plaster with a
+      // protruding beam row, capped flat — no thatch in the desert
+      const adobe = !stone && regionAt(x, y) === 'DESERT';
+      if (adobe) {
+        g.fillStyle = tint('#c8b490', wear); faceL(); g.fill();
+        g.fillStyle = tint('#e0cda6', wear); faceR(); g.fill();
+        for (const spec of [[faceL, lx - TW / 2], [faceR, lx]]) {   // beam ends near the top
+          g.save(); spec[0](); g.clip();
+          g.fillStyle = '#6a4a26';
+          for (let i = 0; i < 4; i++) { const bx = spec[1] + 5 + i * (TW / 8), by = ly - wh + 8 + (i * TH / 16); g.fillRect(bx, by, 4, 3); }
+          g.restore();
+        }
+        g.fillStyle = tint('#d8c49a', wear);   // flat adobe cap
+        g.beginPath(); g.moveTo(lx, ly - TH / 2 - wh); g.lineTo(lx + TW / 2, ly - wh); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx - TW / 2, ly - wh); g.closePath(); g.fill();
+        g.strokeStyle = '#00000022'; g.lineWidth = 1; g.stroke();
+        continue;
+      }
       g.fillStyle = tint(stone ? '#565248' : '#4c381e', wear); faceL(); g.fill();
       g.fillStyle = tint(stone ? '#6e6a5e' : '#5e462a', wear); faceR(); g.fill();
       if (stone) {
@@ -1278,7 +1295,8 @@ export class Renderer {
         // top-of-wall screen corners (elevation already folded into screenOf)
         const P = (wx, wy) => { const [sx, sy] = this.screenOf(0, wx, wy); return [sx, sy - wallH]; };
         const c00 = P(b.x, b.y), c10 = P(b.x + b.w, b.y), c11 = P(b.x + b.w, b.y + b.h), c01 = P(b.x, b.y + b.h);
-        const rise = 16 + Math.max(b.w, b.h) * 3.2;
+        const adobeTown = town.adobe;                        // desert roofs are flat sun-baked slabs
+        const rise = adobeTown ? 3 : 16 + Math.max(b.w, b.h) * 3.2;
         const apex = [(c00[0] + c11[0]) / 2, (c00[1] + c11[1]) / 2 - rise];
         // eave overhang: push corners slightly outward
         const ov = 5;
@@ -1288,11 +1306,11 @@ export class Renderer {
         ctx.save();
         ctx.globalAlpha = alpha;
         const gilded = b.ge;                                 // the ornate Exchange wears a gilded roof
-        const roofTop = gilded ? '#d8b24a' : stone ? '#8a8578' : '#b06a3a';       // near-camera face
-        const roofL = gilded ? '#a8842e' : stone ? '#6e6a5e' : '#8a4f2a';
-        const roofR = gilded ? '#c09a3c' : stone ? '#7a766a' : '#9a5c32';
-        const roofBack = gilded ? '#8a6c24' : stone ? '#5e5a50' : '#733f22';
-        const kind = gilded ? 'tile' : stone ? 'slate' : 'thatch';   // roof material
+        const roofTop = adobeTown ? '#dcc89e' : gilded ? '#d8b24a' : stone ? '#8a8578' : '#b06a3a';   // near-camera face
+        const roofL = adobeTown ? '#c0ac82' : gilded ? '#a8842e' : stone ? '#6e6a5e' : '#8a4f2a';
+        const roofR = adobeTown ? '#d0bc92' : gilded ? '#c09a3c' : stone ? '#7a766a' : '#9a5c32';
+        const roofBack = adobeTown ? '#b09c74' : gilded ? '#8a6c24' : stone ? '#5e5a50' : '#733f22';
+        const kind = adobeTown ? 'tile' : gilded ? 'tile' : stone ? 'slate' : 'thatch';   // roof material
         const rgb = (hex) => [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
         const tint = (hex, f) => { const [r, g, bl] = rgb(hex); return `rgb(${Math.min(255, r * f) | 0},${Math.min(255, g * f) | 0},${Math.min(255, bl * f) | 0})`; };
         const L2 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];

@@ -135,6 +135,7 @@ export const REGIONS = {
   FROSTHOLLOW: { id: 'FROSTHOLLOW', name: 'Frosthollow', band: [0, 0] },
   WILDLANDS: { id: 'WILDLANDS', name: 'The Wild Lands', band: [70, 99], pvp: true },
   DEPTHS: { id: 'DEPTHS', name: 'The Abyssal Depths', band: [1, 99] },
+  DESERT: { id: 'DESERT', name: 'The Sunfall Sands', band: [18, 45] },
 };
 
 // ---- Net protocol -----------------------------------------------------------

@@ -408,6 +408,10 @@ const DECOR = {
   quench_trough: 'A quenching trough — the water hisses when hot steel goes in.',
   toolbench: "The smith's bench: tongs, punches and half-finished work.",
   smith_anvil: 'A battle-scarred anvil, rung by ten thousand hammer blows.',
+  potted_palm: 'A date palm in a glazed pot, defiant against the sand.',
+  sun_rug: 'A caravan rug of intricate knots — worth more than it looks.',
+  adobe_awning: 'A striped awning throwing precious shade.',
+  adobe_pergola: 'A timber pergola, vines long since surrendered to the sun.',
 };
 function nodeDisplayName(type) {
   const n = NODES[type];

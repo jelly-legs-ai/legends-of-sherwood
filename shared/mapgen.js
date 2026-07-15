@@ -178,6 +178,7 @@ export function regionAt(x, y) {
   if (x > S(370) && y > S(395)) return 'FENWOLD';
   if (y > S(440) && x > S(170) && x <= S(370)) return 'ELDERGLADE';
   if (dist(x, y, S(290), S(308)) < S(72)) return 'SHERWOOD';
+  if (x < S(170) && y > S(448)) return 'DESERT';   // the Sunfall Sands: dunes past the bay
   if (x < S(110) && y > S(380)) return 'BAY';
   return 'MEADOWS';
 }
@@ -399,6 +400,12 @@ export function tileAt(x, y) {
       return n2 > 0.45 ? TILE.SNOW : TILE.TUNDRA;
     }
     case 'WILDLANDS': return n < 0.35 ? TILE.ICE : TILE.SNOW;
+    case 'DESERT': {
+      // rolling dunes: sand with wind-scoured dirt hollows and scree outcrops
+      if (n2 > 0.78) return TILE.SCREE;
+      if (n > 0.7) return TILE.DIRT;
+      return TILE.SAND;
+    }
     case 'NORTHMOOR': {
       const coldness = 1 - (y - S(96)) / S(104); // 1 at the Wild Lands edge -> 0 southward
       if (n < coldness * 0.75) return TILE.SNOW;
@@ -471,6 +478,7 @@ const SCATTER = {
   PEAKS: [['iron_rock', 0.007], ['coal_rock', 0.007], ['silver_rock', 0.0022], ['mithril_rock', 0.0018], ['gold_rock', 0.0015], ['rocks_grey', 0.004], ['spire_grey', 0.0012], ['crag_grey', 0.0006]],
   WILDLANDS: [['sylvanite_rock', 0.0015], ['frostpine_tree', 0.005], ['rocks_black', 0.003], ['spire_black', 0.001], ['crag_black', 0.0006]],
   ALPINE: [['frostpine_tree', 0.01], ['silver_rock', 0.003], ['mithril_rock', 0.0022], ['gold_rock', 0.0022], ['sylvanite_rock', 0.0012], ['rocks_grey', 0.0035], ['crag_grey', 0.0008]],
+  DESERT: [['rocks_sand', 0.004], ['spire_sand', 0.0015], ['crag_sand', 0.0006], ['copper_rock', 0.0018], ['gold_rock', 0.0008]],
 };
 const NODE_OK_TILES = new Set([TILE.GRASS, TILE.MEADOW, TILE.FOREST, TILE.DEEPFOREST, TILE.JUNGLE, TILE.SWAMP, TILE.TUNDRA, TILE.SNOW, TILE.SCREE, TILE.DIRT]);
 

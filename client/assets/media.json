@@ -4184,6 +4184,26 @@
    "file": "env/st_gem_stall.png",
    "w": 112,
    "h": 96
+  },
+  "adobe_awning": {
+   "file": "env/decor_adobe_awning.png",
+   "w": 84,
+   "h": 48
+  },
+  "adobe_pergola": {
+   "file": "env/decor_adobe_pergola.png",
+   "w": 100,
+   "h": 120
+  },
+  "potted_palm": {
+   "file": "env/decor_potted_palm.png",
+   "w": 56,
+   "h": 70
+  },
+  "sun_rug": {
+   "file": "env/decor_sun_rug.png",
+   "w": 180,
+   "h": 100
   }
  }
 }
