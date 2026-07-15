@@ -190,6 +190,16 @@ export function drawFxSprite(ctx, spec, t01, sx, sy, size = 42, rot = 0, tint = 
 export function drawFxLoop(ctx, spec, now, ms, sx, sy, size, rot = 0) {
   return drawFxSprite(ctx, spec, (now % ms) / ms, sx, sy, size, rot);
 }
+// Fit an fx into a vertical band (yTop..yBot): scaled to the band height with
+// aspect preserved and bottom-anchored, so ground effects — flames especially —
+// rise from the floor and can never clear the top of the band (the wearer's head).
+export function drawFxBand(ctx, spec, t01, sx, yTop, yBot, tint = null) {
+  const f = MEDIA.fx?.[String(spec).split(':')[0]];
+  if (!f) return false;
+  const fw = f.frame, fh = f.fh || f.frame;
+  const dh = yBot - yTop, dw = dh * (fw / fh);
+  return drawFxSprite(ctx, spec, t01, sx, yBot - dh / 2, dw, 0, tint);
+}
 
 // ---------------------------------------------------------------------------
 // Icon atlases & sheets. ref: ['rareSwords', 3] (file list) or

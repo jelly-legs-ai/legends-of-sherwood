@@ -9,7 +9,7 @@ function mob(id, o) { MOBS[id] = { id, aggro: false, speed: 2.2, respawnMs: 8000
 // ---- Loxley / Meadows / Bay (1-20) ----------------------------------------
 mob('rat', { name: 'Field rat', lvl: 2, life: 8, atk: 1, def: 1, style: 'melee', critter: 'rat',
   drops: [['bones', 1, 1], ['coins', [1, 4], 0.8]] });
-mob('rabbit', { name: 'Rabbit', lvl: 1, life: 5, atk: 0, def: 1, critter: 'rabbit', style: 'melee',
+mob('rabbit', { name: 'Rabbit', lvl: 1, life: 5, atk: 0, def: 1, sheet: 'rabbit', style: 'melee', scale: 0.55,
   drops: [['bones', 1, 1], ['rabbit_fur', 1, 0.9]] });
 mob('boar', { name: 'Wild boar', lvl: 8, life: 22, atk: 4, def: 4, sheet: 'tusked_boar', style: 'melee', aggro: true,
   drops: [['bones', 1, 1], ['raw_venison', 1, 0.4], ['coins', [2, 9], 0.7]] });
@@ -23,7 +23,7 @@ mob('smuggler', { name: 'Smuggler', lvl: 16, life: 38, atk: 9, def: 8, style: 'r
   drops: [['bones', 1, 1], ['coins', [6, 20], 0.9], ['copper_arrow', [4, 12], 0.5], ['raw_trout', 1, 0.3], ['shortbow', 1, 0.04]] });
 
 // ---- Sherwood (10-40) -------------------------------------------------------
-mob('sherwood_wolf', { name: 'Sherwood wolf', lvl: 18, life: 44, atk: 11, def: 9, critter: 'wolf', style: 'melee', aggro: true,
+mob('sherwood_wolf', { name: 'Sherwood wolf', lvl: 18, life: 44, atk: 11, def: 9, sheet: 'wolf_timber', style: 'melee', aggro: true, howl: true,
   drops: [['bones', 1, 1], ['wolf_pelt', 1, 0.35], ['verdant_charm', 1, 0.12]] });
 // A common road brigand — scruffy tan leathers and a brown hood, not the pristine
 // Lincoln green of Robin and his Merry Men.
@@ -81,7 +81,7 @@ mob('eyrie_hawk', { name: 'Eyrie hawk', lvl: 50, life: 120, atk: 30, def: 22, cr
 mob('moor_brigand', { name: 'Moor brigand', lvl: 62, life: 190, atk: 38, def: 34, style: 'melee', aggro: true,
   vis: { skin: 'light', hair: ['bedhead', 'ginger'], torso: ['chainmail', 'iron'], legs: ['plate', 'iron'], head: ['kettle', 'iron'], weapon: ['sword', 'steel'] },
   drops: [['bones', 1, 1], ['coins', [40, 120], 0.9], ['steel_sword', 1, 0.03], ['damasked_sword', 1, 0.008], ['hearty_stew', 1, 0.15], ['cobalt_charm', 1, 0.15]] });
-mob('ice_wolf', { name: 'Ice wolf', lvl: 66, life: 210, atk: 42, def: 36, critter: 'icewolf', style: 'melee', aggro: true, speed: 3.4,
+mob('ice_wolf', { name: 'Arctic wolf', lvl: 66, life: 210, atk: 42, def: 36, sheet: 'wolf_arctic', style: 'melee', aggro: true, speed: 3.4, howl: true,
   drops: [['big_bones', 1, 1], ['wolf_pelt', 1, 0.5], ['sable_pelt', 1, 0.2], ['cobalt_charm', 1, 0.2]] });
 mob('frost_sprite', { name: 'Frost sprite', lvl: 60, life: 160, atk: 40, def: 28, style: 'magic', aggro: true, critter: 'sprite',
   drops: [['water_rune', [5, 14], 0.7], ['air_rune', [5, 14], 0.7], ['cosmic_rune', [1, 4], 0.3]] });
@@ -146,6 +146,8 @@ mob('horse', { name: 'Horse', lvl: 6, life: 40, atk: 0, def: 6, critter: 'horse'
   drops: [['bones', 1, 1]] });
 mob('llama', { name: 'Llama', lvl: 4, life: 22, atk: 0, def: 3, sheet: 'farm_llama', style: 'melee', scale: 0.85, farm: { wool: 'alpaca_wool', shearXp: 30 },
   drops: [['bones', 1, 1], ['alpaca_wool', 1, 0.4]] });
+mob('turkey', { name: 'Turkey', lvl: 2, life: 8, atk: 1, def: 1, sheet: 'farm_turkey', style: 'melee', scale: 0.55,
+  drops: [['bones', 1, 1], ['feathers', [4, 10], 1], ['raw_fowl', 1, 0.8]] });
 mob('chicken', { name: 'Chicken', lvl: 1, life: 4, atk: 0, def: 1, sheet: 'farm_chicken', style: 'melee', scale: 0.38,
   drops: [['bones', 1, 1], ['feathers', [1, 4], 1]] });
 mob('farm_dog', { name: 'Farm dog', lvl: 3, life: 18, atk: 3, def: 3, critter: 'farmdog', style: 'melee', speed: 3.2,
@@ -172,7 +174,7 @@ mob('tusked_boar', { name: 'Tusked boar', lvl: 24, life: 58, atk: 14, def: 12, s
   drops: [['big_bones', 1, 1], ['raw_venison', 1, 0.5], ['coins', [6, 20], 0.6]] });
 mob('marauder', { name: 'Marauder', lvl: 30, life: 74, atk: 17, def: 15, sheet: 'brigand', style: 'melee', aggro: true,
   drops: [['bones', 1, 1], ['coins', [10, 34], 0.9], ['steel_sword', 1, 0.02], ['attack_potion', 1, 0.1], ['blade_of_the_burrow', 1, 0.003]] });
-mob('dire_wolf', { name: 'Dire wolf', lvl: 35, life: 88, atk: 20, def: 16, sheet: 'dire_wolf', style: 'melee', aggro: true, speed: 3.4,
+mob('dire_wolf', { name: 'Dire wolf', lvl: 35, life: 88, atk: 20, def: 16, sheet: 'wolf_shadow', style: 'melee', aggro: true, speed: 3.4, howl: true,
   drops: [['big_bones', 1, 1], ['wolf_pelt', 1, 0.45], ['crimson_charm', 1, 0.12]] });
 mob('barrow_skeleton', { name: 'Barrow skeleton', lvl: 38, life: 92, atk: 22, def: 18, sheet: 'skeleton_warrior', style: 'melee', aggro: true,
   drops: [['bones', 1, 1], ['coins', [12, 40], 0.8], ['iron_sword', 1, 0.04], ['damaged_saxon_brooch', 1, 0.12], ['tome_attack', 1, 0.004]] });
@@ -184,7 +186,7 @@ mob('fen_horror', { name: 'Fen horror', lvl: 52, life: 150, atk: 31, def: 24, sh
 // Peaks & caves
 mob('pebble_imp', { name: 'Pebble imp', lvl: 16, life: 36, atk: 8, def: 9, sheet: 'pebble_imp', style: 'melee',
   drops: [['coins', [4, 14], 0.8], ['copper_ore', 1, 0.4], ['tin_ore', 1, 0.4], ['iron_ore', 1, 0.2]] });
-mob('cave_bat', { name: 'Cave bat', lvl: 14, life: 30, atk: 8, def: 6, sheet: 'cave_bat', style: 'melee', aggro: true, speed: 3.6,
+mob('cave_bat', { name: 'Cave bat', lvl: 14, life: 30, atk: 8, def: 6, sheet: 'mob_bat', style: 'melee', aggro: true, speed: 3.6,
   drops: [['bones', 1, 1], ['coins', [3, 12], 0.6]] });
 // Golems are COLOSSI: two-and-a-half men tall, ponderous (half walking pace,
 // half attack cadence via atkMs) but hitting a quarter harder, with the long
@@ -218,6 +220,75 @@ mob('cursed_skull', { name: 'Cursed skull', lvl: 45, life: 110, atk: 28, def: 20
   drops: [['coins', [20, 60], 0.8], ['blood_rune', [1, 4], 0.3], ['dungeon_key', 1, 0.2], ['tome_prayer', 1, 0.006]] });
 mob('abyssal_sentinel', { name: 'Abyssal sentinel', lvl: 76, life: 300, atk: 50, def: 46, critter: 'abyssal', style: 'melee', aggro: true, dungeon: true, scale: 1.3, shil: 3,
   drops: [['ancient_bones', 1, 1], ['coins', [60, 180], 0.9], ['abyssal_edge', 1, 0.005], ['dungeon_key', 1, 0.3], ['abyssal_pearl', 1, 0.02]] });
+
+// ---- OGA mob pass: wolf packs, birds, imps, LPC monsters, barbarians ----------
+// New wolf colours round out the pack ladder; every wolf howls to rally packmates.
+mob('grey_wolf', { name: 'Grey wolf', lvl: 10, life: 26, atk: 6, def: 5, sheet: 'wolf_grey', style: 'melee', aggro: true, howl: true,
+  drops: [['bones', 1, 1], ['wolf_pelt', 1, 0.25]] });
+mob('moor_wolf', { name: 'Moor wolf', lvl: 46, life: 120, atk: 27, def: 22, sheet: 'wolf_dusk', style: 'melee', aggro: true, speed: 3.4, howl: true,
+  drops: [['big_bones', 1, 1], ['wolf_pelt', 1, 0.5], ['verdant_charm', 1, 0.15]] });
+mob('blood_wolf', { name: 'Blood wolf', lvl: 58, life: 175, atk: 36, def: 30, sheet: 'wolf_blood', style: 'melee', aggro: true, speed: 3.5, howl: true,
+  drops: [['big_bones', 1, 1], ['wolf_pelt', [1, 2], 0.6], ['crimson_charm', 1, 0.2]] });
+mob('gilded_wolf', { name: 'Gilded wolf', lvl: 72, life: 260, atk: 46, def: 40, sheet: 'wolf_gold', style: 'melee', aggro: true, speed: 3.6, howl: true, shil: 2,
+  drops: [['big_bones', 1, 1], ['wolf_pelt', [1, 3], 0.7], ['gold_ore', [1, 2], 0.3], ['coins', [40, 140], 0.9]] });
+// Songbirds & raptors: ambient hunter quarry — snare them for plumes and meat.
+mob('robin_bird', { name: 'Robin', lvl: 1, life: 3, atk: 0, def: 0, sheet: 'bird_robin', style: 'melee', scale: 0.8, speed: 3.2,
+  drops: [['feathers', [2, 6], 1], ['songbird_plume', 1, 0.4] ] });
+mob('sparrow', { name: 'Sparrow', lvl: 1, life: 3, atk: 0, def: 0, sheet: 'bird_sparrow', style: 'melee', scale: 0.8, speed: 3.2,
+  drops: [['feathers', [2, 6], 1], ['songbird_plume', 1, 0.35]] });
+mob('bluejay', { name: 'Bluejay', lvl: 3, life: 6, atk: 1, def: 1, sheet: 'bird_bluejay', style: 'melee', scale: 0.8, speed: 3.4,
+  drops: [['feathers', [3, 8], 1], ['songbird_plume', 1, 0.5]] });
+mob('cardinal', { name: 'Cardinal', lvl: 5, life: 9, atk: 1, def: 2, sheet: 'bird_cardinal', style: 'melee', scale: 0.8, speed: 3.4,
+  drops: [['feathers', [3, 8], 1], ['songbird_plume', 1, 0.55]] });
+mob('carrion_crow', { name: 'Carrion crow', lvl: 12, life: 24, atk: 6, def: 5, sheet: 'bird_crow', style: 'melee', aggro: true, scale: 0.9, speed: 3.6,
+  drops: [['feathers', [4, 10], 1], ['raven_plume', 1, 0.3], ['bones', 1, 0.6]] });
+mob('white_dove', { name: 'White dove', lvl: 2, life: 5, atk: 0, def: 1, sheet: 'bird_dove', style: 'melee', scale: 0.8, speed: 3.4,
+  drops: [['feathers', [3, 8], 1], ['songbird_plume', 1, 0.4]] });
+mob('crag_eagle', { name: 'Crag eagle', lvl: 34, life: 84, atk: 20, def: 15, sheet: 'bird_eagle', style: 'melee', aggro: true, speed: 3.8,
+  drops: [['feathers', [6, 14], 1], ['eagle_plume', 1, 0.35], ['bones', 1, 0.8]] });
+mob('wren', { name: 'Wren', lvl: 1, life: 3, atk: 0, def: 0, sheet: 'bird_wren', style: 'melee', scale: 0.75, speed: 3.2,
+  drops: [['feathers', [2, 5], 1], ['songbird_plume', 1, 0.3]] });
+// The imp warband: five kits climbing the ladder, plus dyed skins deeper in.
+mob('imp', { name: 'Imp', lvl: 12, life: 28, atk: 7, def: 5, sheet: 'imp', style: 'melee', aggro: true, speed: 3.0,
+  drops: [['bones', 1, 1], ['coins', [4, 16], 0.9], ['fire_rune', [1, 4], 0.3]] });
+mob('imp_raider', { name: 'Imp raider', lvl: 24, life: 56, atk: 14, def: 11, sheet: 'imp_sword', style: 'melee', aggro: true, speed: 3.1,
+  drops: [['bones', 1, 1], ['coins', [8, 26], 0.9], ['fire_rune', [2, 6], 0.35], ['copper_sword', 1, 0.05]] });
+mob('imp_guard', { name: 'Imp guard', lvl: 33, life: 84, atk: 19, def: 18, sheet: 'imp_guard', style: 'melee', aggro: true,
+  drops: [['bones', 1, 1], ['coins', [12, 36], 0.9], ['fire_rune', [2, 8], 0.4], ['iron_shield', 1, 0.04]] });
+mob('imp_pikeman', { name: 'Imp pikeman', lvl: 42, life: 110, atk: 26, def: 21, sheet: 'imp_pike', style: 'melee', aggro: true, reach: 2,
+  drops: [['bones', 1, 1], ['coins', [16, 48], 0.9], ['blood_rune', [1, 3], 0.25], ['steel_trident', 1, 0.03]] });
+mob('imp_warlord', { name: 'Imp warlord', lvl: 56, life: 170, atk: 36, def: 30, sheet: 'imp_warlord', style: 'melee', aggro: true, reach: 2, shil: 2,
+  drops: [['big_bones', 1, 1], ['coins', [30, 90], 0.95], ['blood_rune', [2, 5], 0.35], ['hellrender', 1, 0.002]] });
+mob('ember_imp', { name: 'Ember imp', lvl: 48, life: 120, atk: 30, def: 22, sheet: 'imp_ember', style: 'magic', aggro: true,
+  drops: [['bones', 1, 1], ['fire_rune', [4, 12], 0.8], ['coins', [18, 54], 0.9]] });
+mob('venom_imp', { name: 'Venom imp', lvl: 52, life: 135, atk: 32, def: 25, sheet: 'imp_venom', style: 'melee', aggro: true,
+  drops: [['bones', 1, 1], ['nature_rune', [3, 9], 0.7], ['grimy_wolfsbane', 1, 0.3], ['coins', [20, 60], 0.9]] });
+mob('gloom_imp', { name: 'Gloom imp', lvl: 62, life: 190, atk: 40, def: 32, sheet: 'imp_gloom', style: 'magic', aggro: true, dungeon: true,
+  drops: [['bones', 1, 1], ['blood_rune', [2, 6], 0.5], ['cosmic_rune', [1, 4], 0.4], ['coins', [30, 90], 0.9]] });
+// LPC monster menagerie
+mob('meadow_bee', { name: 'Giant bee', lvl: 8, life: 18, atk: 4, def: 3, sheet: 'mob_bee', style: 'melee', aggro: true, speed: 3.4, scale: 0.8,
+  drops: [['coins', [2, 8], 0.6], ['grimy_nettle', 1, 0.25]] });
+mob('forest_slime', { name: 'Forest slime', lvl: 6, life: 16, atk: 3, def: 4, sheet: 'mob_slime', style: 'melee', scale: 0.8,
+  drops: [['coins', [1, 6], 0.7], ['nature_rune', 1, 0.2]] });
+mob('grass_snake', { name: 'Grass snake', lvl: 15, life: 34, atk: 9, def: 7, sheet: 'mob_snake', style: 'melee', aggro: true,
+  drops: [['bones', 1, 1], ['coins', [4, 14], 0.7], ['grimy_nettle', 1, 0.3]] });
+mob('gloom_ghost', { name: 'Gloom ghost', lvl: 39, life: 96, atk: 23, def: 20, sheet: 'mob_ghost', style: 'magic', aggro: true, speed: 2.8,
+  drops: [['coins', [12, 40], 0.8], ['cosmic_rune', [1, 3], 0.35], ['ancient_bones', 1, 0.1]] });
+mob('watching_eye', { name: 'Watching eye', lvl: 60, life: 180, atk: 38, def: 30, sheet: 'mob_eyeball', style: 'magic', aggro: true, dungeon: true,
+  drops: [['coins', [26, 80], 0.9], ['cosmic_rune', [2, 6], 0.5], ['blood_rune', [1, 4], 0.35]] });
+mob('pumpking', { name: 'Pumpking', lvl: 50, life: 220, atk: 30, def: 28, sheet: 'mob_pumpking', style: 'melee', aggro: true, scale: 1.2,
+  drops: [['big_bones', 1, 1], ['coins', [30, 90], 0.9], ['potato_seed', [2, 6], 0.6], ['tome_farming', 1, 0.01]] });
+mob('maneater_bloom', { name: 'Man-eater bloom', lvl: 47, life: 140, atk: 29, def: 26, sheet: 'mob_maneater', style: 'melee', aggro: true, speed: 0, reach: 2.2,
+  drops: [['coins', [16, 50], 0.8], ['grimy_mandrake', 1, 0.45], ['nature_rune', [2, 7], 0.6]] });
+mob('burrow_worm', { name: 'Burrow worm', lvl: 31, life: 90, atk: 18, def: 16, sheet: 'mob_big_worm', style: 'melee', aggro: true, speed: 2.2,
+  drops: [['big_bones', 1, 1], ['coins', [10, 30], 0.7], ['iron_ore', 1, 0.3], ['coal', 1, 0.2]] });
+mob('dune_worm', { name: 'Dune worm', lvl: 22, life: 52, atk: 13, def: 10, sheet: 'mob_small_worm', style: 'melee', aggro: true, speed: 2.6,
+  drops: [['bones', 1, 1], ['coins', [6, 20], 0.7]] });
+// Barbarian war parties: hardened raiders from camps beyond the law.
+mob('barbarian', { name: 'Barbarian', lvl: 30, life: 78, atk: 18, def: 14, sheet: 'barbarian', style: 'melee', aggro: true,
+  drops: [['bones', 1, 1], ['coins', [10, 34], 0.9], ['iron_mace', 1, 0.04], ['big_bones', 1, 0.2]] });
+mob('barbarian_chief', { name: 'Barbarian chieftain', lvl: 52, life: 160, atk: 33, def: 27, sheet: 'barbarian', scale: 1.25, style: 'melee', aggro: true, shil: 2,
+  drops: [['big_bones', 1, 1], ['coins', [26, 80], 0.95], ['steel_waraxe', 1, 0.05], ['iron_horned_helm', 1, 0.06]] });
 
 // ---- BOSSES -------------------------------------------------------------------
 function boss(id, o) { return mob(id, { boss: true, aggro: true, respawnMs: 120000, shil: 5, scale: 1.6, ...o }); }

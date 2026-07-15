@@ -194,6 +194,7 @@ export const POIS = [
   ['dungeon_entrance', 362, 288],
   // --- Meadows ---
   ['air_altar', 150, 300], ['roman_ruin', 178, 386], ['rabbit_run', 200, 330], ['rabbit_run', 210, 344],
+  ['bird_snare', 226, 332], ['bird_snare', 208, 352], ['bird_snare', 288, 290], ['bird_snare', 462, 272],
   ['rabbit_run', 190, 320], ['herb_patch', 160, 320], ['allotment', 158, 316], ['allotment', 162, 316],
   // --- Fenwold ---
   ['water_altar', 420, 430], ['fen_totem', 0, 0],
@@ -262,6 +263,28 @@ export const SPAWNS = [
   // Loxley outskirts / Barnsdale Meadows / Bay (levels 1-20)
   { mob: 'rat', x: 262, y: 344, r: 8, n: 6 }, { mob: 'rat', x: 240, y: 320, r: 6, n: 4 },
   { mob: 'rat', x: 270, y: 360, r: 10, n: 5 },
+  // OGA mob pass: songbirds about the meadows and woods, wolf packs on the
+  // ladder, imp warbands, monsters and two barbarian camps
+  { mob: 'robin_bird', x: 230, y: 330, r: 20, n: 5 }, { mob: 'sparrow', x: 205, y: 350, r: 20, n: 5 },
+  { mob: 'wren', x: 255, y: 320, r: 18, n: 4 }, { mob: 'white_dove', x: 250, y: 348, r: 14, n: 4 },
+  { mob: 'bluejay', x: 285, y: 292, r: 20, n: 5 }, { mob: 'cardinal', x: 300, y: 275, r: 20, n: 4 },
+  { mob: 'carrion_crow', x: 340, y: 372, r: 16, n: 5 }, { mob: 'crag_eagle', x: 460, y: 270, r: 18, n: 4 },
+  { mob: 'grey_wolf', x: 190, y: 315, r: 16, n: 5 }, { mob: 'grey_wolf', x: 160, y: 350, r: 14, n: 4 },
+  { mob: 'moor_wolf', x: 300, y: 180, r: 18, n: 5 }, { mob: 'blood_wolf', x: 360, y: 120, r: 18, n: 5 },
+  { mob: 'gilded_wolf', x: 420, y: 90, r: 16, n: 3 },
+  { mob: 'meadow_bee', x: 215, y: 342, r: 16, n: 5 }, { mob: 'forest_slime', x: 272, y: 306, r: 16, n: 5 },
+  { mob: 'grass_snake', x: 195, y: 372, r: 16, n: 5 }, { mob: 'gloom_ghost', x: 342, y: 372, r: 12, n: 4 },
+  { mob: 'burrow_worm', x: 452, y: 286, r: 14, n: 4 }, { mob: 'dune_worm', x: 90, y: 480, r: 16, n: 4 },
+  { mob: 'watching_eye', x: 380, y: 100, r: 14, n: 3 },
+  { mob: 'pumpking', x: 390, y: 420, r: 12, n: 2 }, { mob: 'maneater_bloom', x: 400, y: 430, r: 14, n: 4 },
+  { mob: 'imp', x: 330, y: 390, r: 14, n: 5 }, { mob: 'imp_raider', x: 356, y: 300, r: 12, n: 4 },
+  { mob: 'imp_guard', x: 452, y: 300, r: 12, n: 4 }, { mob: 'imp_pikeman', x: 470, y: 250, r: 12, n: 4 },
+  { mob: 'imp_warlord', x: 490, y: 235, r: 10, n: 2 },
+  { mob: 'ember_imp', x: 500, y: 250, r: 12, n: 3 }, { mob: 'venom_imp', x: 420, y: 440, r: 12, n: 3 },
+  // barbarian camps: one on the Northmoor edge, one in the eastern wilds
+  { mob: 'barbarian', x: 250, y: 150, r: 8, n: 6 }, { mob: 'barbarian_chief', x: 250, y: 150, r: 3, n: 1 },
+  { mob: 'barbarian', x: 470, y: 180, r: 8, n: 6 }, { mob: 'barbarian_chief', x: 470, y: 180, r: 3, n: 1 },
+  { mob: 'turkey', x: 218, y: 338, r: 8, n: 4 },
   { mob: 'rabbit', x: 205, y: 335, r: 14, n: 8 }, { mob: 'rabbit', x: 175, y: 360, r: 14, n: 6 },
   { mob: 'goblin', x: 222, y: 300, r: 12, n: 6 }, { mob: 'goblin', x: 195, y: 385, r: 14, n: 6 },
   { mob: 'boar', x: 180, y: 300, r: 16, n: 6 }, { mob: 'boar', x: 150, y: 270, r: 16, n: 6 },

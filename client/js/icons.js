@@ -52,6 +52,97 @@ function drawHide(g, slot, dh) {
   g.restore();
 }
 
+// Distinct helm icons per head design (keyed off the item's vis.sheet), so the
+// full helm, chainmail hood, armet, bascinet, horned helm and legion helm each
+// read as their own silhouette instead of one shared basic helm.
+function drawHelm(g, pal, sheet) {
+  const lite = pal[2], base = pal[0], shade = pal[1];
+  if (sheet === 'mail') {
+    // chainmail hood: rounded mail drape framing a face opening, ring texture
+    const hood = () => { g.beginPath(); g.moveTo(16, 4); g.quadraticCurveTo(26, 6, 26, 17); g.lineTo(26, 25); g.lineTo(21, 25); g.quadraticCurveTo(21, 16, 16, 16); g.quadraticCurveTo(11, 16, 11, 25); g.lineTo(6, 25); g.lineTo(6, 17); g.quadraticCurveTo(6, 6, 16, 4); g.closePath(); };
+    g.fillStyle = base; hood(); g.fill();
+    g.save(); hood(); g.clip();
+    g.fillStyle = lite; g.globalAlpha = 0.6;                              // upper-left sheen
+    g.beginPath(); g.arc(12, 9, 6, 0, 7); g.fill(); g.globalAlpha = 1;
+    g.fillStyle = shade;                                                   // mail rings
+    for (let y = 6; y < 26; y += 2.4) for (let x = 5 + ((y / 2.4 | 0) % 2) * 1.2; x < 27; x += 2.4) g.fillRect(x, y, 1, 1);
+    g.restore();
+    g.strokeStyle = INK; g.lineWidth = 1; hood(); g.stroke();
+    g.fillStyle = '#191410'; g.beginPath(); g.ellipse(16, 21, 4.6, 4.2, 0, 0, 7); g.fill();  // face gap
+    return;
+  }
+  if (sheet === 'greathelm') {
+    // great/bucket helm: flat-topped cylinder, reinforcing bar, eye slits
+    g.fillStyle = base;
+    g.beginPath(); g.moveTo(8, 8); g.lineTo(24, 8); g.lineTo(24, 24); g.quadraticCurveTo(24, 27, 20, 27); g.lineTo(12, 27); g.quadraticCurveTo(8, 27, 8, 24); g.closePath(); g.fill();
+    g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
+    g.fillStyle = lite; g.fillRect(9.5, 9.5, 2, 15);                       // left highlight
+    g.fillStyle = shade; g.fillRect(15, 8, 2, 19);                         // reinforcing bar
+    g.fillStyle = INK; g.fillRect(10, 14, 4, 2); g.fillRect(18, 14, 4, 2); // eye slits
+    for (let i = 0; i < 3; i++) g.fillRect(11.5 + i * 3, 20, 1.4, 1.4);    // breath holes
+    return;
+  }
+  if (sheet === 'armet') {
+    // armet: smooth ovoid close-helm with a hinged visor line + breath dots
+    const dome = () => { g.beginPath(); g.arc(16, 15, 9, Math.PI, 0); g.lineTo(25, 21); g.quadraticCurveTo(25, 27, 16, 27.5); g.quadraticCurveTo(7, 27, 7, 21); g.closePath(); };
+    g.fillStyle = base; dome(); g.fill();
+    g.fillStyle = lite; g.beginPath(); g.arc(13, 12, 5, Math.PI, Math.PI * 1.6); g.lineTo(13, 12); g.fill();
+    g.strokeStyle = INK; g.lineWidth = 1; dome(); g.stroke();
+    g.beginPath(); g.moveTo(7.5, 15.5); g.lineTo(24.5, 15.5); g.stroke();  // visor pivot line
+    g.fillStyle = INK; g.fillRect(10, 13, 12, 1.6);                        // vision slit
+    g.fillStyle = shade; for (let i = 0; i < 4; i++) g.fillRect(11 + i * 3, 20, 1.3, 1.3);  // breaths
+    return;
+  }
+  if (sheet === 'bascinet') {
+    // bascinet: pointed apex + a protruding hounskull snout visor
+    g.fillStyle = base;
+    g.beginPath(); g.moveTo(15, 3.5); g.quadraticCurveTo(25, 9, 24, 20); g.lineTo(24, 24); g.lineTo(9, 24); g.lineTo(9, 20); g.quadraticCurveTo(8, 10, 15, 3.5); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(23, 12); g.lineTo(29, 16.5); g.lineTo(23, 21); g.closePath(); g.fill();  // snout beak (right)
+    g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
+    g.beginPath(); g.moveTo(15, 3.5); g.quadraticCurveTo(25, 9, 24, 20); g.lineTo(24, 24); g.lineTo(9, 24); g.lineTo(9, 20); g.quadraticCurveTo(8, 10, 15, 3.5); g.closePath(); g.stroke();
+    g.fillStyle = lite; g.beginPath(); g.moveTo(15, 4.5); g.quadraticCurveTo(10, 9, 10.5, 19); g.lineTo(13, 19); g.quadraticCurveTo(12.6, 10, 15, 5.5); g.fill();
+    g.fillStyle = INK; g.fillRect(13, 12, 8, 1.6);                          // eye slit
+    for (let i = 0; i < 3; i++) { g.fillRect(24.5 + i * 1.3, 15.5, 0.9, 0.9); }  // beak breaths
+    return;
+  }
+  if (sheet === 'horned') {
+    // horned helm: rounded cap with two horns sweeping up and out
+    g.fillStyle = '#efe7d2';                                               // bone horns
+    g.beginPath(); g.moveTo(9, 13); g.quadraticCurveTo(2, 9, 3, 3); g.quadraticCurveTo(7, 7, 11, 10); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(23, 13); g.quadraticCurveTo(30, 9, 29, 3); g.quadraticCurveTo(25, 7, 21, 10); g.closePath(); g.fill();
+    g.strokeStyle = INK; g.lineWidth = 0.9; g.stroke();
+    g.beginPath(); g.moveTo(9, 13); g.quadraticCurveTo(2, 9, 3, 3); g.quadraticCurveTo(7, 7, 11, 10); g.closePath(); g.stroke();
+    g.fillStyle = base;                                                    // helm cap
+    g.beginPath(); g.arc(16, 16, 8.5, Math.PI, 0); g.lineTo(24.5, 23); g.lineTo(7.5, 23); g.closePath(); g.fill();
+    g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
+    g.fillStyle = lite; g.beginPath(); g.arc(13, 13, 4.4, Math.PI, Math.PI * 1.6); g.lineTo(13, 13); g.fill();
+    g.fillStyle = shade; g.fillRect(8, 17, 16, 2); g.fillStyle = INK; g.fillRect(12, 19, 8, 1.4);  // nasal band + slit
+    return;
+  }
+  if (sheet === 'legion') {
+    // legion helm (galea): rounded bowl, cheek guards + a red transverse crest
+    g.fillStyle = '#b23a2e';                                               // plume crest
+    g.beginPath(); g.moveTo(10, 9); g.quadraticCurveTo(16, 1, 22, 9); g.quadraticCurveTo(16, 6, 10, 9); g.closePath(); g.fill();
+    g.strokeStyle = INK; g.lineWidth = 0.8; g.stroke();
+    g.fillStyle = base;                                                    // bowl
+    g.beginPath(); g.arc(16, 16, 8.4, Math.PI, 0); g.lineTo(24, 24); g.quadraticCurveTo(20, 27, 16, 26); g.quadraticCurveTo(12, 27, 8, 24); g.closePath(); g.fill();
+    g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
+    g.fillStyle = shade; g.fillRect(8, 15, 16, 2);                         // brow ridge
+    g.fillStyle = lite; g.beginPath(); g.arc(13, 13, 4.2, Math.PI, Math.PI * 1.6); g.lineTo(13, 13); g.fill();
+    g.fillStyle = base; g.beginPath(); g.moveTo(9, 17); g.lineTo(12, 17); g.lineTo(11, 24); g.lineTo(9, 23); g.closePath();  // cheek guard
+    g.moveTo(23, 17); g.lineTo(20, 17); g.lineTo(21, 24); g.lineTo(23, 23); g.closePath(); g.fill();
+    g.strokeStyle = INK; g.lineWidth = 0.8; g.stroke();
+    return;
+  }
+  // fallback: the original simple helm
+  g.fillStyle = base;
+  g.beginPath(); g.arc(16, 15, 9.6, Math.PI, 0); g.lineTo(25.6, 21); g.lineTo(6.4, 21); g.closePath(); g.fill();
+  g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
+  g.fillStyle = lite; g.beginPath(); g.arc(13, 12, 5, Math.PI, Math.PI * 1.6); g.lineTo(13, 12); g.fill();
+  g.fillStyle = shade; g.fillRect(6.4, 16, 19.2, 2.2);
+  g.fillStyle = INK; g.fillRect(10, 18.4, 12, 1.6);
+}
+
 function blade(g, pal, len, wid) {
   g.fillStyle = pal[1];
   g.beginPath(); g.moveTo(0, -len); g.lineTo(wid, -len + 4); g.lineTo(wid, 6); g.lineTo(-wid, 6); g.lineTo(-wid, -len + 4); g.closePath(); g.fill();
@@ -130,8 +221,38 @@ export function itemIcon(id) {
   const dh = dhideOf(name);
   if (dh && def.slot) { drawHide(g, def.slot, dh); return c; }
 
-  if (/(sword|_dagger|blade)/.test(name)) {
-    diag(g, () => { blade(g, pal, name.includes('dagger') ? 12 : 17, name.includes('dagger') ? 2.2 : 3); hilt(g, pal); });
+  if (name.includes('scimitar')) {
+    diag(g, () => {
+      g.fillStyle = pal[0];
+      g.beginPath(); g.moveTo(-2, 6); g.quadraticCurveTo(-5, -8, -1, -17); g.lineTo(1, -16); g.quadraticCurveTo(5, -6, 3, 6); g.closePath(); g.fill();
+      g.fillStyle = pal[2]; g.beginPath(); g.moveTo(1, -16); g.quadraticCurveTo(5, -6, 3, 6); g.lineTo(1.6, 6); g.quadraticCurveTo(3.4, -6, -0.2, -15); g.closePath(); g.fill();
+      g.strokeStyle = INK; g.lineWidth = 1; g.beginPath(); g.moveTo(-2, 6); g.quadraticCurveTo(-5, -8, -1, -17); g.lineTo(1, -16); g.quadraticCurveTo(5, -6, 3, 6); g.closePath(); g.stroke();
+      hilt(g, pal);
+    });
+  } else if (name.includes('saber')) {
+    diag(g, () => {
+      g.fillStyle = pal[0];
+      g.beginPath(); g.moveTo(-1, 6); g.quadraticCurveTo(-3, -8, 0, -18); g.quadraticCurveTo(3, -8, 2, 6); g.closePath(); g.fill();
+      g.fillStyle = pal[2]; g.beginPath(); g.moveTo(0, -18); g.quadraticCurveTo(3, -8, 2, 6); g.lineTo(1, 6); g.quadraticCurveTo(2, -8, -0.4, -16); g.closePath(); g.fill();
+      g.strokeStyle = INK; g.lineWidth = 1; g.beginPath(); g.moveTo(-1, 6); g.quadraticCurveTo(-3, -8, 0, -18); g.quadraticCurveTo(3, -8, 2, 6); g.closePath(); g.stroke();
+      g.fillStyle = pal[1]; g.beginPath(); g.moveTo(-4, 6); g.quadraticCurveTo(-5, 9, -2, 9.5); g.lineTo(3.5, 6.4); g.closePath(); g.fill(); g.strokeStyle = INK; g.stroke();  // knuckle guard
+      g.fillStyle = '#7a5a34'; g.fillRect(-1.2, 8, 2.4, 5); g.strokeRect(-1.2, 8, 2.4, 5);
+    });
+  } else if (name.includes('katana')) {
+    diag(g, () => {
+      g.fillStyle = pal[0]; g.beginPath(); g.moveTo(-1.6, -18); g.lineTo(1.6, -16.5); g.lineTo(1.6, 5); g.lineTo(-1.6, 5); g.closePath(); g.fill();
+      g.fillStyle = pal[2]; g.fillRect(0.4, -16.5, 1.2, 21.5);
+      g.strokeStyle = INK; g.lineWidth = 1; g.beginPath(); g.moveTo(-1.6, -18); g.lineTo(1.6, -16.5); g.lineTo(1.6, 5); g.lineTo(-1.6, 5); g.closePath(); g.stroke();
+      g.fillStyle = '#2a2a30'; g.beginPath(); g.arc(0, 6, 3, 0, 7); g.fill(); g.stroke();          // round tsuba
+      g.fillStyle = '#8a2a2a'; g.fillRect(-1.2, 7, 2.4, 7); g.strokeRect(-1.2, 7, 2.4, 7);          // wrapped grip
+    });
+  } else if (/(sword|_dagger|blade)/.test(name)) {
+    const great = name.includes('greatsword');
+    const heavy = great || name.includes('broadsword') || name.includes('longsword');
+    diag(g, () => {
+      blade(g, pal, name.includes('dagger') ? 12 : great ? 23 : heavy ? 19 : 17, name.includes('dagger') ? 2.2 : great ? 4.2 : heavy ? 3.6 : 3);
+      hilt(g, pal, great ? 8 : 6);
+    });
   } else if (name.includes('spear')) {
     diag(g, () => {
       shaft(g, -8, 14);
@@ -321,30 +442,32 @@ export function itemIcon(id) {
       g.strokeStyle = '#ffffff80'; g.lineWidth = 0.8; g.stroke();  // inner shine
       g.restore();
     }
-  } else if (name.includes('helm') || name.includes('coif')) {
-    g.fillStyle = pal[0];
-    g.beginPath(); g.arc(16, 15, 9.6, Math.PI, 0); g.lineTo(25.6, 21); g.lineTo(6.4, 21); g.closePath(); g.fill();
-    g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
-    g.fillStyle = pal[2]; g.beginPath(); g.arc(13, 12, 5, Math.PI, Math.PI * 1.6); g.lineTo(13, 12); g.fill();
-    g.fillStyle = pal[1]; g.fillRect(6.4, 16, 19.2, 2.2);
-    g.fillStyle = INK; g.fillRect(10, 18.4, 12, 1.6);
+  } else if (def.vis?.layer === 'head' && /^(greathelm|mail|armet|bascinet|horned|legion)$/.test(def.vis.sheet || '')) {
+    drawHelm(g, pal, def.vis.sheet);
     if (name.includes('trollkings')) { g.fillStyle = '#ffd75e'; for (const o of [-6, 0, 6]) { g.beginPath(); g.moveTo(16 + o, 5); g.lineTo(14 + o, 9); g.lineTo(18 + o, 9); g.fill(); } }
-  } else if (name.includes('hood') || name.includes('cowl')) {
+  } else if (name.includes('hood') || name.includes('cowl') || def.vis?.sheet === 'hood') {
     const c = { black: '#3a3a42', green: '#4a7a34', forest: '#2f5c22', blue: '#3c5c9c', brown: '#7a5a34', white: '#d8d5c8', charcoal: '#4a4a52' }[def.vis?.color] || '#6a6a5a';
     g.fillStyle = c;
     g.beginPath(); g.moveTo(16, 5); g.quadraticCurveTo(26, 8, 25, 20); g.quadraticCurveTo(24, 26, 16, 26); g.quadraticCurveTo(8, 26, 7, 20); g.quadraticCurveTo(6, 8, 16, 5); g.fill();
     g.strokeStyle = INK; g.stroke();
     g.fillStyle = '#141210'; g.beginPath(); g.ellipse(16, 18, 6, 5.4, 0, 0, 7); g.fill();
     g.fillStyle = '#ffffff22'; g.beginPath(); g.moveTo(16, 6); g.quadraticCurveTo(9, 9, 8.6, 18); g.lineTo(11, 18); g.quadraticCurveTo(11, 10, 16, 7.4); g.fill();
-  } else if (name.includes('platebody') || /(_body|tunic|shirt|robe_top)/.test(name)) {
+  } else if (name.includes('platebody') || name.includes('chainbody') || /(_body|tunic|shirt|robe_top)/.test(name)) {
     const isRobe = name.includes('robe');
+    const isChain = name.includes('chain');
     const c = isRobe ? ({ novice: '#3c5c9c', friar: '#7a5a34', druidic: '#2f5c22', archdruid: '#d8d5c8' }[name.split('_')[0]] || '#3c5c9c')
       : name.includes('leather') || name.includes('studded') ? '#8a5f36'
       : name.includes('ranger') ? '#2f5c22' : name.includes('lincoln') ? '#3e7a2e'
       : name.includes('outlaw') ? '#4a7a34' : name.includes('peasant') ? '#d8d0bc' : pal[0];
-    g.fillStyle = c;
-    g.beginPath(); g.moveTo(11, 6); g.lineTo(21, 6); g.lineTo(27, 10); g.lineTo(25, 15); g.lineTo(22, 13); g.lineTo(22, 26); g.lineTo(10, 26); g.lineTo(10, 13); g.lineTo(7, 15); g.lineTo(5, 10); g.closePath(); g.fill();
-    g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
+    const body = () => { g.beginPath(); g.moveTo(11, 6); g.lineTo(21, 6); g.lineTo(27, 10); g.lineTo(25, 15); g.lineTo(22, 13); g.lineTo(22, 26); g.lineTo(10, 26); g.lineTo(10, 13); g.lineTo(7, 15); g.lineTo(5, 10); g.closePath(); };
+    g.fillStyle = c; body(); g.fill();
+    if (isChain) {                                                          // woven mail rings
+      g.save(); body(); g.clip();
+      g.fillStyle = pal[1];
+      for (let y = 7; y < 26; y += 2.2) for (let x = 6 + ((y / 2.2 | 0) % 2) * 1.1; x < 26; x += 2.2) g.fillRect(x, y, 1, 1);
+      g.restore();
+    }
+    g.strokeStyle = INK; g.lineWidth = 1; body(); g.stroke();
     g.fillStyle = '#00000028'; g.fillRect(10, 20, 12, 6);
     g.fillStyle = '#ffffff30'; g.beginPath(); g.moveTo(11, 6.6); g.lineTo(15, 6.6); g.lineTo(12, 14); g.lineTo(10.6, 12); g.fill();
     g.fillStyle = INK; g.beginPath(); g.moveTo(13.4, 6); g.quadraticCurveTo(16, 9, 18.6, 6); g.fill();

@@ -5,9 +5,9 @@ import { WORLD, TILE, PLANE, WILDERNESS_Y } from '/shared/constants.js';
 import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV } from '/shared/mapgen.js';
 import { REGIONS } from '/shared/constants.js';
 import { HOUSE, TOWNS } from '/shared/data/world.js';
-import { composite, drawChar, drawOversize, drawHeldShield, shieldBehind, critterSprite, nodeSprite, ANIMS, itemIcon, proc } from './sprites.js';
+import { composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS, itemIcon, proc } from './sprites.js';
 import { MOBS } from '/shared/data/mobs.js';
-import { drawCreature, drawChest, drawGeode, drawSheetCell, drawFxSprite, MEDIA, mimg } from './media.js';
+import { drawCreature, drawChest, drawGeode, drawSheetCell, drawFxSprite, drawFxBand, MEDIA, mimg } from './media.js';
 
 export const TW = 64, TH = 32;         // iso tile size
 export const toScreen = (x, y) => [(x - y) * (TW / 2), (x + y) * (TH / 2)];
@@ -1083,13 +1083,16 @@ export class Renderer {
     }
     if (anim === 'idle') frame = Math.floor((now + e.id * 217) / animInfo.ms) % animInfo.frames; // desynced breathing
 
-    // cosmetic aura: a looping VFX effect around the wearer, tinted to element
+    // cosmetic aura: a looping VFX effect around the wearer, tinted to element.
+    // Fitted to the body band (head→feet) and drawn BEFORE the character so it
+    // always sits behind the wearer's back; bottom-anchored so fire licks up
+    // from the floor instead of floating above the head.
     if (e.aura) {
       const au = typeof e.aura === 'string' ? { fx: e.aura } : e.aura;
       ctx.save();
       ctx.globalAlpha = 0.85;
       ctx.globalCompositeOperation = 'lighter';   // additive: glows on any ground
-      drawFxSprite(ctx, au.fx, ((now + (e.id % 89) * 131) % 1600) / 1600, sx, sy - 20, 120, 0, au.tint);
+      drawFxBand(ctx, au.fx, ((now + (e.id % 89) * 131) % 1600) / 1600, sx, sy - 42 * scale, sy + 9 * scale, au.tint);
       ctx.restore();
     }
     // mount: the beast is drawn under the rider, facing the player's heading.
@@ -1138,11 +1141,8 @@ export class Renderer {
         ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(sx, ay, 20 * scale, 30 * scale, 0, 0, 7); ctx.fill();
         ctx.restore();
       }
-      const shieldCol = e.vis.shield && e.vis.shield[1];
-      if (shieldCol && shieldBehind(e.dir)) drawHeldShield(ctx, shieldCol, e.dir, sx, ry, scale);
       drawChar(ctx, comp, rAnim, e.dir, rFrame, sx, ry, scale);
       drawOversize(ctx, comp, e.vis, rAnim, e.dir, rFrame, sx, ry, scale);
-      if (shieldCol && !shieldBehind(e.dir)) drawHeldShield(ctx, shieldCol, e.dir, sx, ry, scale);
       // a signature bloom around a glowing (rare/unique) weapon
       const gcol = e.vis.weapon && e.vis.weapon[2];
       if (gcol) {

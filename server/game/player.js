@@ -100,6 +100,15 @@ export class Player {
     for (const s of this.inv) if (s && ITEMS[s.id]?.tool === tool) return ITEMS[s.id];
     return null;
   }
+  // Best (highest) tier of a held tool, e.g. the strongest pickaxe carried. Tool
+  // tiers sit on the same 1..80 metal scale as node requirements.
+  bestToolTier(tool) {
+    let best = 0;
+    const chk = (id) => { const d = ITEMS[id]; if (d?.tool === tool) best = Math.max(best, d.toolTier || 0); };
+    if (this.equip.weapon) chk(this.equip.weapon.id);
+    for (const s of this.inv) if (s) chk(s.id);
+    return best;
+  }
   addItem(id, qty = 1) {
     const def = ITEMS[id];
     if (!def) return false;

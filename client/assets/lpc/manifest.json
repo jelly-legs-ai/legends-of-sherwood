@@ -738,7 +738,9 @@
   "wing_feathered_back": "gear_wing_feathered_back.png",
   "wing_feathered_front": "gear_wing_feathered_front.png",
   "wing_bat_back": "gear_wing_bat_back.png",
-  "wing_bat_front": "gear_wing_bat_front.png"
+  "wing_bat_front": "gear_wing_bat_front.png",
+  "shield_kite_male": "gear_shield_kite_male.png",
+  "shield_kite_female": "gear_shield_kite_female.png"
  },
  "gear": {
   "torso/plate": {
@@ -1303,6 +1305,14 @@
    },
    "female": {
     "default": "gear_wing_bat_front.png"
+   }
+  },
+  "shield/kite": {
+   "male": {
+    "steel": "gear_shield_kite_male.png"
+   },
+   "female": {
+    "steel": "gear_shield_kite_female.png"
    }
   }
  },

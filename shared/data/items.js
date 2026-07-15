@@ -54,9 +54,9 @@ for (const m of METALS) {
   def(`${m.id}_gauntlets`, { name: `${m.name} gauntlets`, slot: 'hands', req: { defence: m.lvl },
     bonus: { def: s * 0.28 | 0, str: 1 }, value: m.val,
     vis: { layer: 'hands', sheet: 'gloves', color: m.color, glow: gl } });
-  def(`${m.id}_shield`, { name: `${m.name} heater shield`, slot: 'shield', req: { defence: m.lvl },
+  def(`${m.id}_shield`, { name: `${m.name} kite shield`, slot: 'shield', req: { defence: m.lvl },
     bonus: { def: s * 0.8 | 0 }, value: m.val * 1.8 | 0,
-    vis: { layer: 'shield', sheet: 'heater', color: m.color, glow: gl } });
+    vis: { layer: 'shield', sheet: 'kite', color: m.color, glow: gl } });
   // --- the LPC helmet racks: four further head lines, tint-dyed per tier ---
   def(`${m.id}_armet`, { name: `${m.name} armet`, slot: 'head', req: { defence: m.lvl },
     bonus: { def: s * 0.5 | 0 }, value: m.val * 1.5 | 0,
@@ -154,6 +154,25 @@ for (const m of METALS) {
   def(`${m.id}_trident`, { name: `${m.name} trident`, slot: 'weapon', kind: 'trident', style: 'melee', anim: 'thrust',
     speed: 3000, twoHand: true, req: { attack: m.lvl, strength: Math.max(1, m.lvl - 2) }, bonus: { acc: s * 1.15 | 0, str: s * 1.2 | 0 }, value: m.val * 2.5 | 0,
     vis: { layer: 'weapon', type: 'trident', color: m.color, glow: gl } });
+  // --- bladed swords: the former "rare" models, now full metal-tiered lines
+  // (glowswords stay unique). Each dyes its LPC model to the tier's colour. ---
+  def(`${m.id}_scimitar`, { name: `${m.name} scimitar`, slot: 'weapon', kind: 'scimitar', style: 'melee', anim: 'slash',
+    speed: 2000, req: { attack: m.lvl }, bonus: { acc: s * 1.05 | 0, str: s * 0.85 | 0 }, value: m.val * 2.2 | 0,
+    vis: { layer: 'weapon', type: 'scimitar', color: m.color, glow: gl } });
+  def(`${m.id}_saber`, { name: `${m.name} saber`, slot: 'weapon', kind: 'saber', style: 'melee', anim: 'slash',
+    speed: 1700, req: { attack: m.lvl }, bonus: { acc: s * 1.2 | 0, str: s * 0.6 | 0 }, value: m.val * 2.1 | 0,
+    vis: { layer: 'weapon', type: 'saber', color: m.color, glow: gl } });
+  def(`${m.id}_katana`, { name: `${m.name} katana`, slot: 'weapon', kind: 'katana', style: 'melee', anim: 'slash',
+    speed: 2300, req: { attack: m.lvl }, bonus: { acc: s * 1.0 | 0, str: s * 1.05 | 0 }, value: m.val * 2.5 | 0,
+    vis: { layer: 'weapon', type: 'katana', color: m.color, glow: gl } });
+  def(`${m.id}_broadsword`, { name: `${m.name} broadsword`, slot: 'weapon', kind: 'broadsword', style: 'melee', anim: 'slash',
+    speed: 2700, req: { attack: m.lvl }, bonus: { acc: s * 0.9 | 0, str: s * 1.2 | 0 }, value: m.val * 2.7 | 0,
+    vis: { layer: 'weapon', type: 'longsword_alt', color: m.color, glow: gl } });
+  // the greatsword: a huge two-hander — slow to swing but devastating. Reuses
+  // the broad alt-longsword blade scaled up a size (see WEAPON_ALIAS 'greatsword').
+  def(`${m.id}_greatsword`, { name: `${m.name} greatsword`, slot: 'weapon', kind: 'greatsword', style: 'melee', anim: 'slash',
+    speed: 4200, twoHand: true, req: { attack: m.lvl, strength: m.lvl }, bonus: { acc: s * 1.0 | 0, str: s * 1.75 | 0 }, value: m.val * 3.8 | 0,
+    vis: { layer: 'weapon', type: 'greatsword', color: m.color, glow: gl } });
 }
 // ---------------------------------------------------------------------------
 // Wood-and-metal crossbow variants. The stock wood is fixed by the frame —
@@ -417,6 +436,12 @@ for (const g of GEMS) def(`${g.id}_amulet`, { name: `${g.id[0].toUpperCase() + g
 // Fletching
 def('arrow_shafts', { name: 'Arrow shafts', stack: true, value: 1 });
 def('feathers', { name: 'Feathers', stack: true, value: 2 });
+// hunter plumes + fowl (LPC birds/turkey pass)
+def('songbird_plume', { name: 'Songbird plume', stack: true, value: 14 });
+def('raven_plume', { name: 'Raven plume', stack: true, value: 36 });
+def('eagle_plume', { name: 'Eagle plume', stack: true, value: 90 });
+def('raw_fowl', { name: 'Raw fowl', value: 6 });
+def('cooked_fowl', { name: 'Roast fowl', value: 14, heals: 6 });
 def('headless_arrows', { name: 'Headless arrows', stack: true, value: 2 });
 
 // Prayer
@@ -489,24 +514,24 @@ def('convoy_strongbox', { name: 'Convoy strongbox', value: 0, tradeable: false, 
 // katanas, alt-longsword greatblades and native blue/red energy glowswords —
 // single-finish models tint to the blade's colour, glowswords use theirs.
 export const RARE_SWORDS = [
-  ['blade_of_the_burrow', 'Blade of the Burrow', 20, 1, 0, 'scimitar', 'bronze'],
-  ['tidebreaker_cutlass', 'Tidebreaker cutlass', 30, 6, 0, 'saber', 'tide'],
-  ['fanged_ripper', 'Fanged ripper', 40, 11, 0, 'katana', 'blood'],
-  ['gollux_greatblade', 'Gollux greatblade', 50, 14, 1, 'longsword_alt', 'brass'],
-  ['glacier_edge', 'Glacier edge', 55, 19, 0, 'glowsword', 'blue'],
-  ['tyrants_cleaver', "Tyrant's cleaver", 65, 23, 1, 'longsword_alt', 'ember'],
-  ['rexfang_saber', 'Rexfang saber', 72, 27, 0, 'saber', 'bone'],
-  ['abyssal_edge', 'Abyssal edge', 78, 30, 0, 'glowsword', 'abyss'],
-  ['aracnyx_talon', 'Aracnyx talon', 82, 32, 0, 'katana', 'venom'],
-  ['glacial_reaver', 'Glacial reaver', 86, 34, 1, 'glowsword', 'blue'],
-  ['hellrender', 'Hellrender', 92, 36, 1, 'glowsword', 'red'],
-  ['dragonbane_greatsword', 'Dragonbane greatsword', 95, 39, 1, 'longsword_alt', 'gold'],
+  ['blade_of_the_burrow', 'Blade of the Burrow', 20, 1, 0, 'saber', 'tide'],
+  ['tidebreaker_cutlass', 'Tidebreaker cutlass', 30, 6, 0, 'longsword', 'tide'],
+  ['fanged_ripper', 'Fanged ripper', 40, 11, 0, 'scimitar', 'venom'],
+  ['gollux_greatblade', 'Gollux greatblade', 50, 14, 1, 'longsword_alt', 'steel'],
+  ['glacier_edge', 'Glacier edge', 55, 25, 0, 'glowsword', 'blue'],
+  ['tyrants_cleaver', "Tyrant's cleaver", 65, 39, 1, 'scimitar', 'ember'],
+  ['rexfang_saber', 'Rexfang saber', 72, 27, 0, 'longsword', 'ember'],
+  ['abyssal_edge', 'Abyssal edge', 78, 34, 0, 'glowsword', 'abyss'],
+  ['aracnyx_talon', 'Aracnyx talon', 82, 4, 0, 'katana', 'venom'],
+  ['glacial_reaver', 'Glacial reaver', 86, 29, 1, 'glowsword', 'blue'],
+  ['hellrender', 'Hellrender', 92, 8, 1, 'glowsword', 'red'],
+  ['dragonbane_greatsword', 'Dragonbane greatsword', 95, 20, 1, 'greatsword', 'gold'],
 ];
 // A signature aura colour per rare blade so each reads as its own weapon.
 const SWORD_GLOW = {
-  blade_of_the_burrow: '#c98f57', tidebreaker_cutlass: '#5fa8dc', fanged_ripper: '#c0402a',
-  gollux_greatblade: '#d8b45e', glacier_edge: '#8fe0ff', tyrants_cleaver: '#ff6a2a',
-  rexfang_saber: '#e0b93c', abyssal_edge: '#c05aff', aracnyx_talon: '#7fe07f',
+  blade_of_the_burrow: '#5fa8dc', tidebreaker_cutlass: '#5fa8dc', fanged_ripper: '#7fe07f',
+  gollux_greatblade: '#dfe6f0', glacier_edge: '#8fe0ff', tyrants_cleaver: '#ff8a3a',
+  rexfang_saber: '#ffb14a', abyssal_edge: '#c05aff', aracnyx_talon: '#7fe07f',
   glacial_reaver: '#9fe8ff', hellrender: '#ff4a2a', dragonbane_greatsword: '#ffd75e',
 };
 for (const [id, name, lvl, icon, twoHand, model, color] of RARE_SWORDS) {

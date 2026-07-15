@@ -440,7 +440,12 @@ function doNode(world, p, type, node, x, y, msg) {
     world.send(p, { t: MSG.MSGBOX, m: begin });
   }
 
+  const isMining = node.skill === 'mining';
   const interval = node.stall ? 1500 : 2200;
+  // kick off the first swing the instant the player reaches the node, so the
+  // action animation loops from the moment they set to work — not after a beat
+  p.anim = node.anim || 'thrust'; p.animSeq++;
+  world.fx(p.plane, x + 0.5, y + 0.5, FX[node.fx] || FX.SPARK, {});
   p.action = {
     type, x, y, next: now + interval,
     step: (nw) => {
@@ -449,7 +454,12 @@ function doNode(world, p, type, node, x, y, msg) {
       world.fx(p.plane, x + 0.5, y + 0.5, FX[node.fx] || FX.SPARK, {});
       p.action.next = nw + interval;
       const L = p.level(node.skill);
-      const chance = Math.min(0.95, 0.45 + (L - node.lvl) * 0.013);
+      // Mining: a 15% base chance per swing when working a vein you're just geared
+      // for, rising with mining level and pickaxe tier over the vein's grade —
+      // richer veins are progressively harder, so keeping a top pickaxe matters.
+      const chance = isMining
+        ? Math.max(0.03, Math.min(0.6, 0.15 + (L - node.lvl) * 0.006 + (p.bestToolTier('pickaxe') - node.lvl) * 0.006))
+        : Math.min(0.95, 0.45 + (L - node.lvl) * 0.013);
       if (Math.random() > chance) {
         if (node.stall) { // caught red-handed!
           const dmg = 1 + (Math.random() * 3 | 0);
@@ -484,8 +494,20 @@ function doNode(world, p, type, node, x, y, msg) {
       if (node.rare && Math.random() < node.rare[1]) { p.addItem(node.rare[0], 1); world.announce(`⚔ Unbelievable! ${p.name} fished up ${ITEMS[node.rare[0]].name}!`); }
       if (node.skill === 'fishing' && Math.random() < 1 / 4000) { world.dropShillings(p.plane, p.x, p.y, 1, p.id); world.send(p, { t: MSG.MSGBOX, m: 'Something glints in the net — a $LoS!' }); }
       // deplete?
-      const stay = node.multi && Math.random() < node.multi;
-      if (!stay && node.respawnMs > 1) { world.deplete(x, y, node.respawnMs); p.action = null; p.anim = 'idle'; }
+      if (isMining) {
+        // veins hold 3-6 ore; drain one per strike, then the seam gives out and
+        // must recharge over 30-90s (richer veins skew toward the longer end).
+        // essence rocks (respawnMs<=1) are bottomless and never run dry.
+        if (node.respawnMs > 1 && world.consumeCharge(x, y, 3, 6) <= 0) {
+          const t = Math.min(1, node.lvl / 80);
+          const recharge = 30000 + Math.pow(Math.random(), 1 - 0.7 * t) * 60000 | 0;
+          world.deplete(x, y, recharge);
+          p.action = null; p.anim = 'idle';
+        }
+      } else {
+        const stay = node.multi && Math.random() < node.multi;
+        if (!stay && node.respawnMs > 1) { world.deplete(x, y, node.respawnMs); p.action = null; p.anim = 'idle'; }
+      }
     },
   };
 }

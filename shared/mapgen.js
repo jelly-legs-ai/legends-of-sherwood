@@ -436,14 +436,11 @@ export function heightAt(x, y) {
   // shoreline falls smoothly to sea level (whatever shape the carved coast takes)
   const shore = Math.min(1, Math.max(0, shoreDist(x, y) / 26 + 0.15));
   h *= shore;
-  // Water sits exactly ONE block below its terrain level, derived AFTER
-  // quantization — so wherever the ground steps down a block, the water steps
-  // with it and the renderer pours a waterfall at every such lip. (The old
-  // "h - 0.8 then round" put water's block boundaries on different contour
-  // lines than the land's, so rivers crossed visible cliffs without falling.)
-  const hq = Math.max(0, Math.min(MAX_ELEV, Math.round(h)));
-  if (t === TILE.RIVER || t === TILE.WATER_SWAMP || t === TILE.WATER) return Math.max(0, hq - 1);
-  return hq;
+  // rivers cut a shallow channel; a bridge deck stays level with its road banks.
+  // (Original waterfall behaviour — restored by request: the h-0.8 offset gives
+  // the falls their preferred look, only spilling at the larger elevation steps.)
+  if (t === TILE.RIVER || t === TILE.WATER_SWAMP || t === TILE.WATER) h = Math.max(0, h - 0.8);
+  return Math.max(0, Math.min(MAX_ELEV, Math.round(h)));
 }
 
 // ---- scattered gather nodes --------------------------------------------------------
@@ -467,10 +464,16 @@ export function scatterNodeAt(x, y) {
   const reg = regionAt(x, y);
   const list = SCATTER[reg];
   if (!list) return null;
+  // Trees gather into groves & woodlands with open clearings between, rather than
+  // blanketing the map evenly: a coarse noise field gates them out of clearings
+  // and concentrates them into forest cores. Rocks/ore are placed evenly as before.
+  const grove = Math.max(0, vnoise(x, y, 26, 71) - 0.5) / 0.5;      // 0 across open clearings (~half the land) … 1 in a forest core
+  const groveMult = grove * 3.0;                                     // dense woodland cores where trees do gather
   const r = hash2(x * 3 + 1, y * 5 + 2, 999);
   let acc = 0;
   for (const [type, dens] of list) {
-    acc += dens;
+    const isTree = type === 'tree' || type.endsWith('_tree');
+    acc += isTree ? dens * groveMult : dens;
     if (r < acc) return type;
   }
   return null;

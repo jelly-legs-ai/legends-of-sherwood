@@ -1976,6 +1976,1220 @@
     "b": 0.021,
     "w": 0.573
    }
+  },
+  "wolf_timber": {
+   "frame": 64,
+   "kind": "strips",
+   "anims": {
+    "idle": {
+     "file": "creatures/wolf_timber_idle.png",
+     "w": 128,
+     "h": 32,
+     "frames": 2
+    },
+    "special": {
+     "file": "creatures/wolf_timber_special.png",
+     "w": 256,
+     "h": 32,
+     "frames": 4
+    },
+    "walk": {
+     "file": "creatures/wolf_timber_walk.png",
+     "w": 320,
+     "h": 32,
+     "frames": 5
+    },
+    "sprint": {
+     "file": "creatures/wolf_timber_sprint.png",
+     "w": 320,
+     "h": 32,
+     "frames": 5
+    },
+    "attack": {
+     "file": "creatures/wolf_timber_attack.png",
+     "w": 320,
+     "h": 32,
+     "frames": 5
+    },
+    "death": {
+     "file": "creatures/wolf_timber_death.png",
+     "w": 256,
+     "h": 32,
+     "frames": 4
+    }
+   },
+   "art": {
+    "h": 0.719,
+    "b": 0,
+    "w": 0.938
+   }
+  },
+  "wolf_shadow": {
+   "frame": 64,
+   "kind": "strips",
+   "anims": {
+    "idle": {
+     "file": "creatures/wolf_shadow_idle.png",
+     "w": 128,
+     "h": 32,
+     "frames": 2
+    },
+    "special": {
+     "file": "creatures/wolf_shadow_special.png",
+     "w": 256,
+     "h": 32,
+     "frames": 4
+    },
+    "walk": {
+     "file": "creatures/wolf_shadow_walk.png",
+     "w": 320,
+     "h": 32,
+     "frames": 5
+    },
+    "sprint": {
+     "file": "creatures/wolf_shadow_sprint.png",
+     "w": 320,
+     "h": 32,
+     "frames": 5
+    },
+    "attack": {
+     "file": "creatures/wolf_shadow_attack.png",
+     "w": 320,
+     "h": 32,
+     "frames": 5
+    },
+    "death": {
+     "file": "creatures/wolf_shadow_death.png",
+     "w": 256,
+     "h": 32,
+     "frames": 4
+    }
+   },
+   "art": {
+    "h": 0.719,
+    "b": 0,
+    "w": 0.938
+   }
+  },
+  "wolf_grey": {
+   "frame": 64,
+   "kind": "strips",
+   "anims": {
+    "idle": {
+     "file": "creatures/wolf_grey_idle.png",
+     "w": 128,
+     "h": 32,
+     "frames": 2
+    },
+    "special": {
+     "file": "creatures/wolf_grey_special.png",
+     "w": 256,
+     "h": 32,
+     "frames": 4
+    },
+    "walk": {
+     "file": "creatures/wolf_grey_walk.png",
+     "w": 320,
+     "h": 32,
+     "frames": 5
+    },
+    "sprint": {
+     "file": "creatures/wolf_grey_sprint.png",
+     "w": 320,
+     "h": 32,
+     "frames": 5
+    },
+    "attack": {
+     "file": "creatures/wolf_grey_attack.png",
+     "w": 320,
+     "h": 32,
+     "frames": 5
+    },
+    "death": {
+     "file": "creatures/wolf_grey_death.png",
+     "w": 256,
+     "h": 32,
+     "frames": 4
+    }
+   },
+   "art": {
+    "h": 0.719,
+    "b": 0,
+    "w": 0.938
+   }
+  },
+  "wolf_dusk": {
+   "frame": 64,
+   "kind": "strips",
+   "anims": {
+    "idle": {
+     "file": "creatures/wolf_dusk_idle.png",
+     "w": 128,
+     "h": 32,
+     "frames": 2
+    },
+    "special": {
+     "file": "creatures/wolf_dusk_special.png",
+     "w": 256,
+     "h": 32,
+     "frames": 4
+    },
+    "walk": {
+     "file": "creatures/wolf_dusk_walk.png",
+     "w": 320,
+     "h": 32,
+     "frames": 5
+    },
+    "sprint": {
+     "file": "creatures/wolf_dusk_sprint.png",
+     "w": 320,
+     "h": 32,
+     "frames": 5
+    },
+    "attack": {
+     "file": "creatures/wolf_dusk_attack.png",
+     "w": 320,
+     "h": 32,
+     "frames": 5
+    },
+    "death": {
+     "file": "creatures/wolf_dusk_death.png",
+     "w": 256,
+     "h": 32,
+     "frames": 4
+    }
+   },
+   "art": {
+    "h": 0.719,
+    "b": 0,
+    "w": 0.938
+   }
+  },
+  "wolf_gold": {
+   "frame": 64,
+   "kind": "strips",
+   "anims": {
+    "idle": {
+     "file": "creatures/wolf_gold_idle.png",
+     "w": 128,
+     "h": 32,
+     "frames": 2
+    },
+    "special": {
+     "file": "creatures/wolf_gold_special.png",
+     "w": 256,
+     "h": 32,
+     "frames": 4
+    },
+    "walk": {
+     "file": "creatures/wolf_gold_walk.png",
+     "w": 320,
+     "h": 32,
+     "frames": 5
+    },
+    "sprint": {
+     "file": "creatures/wolf_gold_sprint.png",
+     "w": 320,
+     "h": 32,
+     "frames": 5
+    },
+    "attack": {
+     "file": "creatures/wolf_gold_attack.png",
+     "w": 320,
+     "h": 32,
+     "frames": 5
+    },
+    "death": {
+     "file": "creatures/wolf_gold_death.png",
+     "w": 256,
+     "h": 32,
+     "frames": 4
+    }
+   },
+   "art": {
+    "h": 0.719,
+    "b": 0,
+    "w": 0.938
+   }
+  },
+  "wolf_blood": {
+   "frame": 64,
+   "kind": "strips",
+   "anims": {
+    "idle": {
+     "file": "creatures/wolf_blood_idle.png",
+     "w": 128,
+     "h": 32,
+     "frames": 2
+    },
+    "special": {
+     "file": "creatures/wolf_blood_special.png",
+     "w": 256,
+     "h": 32,
+     "frames": 4
+    },
+    "walk": {
+     "file": "creatures/wolf_blood_walk.png",
+     "w": 320,
+     "h": 32,
+     "frames": 5
+    },
+    "sprint": {
+     "file": "creatures/wolf_blood_sprint.png",
+     "w": 320,
+     "h": 32,
+     "frames": 5
+    },
+    "attack": {
+     "file": "creatures/wolf_blood_attack.png",
+     "w": 320,
+     "h": 32,
+     "frames": 5
+    },
+    "death": {
+     "file": "creatures/wolf_blood_death.png",
+     "w": 256,
+     "h": 32,
+     "frames": 4
+    }
+   },
+   "art": {
+    "h": 0.719,
+    "b": 0,
+    "w": 0.938
+   }
+  },
+  "wolf_arctic": {
+   "frame": 64,
+   "kind": "strips",
+   "anims": {
+    "idle": {
+     "file": "creatures/wolf_arctic_idle.png",
+     "w": 128,
+     "h": 32,
+     "frames": 2
+    },
+    "special": {
+     "file": "creatures/wolf_arctic_special.png",
+     "w": 256,
+     "h": 32,
+     "frames": 4
+    },
+    "walk": {
+     "file": "creatures/wolf_arctic_walk.png",
+     "w": 320,
+     "h": 32,
+     "frames": 5
+    },
+    "sprint": {
+     "file": "creatures/wolf_arctic_sprint.png",
+     "w": 320,
+     "h": 32,
+     "frames": 5
+    },
+    "attack": {
+     "file": "creatures/wolf_arctic_attack.png",
+     "w": 320,
+     "h": 32,
+     "frames": 5
+    },
+    "death": {
+     "file": "creatures/wolf_arctic_death.png",
+     "w": 256,
+     "h": 32,
+     "frames": 4
+    }
+   },
+   "art": {
+    "h": 0.719,
+    "b": 0,
+    "w": 0.938
+   }
+  },
+  "rabbit": {
+   "frame": 72,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/rabbit_idle.png",
+     "w": 288,
+     "h": 288,
+     "frames": 4,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/rabbit_walk.png",
+     "w": 288,
+     "h": 288,
+     "frames": 4,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.5,
+    "b": 0.1,
+    "w": 0.42
+   }
+  },
+  "farm_turkey": {
+   "frame": 128,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/farm_turkey_idle.png",
+     "w": 512,
+     "h": 512,
+     "frames": 4,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/farm_turkey_walk.png",
+     "w": 512,
+     "h": 512,
+     "frames": 4,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.44,
+    "b": 0.2,
+    "w": 0.4
+   }
+  },
+  "bird_robin": {
+   "frame": 32,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/bird_robin_idle.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/bird_robin_walk.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    },
+    "sprint": {
+     "file": "creatures/bird_robin_fly.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.55,
+    "b": 0.06,
+    "w": 0.55
+   }
+  },
+  "bird_sparrow": {
+   "frame": 32,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/bird_sparrow_idle.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/bird_sparrow_walk.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    },
+    "sprint": {
+     "file": "creatures/bird_sparrow_fly.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.55,
+    "b": 0.06,
+    "w": 0.55
+   }
+  },
+  "bird_bluejay": {
+   "frame": 32,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/bird_bluejay_idle.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/bird_bluejay_walk.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    },
+    "sprint": {
+     "file": "creatures/bird_bluejay_fly.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.55,
+    "b": 0.06,
+    "w": 0.55
+   }
+  },
+  "bird_cardinal": {
+   "frame": 32,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/bird_cardinal_idle.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/bird_cardinal_walk.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    },
+    "sprint": {
+     "file": "creatures/bird_cardinal_fly.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.55,
+    "b": 0.06,
+    "w": 0.55
+   }
+  },
+  "bird_crow": {
+   "frame": 32,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/bird_crow_idle.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/bird_crow_walk.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    },
+    "sprint": {
+     "file": "creatures/bird_crow_fly.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.55,
+    "b": 0.06,
+    "w": 0.55
+   }
+  },
+  "bird_dove": {
+   "frame": 32,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/bird_dove_idle.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/bird_dove_walk.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    },
+    "sprint": {
+     "file": "creatures/bird_dove_fly.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.55,
+    "b": 0.06,
+    "w": 0.55
+   }
+  },
+  "bird_eagle": {
+   "frame": 32,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/bird_eagle_idle.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/bird_eagle_walk.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    },
+    "sprint": {
+     "file": "creatures/bird_eagle_fly.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.55,
+    "b": 0.06,
+    "w": 0.55
+   }
+  },
+  "bird_wren": {
+   "frame": 32,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/bird_wren_idle.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/bird_wren_walk.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    },
+    "sprint": {
+     "file": "creatures/bird_wren_fly.png",
+     "w": 96,
+     "h": 128,
+     "frames": 3,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.55,
+    "b": 0.06,
+    "w": 0.55
+   }
+  },
+  "imp": {
+   "frame": 64,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/imp_idle.png",
+     "w": 256,
+     "h": 256,
+     "frames": 1,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/imp_walk.png",
+     "w": 256,
+     "h": 256,
+     "frames": 4,
+     "rows": 4
+    },
+    "attack": {
+     "file": "creatures/imp_attack.png",
+     "w": 256,
+     "h": 256,
+     "frames": 4,
+     "rows": 4
+    },
+    "death": {
+     "file": "creatures/imp_death.png",
+     "w": 128,
+     "h": 64,
+     "frames": 2
+    }
+   },
+   "art": {
+    "h": 0.62,
+    "b": 0.11,
+    "w": 0.5
+   }
+  },
+  "imp_sword": {
+   "frame": 64,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/imp_sword_idle.png",
+     "w": 256,
+     "h": 256,
+     "frames": 1,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/imp_sword_walk.png",
+     "w": 256,
+     "h": 256,
+     "frames": 4,
+     "rows": 4
+    },
+    "attack": {
+     "file": "creatures/imp_sword_attack.png",
+     "w": 256,
+     "h": 256,
+     "frames": 4,
+     "rows": 4
+    },
+    "death": {
+     "file": "creatures/imp_sword_death.png",
+     "w": 128,
+     "h": 64,
+     "frames": 2
+    }
+   },
+   "art": {
+    "h": 0.62,
+    "b": 0.11,
+    "w": 0.5
+   }
+  },
+  "imp_guard": {
+   "frame": 64,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/imp_guard_idle.png",
+     "w": 256,
+     "h": 256,
+     "frames": 1,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/imp_guard_walk.png",
+     "w": 256,
+     "h": 256,
+     "frames": 4,
+     "rows": 4
+    },
+    "attack": {
+     "file": "creatures/imp_guard_attack.png",
+     "w": 256,
+     "h": 256,
+     "frames": 4,
+     "rows": 4
+    },
+    "death": {
+     "file": "creatures/imp_guard_death.png",
+     "w": 128,
+     "h": 64,
+     "frames": 2
+    }
+   },
+   "art": {
+    "h": 0.62,
+    "b": 0.11,
+    "w": 0.5
+   }
+  },
+  "imp_pike": {
+   "frame": 64,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/imp_pike_idle.png",
+     "w": 256,
+     "h": 256,
+     "frames": 1,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/imp_pike_walk.png",
+     "w": 256,
+     "h": 256,
+     "frames": 4,
+     "rows": 4
+    },
+    "attack": {
+     "file": "creatures/imp_pike_attack.png",
+     "w": 256,
+     "h": 256,
+     "frames": 4,
+     "rows": 4
+    },
+    "death": {
+     "file": "creatures/imp_pike_death.png",
+     "w": 128,
+     "h": 64,
+     "frames": 2
+    }
+   },
+   "art": {
+    "h": 0.62,
+    "b": 0.11,
+    "w": 0.5
+   }
+  },
+  "imp_warlord": {
+   "frame": 64,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/imp_warlord_idle.png",
+     "w": 256,
+     "h": 256,
+     "frames": 1,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/imp_warlord_walk.png",
+     "w": 256,
+     "h": 256,
+     "frames": 4,
+     "rows": 4
+    },
+    "attack": {
+     "file": "creatures/imp_warlord_attack.png",
+     "w": 256,
+     "h": 256,
+     "frames": 4,
+     "rows": 4
+    },
+    "death": {
+     "file": "creatures/imp_warlord_death.png",
+     "w": 128,
+     "h": 64,
+     "frames": 2
+    }
+   },
+   "art": {
+    "h": 0.62,
+    "b": 0.11,
+    "w": 0.5
+   }
+  },
+  "imp_ember": {
+   "frame": 64,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/imp_ember_idle.png",
+     "w": 256,
+     "h": 256,
+     "frames": 1,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/imp_ember_walk.png",
+     "w": 256,
+     "h": 256,
+     "frames": 4,
+     "rows": 4
+    },
+    "attack": {
+     "file": "creatures/imp_ember_attack.png",
+     "w": 256,
+     "h": 256,
+     "frames": 4,
+     "rows": 4
+    },
+    "death": {
+     "file": "creatures/imp_ember_death.png",
+     "w": 128,
+     "h": 64,
+     "frames": 2
+    }
+   },
+   "art": {
+    "h": 0.62,
+    "b": 0.11,
+    "w": 0.5
+   }
+  },
+  "imp_venom": {
+   "frame": 64,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/imp_venom_idle.png",
+     "w": 256,
+     "h": 256,
+     "frames": 1,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/imp_venom_walk.png",
+     "w": 256,
+     "h": 256,
+     "frames": 4,
+     "rows": 4
+    },
+    "attack": {
+     "file": "creatures/imp_venom_attack.png",
+     "w": 256,
+     "h": 256,
+     "frames": 4,
+     "rows": 4
+    },
+    "death": {
+     "file": "creatures/imp_venom_death.png",
+     "w": 128,
+     "h": 64,
+     "frames": 2
+    }
+   },
+   "art": {
+    "h": 0.62,
+    "b": 0.11,
+    "w": 0.5
+   }
+  },
+  "imp_gloom": {
+   "frame": 64,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/imp_gloom_idle.png",
+     "w": 256,
+     "h": 256,
+     "frames": 1,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/imp_gloom_walk.png",
+     "w": 256,
+     "h": 256,
+     "frames": 4,
+     "rows": 4
+    },
+    "attack": {
+     "file": "creatures/imp_gloom_attack.png",
+     "w": 256,
+     "h": 256,
+     "frames": 4,
+     "rows": 4
+    },
+    "death": {
+     "file": "creatures/imp_gloom_death.png",
+     "w": 128,
+     "h": 64,
+     "frames": 2
+    }
+   },
+   "art": {
+    "h": 0.62,
+    "b": 0.11,
+    "w": 0.5
+   }
+  },
+  "mob_bat": {
+   "frame": 64,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/mob_bat_walk.png",
+     "w": 448,
+     "h": 256,
+     "frames": 7,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/mob_bat_walk.png",
+     "w": 448,
+     "h": 256,
+     "frames": 7,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.55,
+    "b": 0.15,
+    "w": 0.55
+   }
+  },
+  "mob_bee": {
+   "frame": 32,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/mob_bee_walk.png",
+     "w": 192,
+     "h": 128,
+     "frames": 6,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/mob_bee_walk.png",
+     "w": 192,
+     "h": 128,
+     "frames": 6,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.55,
+    "b": 0.15,
+    "w": 0.55
+   }
+  },
+  "mob_ghost": {
+   "frame": 64,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/mob_ghost_walk.png",
+     "w": 384,
+     "h": 256,
+     "frames": 6,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/mob_ghost_walk.png",
+     "w": 384,
+     "h": 256,
+     "frames": 6,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.55,
+    "b": 0.15,
+    "w": 0.55
+   }
+  },
+  "mob_slime": {
+   "frame": 64,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/mob_slime_walk.png",
+     "w": 512,
+     "h": 256,
+     "frames": 8,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/mob_slime_walk.png",
+     "w": 512,
+     "h": 256,
+     "frames": 8,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.55,
+    "b": 0.15,
+    "w": 0.55
+   }
+  },
+  "mob_snake": {
+   "frame": 64,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/mob_snake_walk.png",
+     "w": 448,
+     "h": 256,
+     "frames": 7,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/mob_snake_walk.png",
+     "w": 448,
+     "h": 256,
+     "frames": 7,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.55,
+    "b": 0.15,
+    "w": 0.55
+   }
+  },
+  "mob_eyeball": {
+   "frame": 64,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/mob_eyeball_walk.png",
+     "w": 448,
+     "h": 256,
+     "frames": 7,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/mob_eyeball_walk.png",
+     "w": 448,
+     "h": 256,
+     "frames": 7,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.55,
+    "b": 0.15,
+    "w": 0.55
+   }
+  },
+  "mob_pumpking": {
+   "frame": 64,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/mob_pumpking_walk.png",
+     "w": 384,
+     "h": 256,
+     "frames": 6,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/mob_pumpking_walk.png",
+     "w": 384,
+     "h": 256,
+     "frames": 6,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.55,
+    "b": 0.15,
+    "w": 0.55
+   }
+  },
+  "mob_maneater": {
+   "frame": 128,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/mob_maneater_walk.png",
+     "w": 768,
+     "h": 512,
+     "frames": 6,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/mob_maneater_walk.png",
+     "w": 768,
+     "h": 512,
+     "frames": 6,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.55,
+    "b": 0.15,
+    "w": 0.55
+   }
+  },
+  "mob_big_worm": {
+   "frame": 64,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/mob_big_worm_walk.png",
+     "w": 384,
+     "h": 256,
+     "frames": 6,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/mob_big_worm_walk.png",
+     "w": 384,
+     "h": 256,
+     "frames": 6,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.55,
+    "b": 0.15,
+    "w": 0.55
+   }
+  },
+  "mob_small_worm": {
+   "frame": 64,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/mob_small_worm_walk.png",
+     "w": 704,
+     "h": 256,
+     "frames": 11,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/mob_small_worm_walk.png",
+     "w": 704,
+     "h": 256,
+     "frames": 11,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.55,
+    "b": 0.15,
+    "w": 0.55
+   }
+  },
+  "barbarian": {
+   "frame": 64,
+   "kind": "grid",
+   "anims": {
+    "idle": {
+     "file": "creatures/barbarian_walk.png",
+     "w": 576,
+     "h": 256,
+     "frames": 1,
+     "rows": 4
+    },
+    "walk": {
+     "file": "creatures/barbarian_walk.png",
+     "w": 576,
+     "h": 256,
+     "frames": 9,
+     "rows": 4
+    }
+   },
+   "art": {
+    "h": 0.78,
+    "b": 0.05,
+    "w": 0.4
+   }
   }
  },
  "fx": {
@@ -2629,22 +3843,22 @@
   "tree": {
    "file": "env/tree_tree.png",
    "w": 94,
-   "h": 80
+   "h": 136
   },
   "oak_tree": {
    "file": "env/tree_oak_tree.png",
    "w": 94,
-   "h": 136
+   "h": 138
   },
   "elm_tree": {
    "file": "env/tree_elm_tree.png",
-   "w": 97,
-   "h": 125
+   "w": 94,
+   "h": 142
   },
   "willow_tree": {
    "file": "env/tree_willow_tree.png",
-   "w": 97,
-   "h": 136
+   "w": 94,
+   "h": 138
   },
   "yew_tree": {
    "file": "env/tree_yew_tree.png",
@@ -2654,7 +3868,7 @@
   "maple_tree": {
    "file": "env/tree_maple_tree.png",
    "w": 94,
-   "h": 136
+   "h": 138
   },
   "frostpine_tree": {
    "file": "env/tree_frostpine_tree.png",

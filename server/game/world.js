@@ -34,6 +34,7 @@ export class World {
     this.sockets = new Map();        // player entity id -> ws
     this.nextId = 1;
     this.depleted = new Map();       // "x,y" -> respawn timestamp (overworld nodes)
+    this.nodeCharges = new Map();    // "x,y" -> ore left before a vein depletes (mining)
     this.campfires = new Map();      // "plane:x,y" -> expiry
     this.saved = {};                 // offline players (name -> serialized data)
     this.tickN = 0;
@@ -231,6 +232,16 @@ export class World {
     this.depleted.set(this.nodeKey(x, y), Date.now() + ms);
     this.broadcastNear(PLANE.OVERWORLD, x, y, { t: 'node', x: x | 0, y: y | 0, off: 1 });
     setTimeout(() => this.broadcastNear(PLANE.OVERWORLD, x, y, { t: 'node', x: x | 0, y: y | 0, off: 0 }), ms);
+  }
+  // Ore veins hold a random pool of ore (min..max) that drains one per successful
+  // swing; when it hits zero the vein depletes and the pool is re-rolled next time.
+  consumeCharge(x, y, min, max) {
+    const k = this.nodeKey(x, y);
+    let n = this.nodeCharges.get(k);
+    if (n === undefined) n = min + (Math.random() * (max - min + 1) | 0);
+    n -= 1;
+    if (n <= 0) this.nodeCharges.delete(k); else this.nodeCharges.set(k, n);
+    return n;
   }
 
   // ---------------- wandering gem geodes ----------------
@@ -531,6 +542,16 @@ export class World {
       } else if (def.aggro) {
         for (const e of this.near(m.plane, m.x, m.y, COMBAT.AGGRO_RADIUS)) {
           if (e.kind === 'player' && e.hp > 0 && !e.safe) { m.target = e.id; break; }
+        }
+        // wolves howl on sighting prey: the cry carries far and rallies every
+        // packmate in earshot onto the same quarry (20s per-wolf cooldown)
+        if (m.target && def.howl && (!m._howled || Date.now() - m._howled > 20000)) {
+          m._howled = Date.now();
+          m.anim = 'spellcast'; m.animSeq = (m.animSeq || 0) + 1; m.animStart = Date.now();   // client: special = howl
+          for (const w of this.near(m.plane, m.x, m.y, 14)) {
+            if (w.kind !== 'mob' || w.id === m.id || w.hp <= 0 || !MOBS[w.type]?.howl) continue;
+            if (!w.target) w.target = m.target;
+          }
         }
       }
     }

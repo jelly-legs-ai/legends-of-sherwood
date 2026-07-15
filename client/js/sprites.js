@@ -40,7 +40,7 @@ function pick(obj, ...keys) { let o = obj; for (const k of keys) { if (!o) retur
 // its metal tint (steel/iron keep their native art); other sheets use their
 // exact palette file when one exists and tint a neutral sheet otherwise — so
 // new metals (mithril) dye correctly on every armour line.
-const FORCE_DYE = new Set(['torso/chainmail', 'head/mail']);
+const FORCE_DYE = new Set(['torso/chainmail', 'head/mail', 'shield/kite']);
 // Wings ship one design each; the colour variants are baked by hue-tinting the
 // light feathers (blue) or multiply-darkening them (black). `mul` darkens.
 const WING_TINT = { white: null, blue: { tint: '#4aa0e0' }, red: { tint: '#d24a3a' }, black: { mul: '#2a2a30' }, gray: { mul: '#8a8a90' } };
@@ -120,13 +120,14 @@ function compositeInto(c, vis) {
   if (vis.shoulders) layers.push(gearL('shoulders/' + vis.shoulders[0], vis.shoulders));
   if (vis.head) layers.push(gearL('head/' + vis.head[0], vis.head));
   if (wingFront) layers.push(wingFront);   // near wing wraps over the body
-  // NB: the free LPC heater-shield sheet is all but empty (no per-pose art), so
-  // shields are drawn procedurally at render time via drawHeldShield() instead.
+  // LPC kite shield: a real baked off-hand layer (walk/slash/thrust rows), dyed
+  // to the metal tier via FORCE_DYE. Sits over the body, under the weapon.
+  if (vis.shield) layers.push(gearL('shield/' + (vis.shield[0] || 'kite'), vis.shield));
   if (wep?.fg) layers.push(wep.fg);
   if (wep?.shootPatch) layers.push(wep.shootPatch);   // recurve/great bows borrow the bow sheet's shoot rows
   if (wep?.perAnim) c.oversize = wep.perAnim; // spear overlays drawn at render time
   // swords cut INWARD: their slash rows play in reverse (see drawChar/drawOversize)
-  c.reverseSlash = !!(vis.weapon && vis.weapon[0] === 'sword');
+  c.reverseSlash = !!(vis.weapon && SLASH_REVERSE.has(vis.weapon[0]));
 
   const files = layers.filter(Boolean);
   let pending = files.length;
@@ -267,7 +268,11 @@ function decorated(im, fx) {
 const WEAPON_ALIAS = {
   arbalest: { base: 'crossbow', scl: 1.12 },
   siege: { base: 'crossbow', scl: 1.26 },
+  // the greatsword is the broad alt-longsword blade grown a size for a two-hander
+  greatsword: { base: 'longsword_alt', scl: 1.32 },
 };
+// blades that cut INWARD across the body: their slash rows play in reverse
+const SLASH_REVERSE = new Set(['sword', 'longsword', 'longsword_alt', 'scimitar', 'saber', 'katana', 'rapier', 'glowsword', 'greatsword']);
 function weaponFiles(type, color, sex = 'male') {
   const alias = WEAPON_ALIAS[type];
   const w = manifest.weapons[alias ? alias.base : type];
@@ -367,51 +372,8 @@ export function drawOversize(ctx, comp, vis, anim, dir, frame, sx, sy, scale = 1
   }
 }
 
-// A procedural heater shield worn on the off-hand. The LPC shield sheet ships
-// empty, so we draw the shield ourselves — a metal-tiered kite/heater with rim,
-// boss and a cross, positioned and sized per facing (edge-on from the sides).
-const SHIELD_PAL = {
-  copper: ['#c98f57', '#8a5a30', '#eec394'], bronze: ['#b5814e', '#7a5228', '#e0b483'],
-  iron: ['#9ba0aa', '#5e636e', '#c8ccd4'], steel: ['#c2c8d2', '#828894', '#eef2f8'],
-  brass: ['#d0ad55', '#94781f', '#f0dc92'], silver: ['#d4dae6', '#8f97a8', '#f4f8ff'],
-  gold: ['#e2c24e', '#9a7a1e', '#fff0b0'], mithril: ['#5a6da8', '#37477a', '#8fa2d8'],
-};
-// Whether the shield sits behind the body (facing away / near-shoulder occluded)
-export function shieldBehind(dir) { return dir === 0 || dir === 3; }
-export function drawHeldShield(ctx, color, dir, sx, sy, scale = 1) {
-  const pal = SHIELD_PAL[color] || SHIELD_PAL.steel;
-  // carried on the forearm at waist-chest height, not up by the head
-  const S = scale, cy = sy - 23 * S;
-  let cx, w;
-  if (dir === 2) { cx = sx + 11 * S; w = 15 * S; }       // toward camera: full face, off (left) arm
-  else if (dir === 0) { cx = sx - 11 * S; w = 14 * S; }  // facing away: full face on the back
-  else if (dir === 1) { cx = sx - 13 * S; w = 6.5 * S; } // facing left: edge-on
-  else { cx = sx + 13 * S; w = 6.5 * S; }                // facing right: edge-on
-  const h = 20 * S;
-  const heater = () => {
-    ctx.beginPath();
-    ctx.moveTo(cx - w / 2, cy - h / 2);
-    ctx.quadraticCurveTo(cx, cy - h / 2 - 1.5 * S, cx + w / 2, cy - h / 2);
-    ctx.lineTo(cx + w / 2, cy + h * 0.05);
-    ctx.quadraticCurveTo(cx + w * 0.42, cy + h * 0.45, cx, cy + h / 2);
-    ctx.quadraticCurveTo(cx - w * 0.42, cy + h * 0.45, cx - w / 2, cy + h * 0.05);
-    ctx.closePath();
-  };
-  ctx.save();
-  heater(); ctx.fillStyle = pal[1]; ctx.fill();                 // base / shadow
-  ctx.save(); heater(); ctx.clip();
-  ctx.fillStyle = pal[0]; ctx.fillRect(cx - w / 2, cy - h / 2, w * 0.62, h);   // lit left face
-  ctx.fillStyle = pal[2]; ctx.fillRect(cx - w / 2, cy - h / 2, w * 0.22, h);   // highlight edge
-  if (w > 9 * S) {                                             // cross emblem only on the broad face
-    ctx.strokeStyle = pal[2]; ctx.lineWidth = 1.6 * S;
-    ctx.beginPath(); ctx.moveTo(cx, cy - h * 0.34); ctx.lineTo(cx, cy + h * 0.30); ctx.moveTo(cx - w * 0.28, cy - h * 0.06); ctx.lineTo(cx + w * 0.28, cy - h * 0.06); ctx.stroke();
-  }
-  ctx.restore();
-  heater(); ctx.strokeStyle = '#1b1410'; ctx.lineWidth = 1.5 * S; ctx.stroke();  // rim
-  ctx.fillStyle = pal[2]; ctx.beginPath(); ctx.arc(cx, cy - h * 0.06, 2 * S, 0, 7); ctx.fill();  // boss
-  ctx.strokeStyle = '#1b1410'; ctx.lineWidth = 0.8 * S; ctx.stroke();
-  ctx.restore();
-}
+// (The off-hand shield is now a real baked LPC kite-shield layer — see the
+// shield handling in compositeInto() — so no procedural shield draw is needed.)
 
 // ---------------------------------------------------------------------------
 // Procedural pixel sprites (beasts, nodes, stations, items) — original art.

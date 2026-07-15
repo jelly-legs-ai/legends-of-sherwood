@@ -32,6 +32,8 @@ export const NODES = {
 
   // Hunter (requires a box_trap in inventory)
   rabbit_run: { skill: 'hunter', lvl: 1, xp: 30, tool: 'box_trap', yield: 'rabbit_fur', respawnMs: 5000, name: 'Rabbit run', anim: 'spellcast', fx: 'TRAP' },
+  bird_snare: { skill: 'hunter', lvl: 12, xp: 52, tool: 'box_trap', yield: 'songbird_plume', respawnMs: 8000, name: 'Bird snare', anim: 'spellcast', fx: 'TRAP',
+    table: [['songbird_plume', 12, 52], ['raven_plume', 35, 95], ['eagle_plume', 60, 170]] },
   fox_trail: { skill: 'hunter', lvl: 25, xp: 75, tool: 'box_trap', yield: 'fox_fur', respawnMs: 10000, name: 'Fox trail', anim: 'spellcast', fx: 'TRAP' },
   deer_track: { skill: 'hunter', lvl: 45, xp: 130, tool: 'box_trap', yield: 'raw_venison', respawnMs: 15000, name: 'Deer track', anim: 'spellcast', fx: 'TRAP' },
   sable_run: { skill: 'hunter', lvl: 70, xp: 230, tool: 'box_trap', yield: 'sable_pelt', respawnMs: 25000, name: 'Sable run', anim: 'spellcast', fx: 'TRAP' },
@@ -117,6 +119,7 @@ const FORGE = [
   ['shield', 5, 2, 70], ['pickaxe', 2, 1, 50], ['hatchet', 2, 1, 50], ['mace', 2, 2, 60],
   ['rapier', 2, 1, 50], ['longsword', 4, 2, 70], ['flail', 3, 2, 65],
   ['halberd', 6, 3, 95], ['scythe', 5, 2, 80], ['trident', 5, 2, 75],
+  ['scimitar', 3, 1, 60], ['saber', 2, 1, 55], ['katana', 4, 2, 75], ['broadsword', 5, 2, 80], ['greatsword', 8, 3, 120],
   ['armet', 4, 2, 55], ['bascinet', 3, 2, 50], ['horned_helm', 5, 2, 60], ['legion_helm', 5, 2, 60],
 ];
 for (const m of METALS) {
@@ -169,6 +172,7 @@ for (const f of FISH) RECIPES.push({
 RECIPES.push(
   { id: 'bake_bread', skill: 'cooking', lvl: 1, xp: 40, station: 'range', inputs: { barley: 1 }, output: { bread: 1 }, name: 'Bake bread' },
   { id: 'roast_venison', skill: 'cooking', lvl: 30, xp: 120, station: 'fire', inputs: { raw_venison: 1 }, output: { venison: 1 }, name: 'Roast venison' },
+  { id: 'roast_fowl', skill: 'cooking', lvl: 5, xp: 46, station: 'fire', inputs: { raw_fowl: 1 }, output: { cooked_fowl: 1 }, name: 'Roast fowl' },
   { id: 'hearty_stew', skill: 'cooking', lvl: 45, xp: 180, station: 'range', inputs: { potato: 1, cabbage: 1, raw_venison: 1 }, output: { hearty_stew: 1 }, name: 'Hearty stew' },
 );
 // Crafting

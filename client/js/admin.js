@@ -7,8 +7,8 @@ import { ITEMS } from '/shared/data/items.js';
 import { MOBS } from '/shared/data/mobs.js';
 import { PETS } from '/shared/data/pets.js';
 import { SPELLS, PRAYERS } from '/shared/data/skills.js';
-import { loadMedia, MEDIA, drawCreature, drawFxSprite } from './media.js';
-import { loadManifest, composite, drawChar, drawOversize, drawHeldShield, shieldBehind, critterSprite, ANIMS } from './sprites.js';
+import { loadMedia, MEDIA, drawCreature, drawFxSprite, drawFxBand } from './media.js';
+import { loadManifest, composite, drawChar, drawOversize, critterSprite, ANIMS } from './sprites.js';
 import { itemIcon } from './icons.js';
 
 const $ = (s) => document.querySelector(s);
@@ -509,18 +509,13 @@ function previewEquipped(g, it, alive) {
   const loop = (now) => {
     g.clearRect(0, 0, 260, 200);
     g.imageSmoothingEnabled = false;
-    const shieldCol = vis.shield && vis.shield[1];
     const wf = Math.floor(now / 110) % ANIMS.walk.frames;
-    if (shieldCol && shieldBehind(2)) drawHeldShield(g, shieldCol, 2, 78, 172, 2);
     drawChar(g, comp, 'walk', 2, wf, 78, 172, 2);
     drawOversize(g, comp, vis, 'walk', 2, wf, 78, 172, 2);
-    if (shieldCol && !shieldBehind(2)) drawHeldShield(g, shieldCol, 2, 78, 172, 2);
     const ai = ANIMS[actAnim] || ANIMS.slash;
     const af = Math.floor(now / ai.ms) % ai.frames;
-    if (shieldCol && shieldBehind(2)) drawHeldShield(g, shieldCol, 2, 186, 172, 2);
     drawChar(g, comp, actAnim, 2, af, 186, 172, 2);
     drawOversize(g, comp, vis, actAnim, 2, af, 186, 172, 2);
-    if (shieldCol && !shieldBehind(2)) drawHeldShield(g, shieldCol, 2, 186, 172, 2);
     // signature bloom for a glowing rare/unique weapon
     if (isWeapon && it.vis.glow) for (const cx of [78, 186]) {
       g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.5 + 0.3 * Math.sin(now / 300);
@@ -541,10 +536,11 @@ function previewAura(g, aura, alive) {
     g.clearRect(0, 0, 260, 200);
     g.imageSmoothingEnabled = false;
     const f = Math.floor(now / 650) % ANIMS.idle.frames;
-    drawChar(g, comp, 'idle', 2, f, 130, 176, 2.2);
+    // aura first (behind the back), fitted head→feet exactly as in-game
     g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.9;
-    drawFxSprite(g, aura.fx, ((now) % 1600) / 1600, 130, 120, 150, 0, aura.tint);
+    drawFxBand(g, aura.fx, ((now) % 1600) / 1600, 130, 176 - 42 * 2.2, 176 + 9 * 2.2, aura.tint);
     g.restore();
+    drawChar(g, comp, 'idle', 2, f, 130, 176, 2.2);
     if (alive()) raf = requestAnimationFrame(loop);
   };
   raf = requestAnimationFrame(loop);
