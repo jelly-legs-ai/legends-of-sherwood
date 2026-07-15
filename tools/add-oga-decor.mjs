@@ -54,13 +54,12 @@ function add(name, im) {
     add(`crag_${col}`, crop(im, 640, y0, 192, 256));           // big crag formation
   }
 }
-// --- hanging shop signs: stage the sheet for the building renderer ----------
+// --- hanging shop signs: slice each 32px sign for door-lintel mounting ------
 {
   const im = decode(fs.readFileSync(path.join(O, 'lpc-hanging-signs/lpc-hanging-signs.png')));
-  fs.writeFileSync(path.join(ENV, 'hanging_signs.png'), encode(im.w, im.h, im.data));
-  media.sheets = media.sheets || {};
-  media.sheets.hanging_signs = { file: 'env/hanging_signs.png', frame: 32, cols: 4 };
-  console.log('hanging_signs sheet staged (32px cells)');
+  const SIGNS = { arms: [0, 0], bank: [1, 0], jeweler: [2, 0], apothecary: [3, 0],
+    tavern: [0, 1], inn: [1, 1], fletcher: [2, 1], smith: [3, 1], blank: [0, 2] };
+  for (const [name, [cx, cy]] of Object.entries(SIGNS)) add(`sign_${name}`, crop(im, cx * 32, cy * 32, 32, 32));
 }
 
 fs.writeFileSync(MEDIA, JSON.stringify(media, null, 1));

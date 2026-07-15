@@ -4004,6 +4004,51 @@
    "file": "env/decor_crag_sand.png",
    "w": 186,
    "h": 248
+  },
+  "sign_arms": {
+   "file": "env/decor_sign_arms.png",
+   "w": 32,
+   "h": 28
+  },
+  "sign_bank": {
+   "file": "env/decor_sign_bank.png",
+   "w": 32,
+   "h": 28
+  },
+  "sign_jeweler": {
+   "file": "env/decor_sign_jeweler.png",
+   "w": 32,
+   "h": 28
+  },
+  "sign_apothecary": {
+   "file": "env/decor_sign_apothecary.png",
+   "w": 32,
+   "h": 28
+  },
+  "sign_tavern": {
+   "file": "env/decor_sign_tavern.png",
+   "w": 32,
+   "h": 28
+  },
+  "sign_inn": {
+   "file": "env/decor_sign_inn.png",
+   "w": 32,
+   "h": 28
+  },
+  "sign_fletcher": {
+   "file": "env/decor_sign_fletcher.png",
+   "w": 32,
+   "h": 28
+  },
+  "sign_smith": {
+   "file": "env/decor_sign_smith.png",
+   "w": 32,
+   "h": 28
+  },
+  "sign_blank": {
+   "file": "env/decor_sign_blank.png",
+   "w": 32,
+   "h": 28
   }
  }
 }

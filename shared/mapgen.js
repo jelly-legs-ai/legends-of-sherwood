@@ -232,6 +232,10 @@ function buildTownFurniture() {
     if (t.squares) for (const q of t.squares)
       for (let qy = q.y; qy < q.y + q.h; qy++) for (let qx = q.x; qx < q.x + q.w; qx++) STREET_TILES.add(`${qx},${qy}`);
     // deterministic furniture ---------------------------------------------------
+    // Decoration density follows settlement wealth: walled cities are fully
+    // dressed, towns moderately, villages keep only the rustic essentials
+    // (and gain farmstead clutter — washing lines, a scarecrow — instead).
+    const wealth = t.walled ? 2 : big ? 1 : 0;
     const rnd = (s) => vnoise(cx + s * 7, cy - s * 5, 3, 41 + s);
     const occupied = new Set();
     const put = (type, x, y) => {
@@ -244,19 +248,31 @@ function buildTownFurniture() {
     // centrepiece: a fountain in the cities, a village well otherwise
     put(t.walled || big ? 'fountain' : 'well', cx, cy);
     // a ring of benches, lamp posts and flower beds around the square
-    const ring = plazaR + 1, spots = big ? 12 : 8;
+    const ring = plazaR + 1, spots = wealth === 2 ? 12 : wealth === 1 ? 8 : 5;
     const RING = ['park_bench', 'lamp_post', 'flower_bed', 'lamp_post', 'flower_bed', 'park_bench', 'lamp_post', 'flower_bed'];
     for (let i = 0; i < spots; i++) {
       const a = (i / spots) * Math.PI * 2;
       put(RING[i % RING.length], cx + Math.cos(a) * ring, cy + Math.sin(a) * (ring - 0.5));
     }
-    // lamp posts marching along each street, and a barrel/crate by a couple of doors
+    // lamp posts marching along each street, and a barrel/crate by a couple of
+    // doors — cities light every street, villages only every other one
     for (let bi = 0; bi < t.buildings.length; bi++) {
       const b = t.buildings[bi];
       const [dx, dy] = doorOutside(b);
       const midx = (dx + cx) / 2, midy = (dy + cy) / 2;
-      put('lamp_post', midx + (dx < cx ? -1 : 1), midy);
-      if (bi % 2 === 0) put(rnd(bi) > 0.5 ? 'barrel' : 'crate', dx + (dx < cx ? -1 : 1), dy + 1);
+      if (wealth > 0 || bi % 2 === 0) put('lamp_post', midx + (dx < cx ? -1 : 1), midy);
+      if (bi % (wealth === 2 ? 1 : wealth === 1 ? 2 : 3) === 0)
+        put(rnd(bi) > 0.5 ? 'barrel' : 'crate', dx + (dx < cx ? -1 : 1), dy + 1);
+    }
+    // villages & towns hang their washing out back; a scarecrow guards the
+    // village edge — the poorer the place, the more homespun the dressing
+    if (wealth < 2 && t.buildings.length) {
+      const b0 = t.buildings[0];
+      put('wash_line', b0.x - 2, b0.y + b0.h + 1);
+      if (wealth === 0) {
+        put('scarecrow', cx + ring + 3, cy + ring + 2);
+        if (t.buildings[1]) put('wash_line_full', t.buildings[1].x + t.buildings[1].w + 1, t.buildings[1].y + t.buildings[1].h + 1);
+      }
     }
     // market stalls + a signpost for the bigger settlements
     if (big) {

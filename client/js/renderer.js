@@ -1200,6 +1200,22 @@ export class Renderer {
   // Pitched roofs over town buildings, drawn on top so structures read as
   // complete; each fades as the player steps inside/adjacent, revealing the
   // interior (floor + shopkeeper). Roofs sit on the baked wall prisms.
+  // Which hanging trade-sign a shop wears, matched from its name. Houses and
+  // unnamed buildings hang nothing.
+  shopSignFor(b) {
+    const n = (b.name || '').toLowerCase();
+    if (!n) return null;
+    if (/bank|exchange|vault/.test(n)) return 'sign_bank';
+    if (/\binn\b/.test(n)) return 'sign_inn';
+    if (/tavern|alehouse|kitchen|brew|meadery/.test(n)) return 'sign_tavern';
+    if (/forge|smith|anvil|armou?r/.test(n)) return 'sign_smith';
+    if (/fletch|bow|archer|hunt|ranger/.test(n)) return 'sign_fletcher';
+    if (/apothecary|herb|alchem|potion|healer/.test(n)) return 'sign_apothecary';
+    if (/jewel|gem|goldsmith|amulet/.test(n)) return 'sign_jeweler';
+    if (/arms|sword|weapon|blade/.test(n)) return 'sign_arms';
+    if (/shop|store|trade|market|mill|fish|tann|craft|rune|magic|stave/.test(n)) return 'sign_blank';
+    return null;
+  }
   drawRoofs(ctx, me, now) {
     const W = this.canvas.width, H = this.canvas.height;
     for (const town of Object.values(TOWNS)) {
@@ -1207,6 +1223,25 @@ export class Renderer {
         const cxw = b.x + b.w / 2, cyw = b.y + b.h / 2;
         const [ccx, ccy] = this.screenOf(0, cxw, cyw);
         if (ccx < -140 || ccx > W + 140 || ccy < -160 || ccy > H + 160) continue;
+        // hanging trade sign beside the door lintel — players read the shop at
+        // a glance. Drawn before the roof fade so it stays up even when the
+        // roof melts away as you step inside; sways gently on its bracket.
+        const signKey = this.shopSignFor(b);
+        if (signKey && MEDIA.trees?.[signKey]) {
+          const sim = mimg(MEDIA.trees[signKey].file);
+          if (sim && sim.complete && sim.naturalWidth) {
+            const door = b.door || 'S';
+            const dxw = door === 'W' ? b.x : door === 'E' ? b.x + b.w : b.x + b.w / 2 + 0.9;
+            const dyw = door === 'N' ? b.y : door === 'S' ? b.y + b.h : b.y + b.h / 2 + 0.9;
+            const [sxp, syp] = this.screenOf(0, dxw, dyw);
+            const sway = Math.sin(now / 700 + b.x) * 1.6;
+            ctx.save();
+            ctx.translate(sxp + sway * 0.2, syp - 38);
+            ctx.rotate(sway * 0.03);
+            ctx.drawImage(sim, -11, 0, 22, 20);
+            ctx.restore();
+          }
+        }
         // proximity fade: transparent when the player is within the footprint
         // (+1.5 tile porch), opaque again 3 tiles out
         const dx = Math.max(b.x - 1 - me.rx, 0, me.rx - (b.x + b.w) - 0.5);
