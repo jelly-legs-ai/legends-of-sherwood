@@ -484,36 +484,38 @@ def('convoy_strongbox', { name: 'Convoy strongbox', value: 0, tradeable: false, 
 
 // ---------------------------------------------------------------------------
 // Rare swords: named boss-drop blades with painted icons (Weapons/Rare swords).
-// [id, name, attack lvl, icon idx, 2H?, LPC color]
+// [id, name, attack lvl, icon idx, 2H?, LPC model, model colour]
+// Every rare blade wields the LPC model its ICON depicts: scimitars, sabers,
+// katanas, alt-longsword greatblades and native blue/red energy glowswords —
+// single-finish models tint to the blade's colour, glowswords use theirs.
 export const RARE_SWORDS = [
-  ['blade_of_the_burrow', 'Blade of the Burrow', 20, 1, 0, 'bronze'],
-  ['tidebreaker_cutlass', 'Tidebreaker cutlass', 30, 6, 0, 'steel'],
-  ['fanged_ripper', 'Fanged ripper', 40, 11, 0, 'iron'],
-  ['gollux_greatblade', 'Gollux greatblade', 50, 14, 1, 'brass'],
-  ['glacier_edge', 'Glacier edge', 55, 19, 0, 'silver'],
-  ['tyrants_cleaver', "Tyrant's cleaver", 65, 23, 1, 'steel'],
-  ['rexfang_saber', 'Rexfang saber', 72, 27, 0, 'brass'],
-  ['abyssal_edge', 'Abyssal edge', 78, 30, 0, 'dark'],
-  ['aracnyx_talon', 'Aracnyx talon', 82, 32, 0, 'silver'],
-  ['glacial_reaver', 'Glacial reaver', 86, 34, 1, 'silver'],
-  ['hellrender', 'Hellrender', 92, 36, 1, 'gold'],
-  ['dragonbane_greatsword', 'Dragonbane greatsword', 95, 39, 1, 'gold'],
+  ['blade_of_the_burrow', 'Blade of the Burrow', 20, 1, 0, 'scimitar', 'bronze'],
+  ['tidebreaker_cutlass', 'Tidebreaker cutlass', 30, 6, 0, 'saber', 'tide'],
+  ['fanged_ripper', 'Fanged ripper', 40, 11, 0, 'katana', 'blood'],
+  ['gollux_greatblade', 'Gollux greatblade', 50, 14, 1, 'longsword_alt', 'brass'],
+  ['glacier_edge', 'Glacier edge', 55, 19, 0, 'glowsword', 'blue'],
+  ['tyrants_cleaver', "Tyrant's cleaver", 65, 23, 1, 'longsword_alt', 'ember'],
+  ['rexfang_saber', 'Rexfang saber', 72, 27, 0, 'saber', 'bone'],
+  ['abyssal_edge', 'Abyssal edge', 78, 30, 0, 'glowsword', 'abyss'],
+  ['aracnyx_talon', 'Aracnyx talon', 82, 32, 0, 'katana', 'venom'],
+  ['glacial_reaver', 'Glacial reaver', 86, 34, 1, 'glowsword', 'blue'],
+  ['hellrender', 'Hellrender', 92, 36, 1, 'glowsword', 'red'],
+  ['dragonbane_greatsword', 'Dragonbane greatsword', 95, 39, 1, 'longsword_alt', 'gold'],
 ];
-// A signature aura colour per rare blade so each reads as its own weapon in the
-// world, not a plain steel sword (the LPC body shares one sword sheet).
+// A signature aura colour per rare blade so each reads as its own weapon.
 const SWORD_GLOW = {
   blade_of_the_burrow: '#c98f57', tidebreaker_cutlass: '#5fa8dc', fanged_ripper: '#c0402a',
   gollux_greatblade: '#d8b45e', glacier_edge: '#8fe0ff', tyrants_cleaver: '#ff6a2a',
   rexfang_saber: '#e0b93c', abyssal_edge: '#c05aff', aracnyx_talon: '#7fe07f',
   glacial_reaver: '#9fe8ff', hellrender: '#ff4a2a', dragonbane_greatsword: '#ffd75e',
 };
-for (const [id, name, lvl, icon, twoHand, color] of RARE_SWORDS) {
+for (const [id, name, lvl, icon, twoHand, model, color] of RARE_SWORDS) {
   const s = T(lvl);
   def(id, { name, slot: 'weapon', kind: 'sword', style: 'melee', anim: 'slash',
     speed: twoHand ? 2800 : 2200, twoHand: !!twoHand, req: { attack: lvl },
     bonus: { acc: Math.round(s * (twoHand ? 1.15 : 1.25)), str: Math.round(s * (twoHand ? 1.5 : 1.1)) },
     value: 900 + lvl * lvl * 6, unique: lvl >= 78, micon: ['rareSwords', icon],
-    vis: { layer: 'weapon', type: 'sword', color, glow: SWORD_GLOW[id] } });
+    vis: { layer: 'weapon', type: model, color, glow: SWORD_GLOW[id] } });
 }
 
 // Skill tomes: rare boss/chest drops; reading one grants a burst of XP.

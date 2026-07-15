@@ -710,7 +710,31 @@
   "gear_shoulders_bauldron": "gear_shoulders_bauldron.png",
   "gear_shoulders_epaulets": "gear_shoulders_epaulets.png",
   "gear_shoulders_mantal": "gear_shoulders_mantal.png",
-  "gear_wrists_bracers": "gear_wrists_bracers.png"
+  "gear_wrists_bracers": "gear_wrists_bracers.png",
+  "wep_katana_walk_fg": "wep_katana_walk_fg.png",
+  "wep_katana_walk_bg": "wep_katana_walk_bg.png",
+  "wep_katana_slash_fg": "wep_katana_slash_fg.png",
+  "wep_katana_slash_bg": "wep_katana_slash_bg.png",
+  "wep_scimitar_walk_fg": "wep_scimitar_walk_fg.png",
+  "wep_scimitar_walk_bg": "wep_scimitar_walk_bg.png",
+  "wep_scimitar_slash_fg": "wep_scimitar_slash_fg.png",
+  "wep_scimitar_slash_bg": "wep_scimitar_slash_bg.png",
+  "wep_saber_walk_fg": "wep_saber_walk_fg.png",
+  "wep_saber_walk_bg": "wep_saber_walk_bg.png",
+  "wep_saber_slash_fg": "wep_saber_slash_fg.png",
+  "wep_saber_slash_bg": "wep_saber_slash_bg.png",
+  "wep_longsword_alt_walk_fg": "wep_longsword_alt_walk_fg.png",
+  "wep_longsword_alt_walk_bg": "wep_longsword_alt_walk_bg.png",
+  "wep_longsword_alt_slash_fg": "wep_longsword_alt_slash_fg.png",
+  "wep_longsword_alt_slash_bg": "wep_longsword_alt_slash_bg.png",
+  "wep_glowsword_walk_fg_blue": "wep_glowsword_walk_fg_blue.png",
+  "wep_glowsword_walk_bg_blue": "wep_glowsword_walk_bg_blue.png",
+  "wep_glowsword_walk_fg_red": "wep_glowsword_walk_fg_red.png",
+  "wep_glowsword_walk_bg_red": "wep_glowsword_walk_bg_red.png",
+  "wep_glowsword_slash_fg_blue": "wep_glowsword_slash_fg_blue.png",
+  "wep_glowsword_slash_bg_blue": "wep_glowsword_slash_bg_blue.png",
+  "wep_glowsword_slash_fg_red": "wep_glowsword_slash_fg_red.png",
+  "wep_glowsword_slash_bg_red": "wep_glowsword_slash_bg_red.png"
  },
  "gear": {
   "torso/plate": {
@@ -1809,6 +1833,110 @@
       "brass": "wep_trident_walk_bg_brass.png",
       "silver": "wep_trident_walk_bg_silver.png",
       "gold": "wep_trident_walk_bg_gold.png"
+     }
+    }
+   }
+  },
+  "katana": {
+   "perAnim": {
+    "walk": {
+     "fg": {
+      "steel": "wep_katana_walk_fg.png"
+     },
+     "bg": {
+      "steel": "wep_katana_walk_bg.png"
+     }
+    },
+    "slash": {
+     "fg": {
+      "steel": "wep_katana_slash_fg.png"
+     },
+     "bg": {
+      "steel": "wep_katana_slash_bg.png"
+     }
+    }
+   }
+  },
+  "scimitar": {
+   "perAnim": {
+    "walk": {
+     "fg": {
+      "steel": "wep_scimitar_walk_fg.png"
+     },
+     "bg": {
+      "steel": "wep_scimitar_walk_bg.png"
+     }
+    },
+    "slash": {
+     "fg": {
+      "steel": "wep_scimitar_slash_fg.png"
+     },
+     "bg": {
+      "steel": "wep_scimitar_slash_bg.png"
+     }
+    }
+   }
+  },
+  "saber": {
+   "perAnim": {
+    "walk": {
+     "fg": {
+      "steel": "wep_saber_walk_fg.png"
+     },
+     "bg": {
+      "steel": "wep_saber_walk_bg.png"
+     }
+    },
+    "slash": {
+     "fg": {
+      "steel": "wep_saber_slash_fg.png"
+     },
+     "bg": {
+      "steel": "wep_saber_slash_bg.png"
+     }
+    }
+   }
+  },
+  "longsword_alt": {
+   "perAnim": {
+    "walk": {
+     "fg": {
+      "steel": "wep_longsword_alt_walk_fg.png"
+     },
+     "bg": {
+      "steel": "wep_longsword_alt_walk_bg.png"
+     }
+    },
+    "slash": {
+     "fg": {
+      "steel": "wep_longsword_alt_slash_fg.png"
+     },
+     "bg": {
+      "steel": "wep_longsword_alt_slash_bg.png"
+     }
+    }
+   }
+  },
+  "glowsword": {
+   "perAnim": {
+    "walk": {
+     "fg": {
+      "blue": "wep_glowsword_walk_fg_blue.png",
+      "red": "wep_glowsword_walk_fg_red.png"
+     },
+     "bg": {
+      "blue": "wep_glowsword_walk_bg_blue.png",
+      "red": "wep_glowsword_walk_bg_red.png"
+     }
+    },
+    "slash": {
+     "fg": {
+      "blue": "wep_glowsword_slash_fg_blue.png",
+      "red": "wep_glowsword_slash_fg_red.png"
+     },
+     "bg": {
+      "blue": "wep_glowsword_slash_bg_blue.png",
+      "red": "wep_glowsword_slash_bg_red.png"
      }
     }
    }

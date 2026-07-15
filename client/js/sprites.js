@@ -167,7 +167,9 @@ function compositeInto(c, vis) {
 // LPC tool/weapon sheet represent every metal tier (gold sylvan pickaxes etc).
 const METAL_TINT = { copper: '#b87333', bronze: '#c98f57', iron: '#8d94a0', steel: '#e2e7ee', brass: '#d8b45e', silver: '#eef2f8', gold: '#e8c84e', dark: '#6a6480', walnut: '#9a6a3c', normal: null, wood: null,
   mithril: '#42589c',                                              // navy-blue metal of the deep seams
-  ashwood: '#b59a77', elmwood: '#8a6a42', yewwood: '#6a4a2a' };    // crossbow stock woods
+  ashwood: '#b59a77', elmwood: '#8a6a42', yewwood: '#6a4a2a',      // crossbow stock woods
+  // rare-blade finishes: each unique sword tints its LPC model to match its icon
+  tide: '#5fa8dc', blood: '#8a2020', ember: '#ff6a2a', bone: '#e8dcc0', abyss: '#8a4ae0', venom: '#7fe07f' };
 const tintCache = new Map();
 function tinted(im, tint) {
   const key = im.src + '|' + tint;
@@ -244,6 +246,10 @@ function weaponFiles(type, color, sex = 'male') {
   // waraxes swing with the two-handed overhead cleave (the big tool arc),
   // tinted to their metal — not the one-hand sword slash
   if (type === 'waraxe' && manifest.weapons.axe?.perAnim) out.perAnim = manifest.weapons.axe.perAnim;
+  // pickaxes mine with a TWO-HANDED overhead swing: the smash arc rides the
+  // braced thrust body rows (mining nodes play 'thrust'), distinct from the
+  // hatchet's side chop
+  if (type === 'pickaxe' && out.perAnim?.slash) out.perAnim = { ...out.perAnim, thrust: out.perAnim.slash };
   // recurve + great bows ship empty shoot rows: borrow the standard bow's
   // firing art in the matching wood so every bow has a draw-and-loose anim
   if ((type === 'recurve' || type === 'great') && manifest.weapons.bow?.fg) {

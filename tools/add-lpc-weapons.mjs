@@ -41,6 +41,36 @@ for (const [name, base, anims] of NEWW) {
   manifest.weapons[name] = w;
 }
 
+// Sword VARIANTS for the unique blades — each rare sword gets the LPC model
+// its icon depicts (single finish; the client tints to the blade's colour).
+const VARIANTS = [
+  ['katana', 'weapon/sword/katana', { walk: ['walk/katana.png', 'walk/behind/katana.png'], slash: ['slash/katana.png', 'slash/behind/katana.png'] }],
+  ['scimitar', 'weapon/sword/scimitar', { walk: ['walk/scimitar.png', 'walk/behind/scimitar.png'], slash: ['slash/scimitar.png', 'slash/behind/scimitar.png'] }],
+  ['saber', 'weapon/sword/saber', { walk: ['walk/saber.png', 'universal_behind/walk/saber.png'], slash: ['attack_slash/saber.png', 'attack_slash/behind/saber.png'] }],
+  ['longsword_alt', 'weapon/sword/longsword_alt', { walk: ['walk/longsword_alt.png', 'walk/behind/longsword_alt.png'], slash: ['slash/longsword_alt.png', 'slash/behind/longsword_alt.png'] }],
+];
+for (const [name, base, anims] of VARIANTS) {
+  const w = { perAnim: {} };
+  for (const [anim, [fgp, bgp]] of Object.entries(anims)) {
+    const fg = emit(`wep_${name}_${anim}_fg`, `${base}/${fgp}`);
+    const bg = bgp ? emit(`wep_${name}_${anim}_bg`, `${base}/${bgp}`) : null;
+    w.perAnim[anim] = { fg: { steel: fg }, bg: { steel: bg } };
+  }
+  manifest.weapons[name] = w;
+}
+// The glowsword ships two native finishes (blue + red energy blades)
+manifest.weapons.glowsword = { perAnim: {} };
+for (const anim of ['walk', 'slash']) {
+  const src = anim === 'walk' ? 'walk' : 'attack_slash';
+  const a = { fg: {}, bg: {} };
+  for (const c of ['blue', 'red']) {
+    a.fg[c] = emit(`wep_glowsword_${anim}_fg_${c}`, `weapon/sword/glowsword/${src}/${c}.png`);
+    a.bg[c] = emit(`wep_glowsword_${anim}_bg_${c}`,
+      anim === 'walk' ? `weapon/sword/glowsword/universal_behind/walk/${c}.png` : `weapon/sword/glowsword/attack_slash/behind/${c}.png`);
+  }
+  manifest.weapons.glowsword.perAnim[anim] = a;
+}
+
 // Trident: fully metal-palettes fore/background, like the longspear
 const METALS = ['copper', 'bronze', 'iron', 'steel', 'brass', 'silver', 'gold'];
 manifest.weapons.trident = { perAnim: {} };

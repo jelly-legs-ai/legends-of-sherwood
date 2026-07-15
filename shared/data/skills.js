@@ -6,15 +6,15 @@
 // GATHER NODES — placed by mapgen per region; server tracks depletion.
 export const NODES = {
   // Mining (pickaxe)
-  copper_rock: { skill: 'mining', lvl: 1, xp: 18, tool: 'pickaxe', yield: 'copper_ore', respawnMs: 3000, name: 'Copper rock', anim: 'slash', fx: 'MINE' },
-  tin_rock: { skill: 'mining', lvl: 1, xp: 18, tool: 'pickaxe', yield: 'tin_ore', respawnMs: 3000, name: 'Tin rock', anim: 'slash', fx: 'MINE' },
-  essence_rock: { skill: 'mining', lvl: 1, xp: 8, tool: 'pickaxe', yield: 'rune_essence', respawnMs: 1, name: 'Essence rock', anim: 'slash', fx: 'MINE' },
-  iron_rock: { skill: 'mining', lvl: 15, xp: 35, tool: 'pickaxe', yield: 'iron_ore', respawnMs: 6000, name: 'Iron rock', anim: 'slash', fx: 'MINE' },
-  coal_rock: { skill: 'mining', lvl: 30, xp: 50, tool: 'pickaxe', yield: 'coal', respawnMs: 12000, name: 'Coal seam', anim: 'slash', fx: 'MINE' },
-  silver_rock: { skill: 'mining', lvl: 40, xp: 65, tool: 'pickaxe', yield: 'silver_ore', respawnMs: 20000, name: 'Silver vein', anim: 'slash', fx: 'MINE' },
-  mithril_rock: { skill: 'mining', lvl: 45, xp: 72, tool: 'pickaxe', yield: 'mithril_ore', respawnMs: 24000, name: 'Mithril vein', anim: 'slash', fx: 'MINE' },
-  gold_rock: { skill: 'mining', lvl: 55, xp: 85, tool: 'pickaxe', yield: 'gold_ore', respawnMs: 30000, name: 'Gold vein', anim: 'slash', fx: 'MINE', gem: 1 / 40 },
-  sylvanite_rock: { skill: 'mining', lvl: 80, xp: 140, tool: 'pickaxe', yield: 'sylvanite_ore', respawnMs: 60000, name: 'Sylvanite vein', anim: 'slash', fx: 'MINE', gem: 1 / 25 },
+  copper_rock: { skill: 'mining', lvl: 1, xp: 18, tool: 'pickaxe', yield: 'copper_ore', respawnMs: 3000, name: 'Copper rock', anim: 'thrust', fx: 'MINE' },
+  tin_rock: { skill: 'mining', lvl: 1, xp: 18, tool: 'pickaxe', yield: 'tin_ore', respawnMs: 3000, name: 'Tin rock', anim: 'thrust', fx: 'MINE' },
+  essence_rock: { skill: 'mining', lvl: 1, xp: 8, tool: 'pickaxe', yield: 'rune_essence', respawnMs: 1, name: 'Essence rock', anim: 'thrust', fx: 'MINE' },
+  iron_rock: { skill: 'mining', lvl: 15, xp: 35, tool: 'pickaxe', yield: 'iron_ore', respawnMs: 6000, name: 'Iron rock', anim: 'thrust', fx: 'MINE' },
+  coal_rock: { skill: 'mining', lvl: 30, xp: 50, tool: 'pickaxe', yield: 'coal', respawnMs: 12000, name: 'Coal seam', anim: 'thrust', fx: 'MINE' },
+  silver_rock: { skill: 'mining', lvl: 40, xp: 65, tool: 'pickaxe', yield: 'silver_ore', respawnMs: 20000, name: 'Silver vein', anim: 'thrust', fx: 'MINE' },
+  mithril_rock: { skill: 'mining', lvl: 45, xp: 72, tool: 'pickaxe', yield: 'mithril_ore', respawnMs: 24000, name: 'Mithril vein', anim: 'thrust', fx: 'MINE' },
+  gold_rock: { skill: 'mining', lvl: 55, xp: 85, tool: 'pickaxe', yield: 'gold_ore', respawnMs: 30000, name: 'Gold vein', anim: 'thrust', fx: 'MINE', gem: 1 / 40 },
+  sylvanite_rock: { skill: 'mining', lvl: 80, xp: 140, tool: 'pickaxe', yield: 'sylvanite_ore', respawnMs: 60000, name: 'Sylvanite vein', anim: 'thrust', fx: 'MINE', gem: 1 / 25 },
 
   // Woodcutting (hatchet)
   tree: { skill: 'woodcutting', lvl: 1, xp: 25, tool: 'hatchet', yield: 'logs', respawnMs: 4000, name: 'Ash tree', anim: 'slash', fx: 'CHOP' },

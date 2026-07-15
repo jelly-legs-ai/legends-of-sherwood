@@ -498,11 +498,13 @@ function previewEquipped(g, it, alive) {
     sex: 'male', skin: 'light', hair: ['plain', 'dark_brown'],
     torso: ['tunic', 'green'], legs: ['pants', 'brown'], feet: ['shoes', 'brown'],
   };
-  vis[it.vis.layer] = [it.vis.sheet || it.vis.type, it.vis.color];
+  vis[it.vis.layer] = [it.vis.sheet || it.vis.type, it.vis.color, it.vis.glow, it.vis.fx];
   const isWeapon = it.vis.layer === 'weapon';
+  // honour the weapon's OWN combat pose: daggers/halberds/tridents/spears
+  // thrust, staves jab-cast on the thrust rows, bows draw, the rest slash
   const actAnim = !isWeapon ? 'walk'
-    : it.vis.type === 'bow' ? 'shoot'
-      : ['staff', 'crossbow'].includes(it.vis.type) ? 'thrust' : 'slash';   // staves & crossbows use the thrust rows (that's where their art lives)
+    : it.anim === 'shoot' ? 'shoot'
+      : (it.anim === 'thrust' || it.anim === 'spellcast') ? 'thrust' : 'slash';
   const comp = composite(vis);
   const loop = (now) => {
     g.clearRect(0, 0, 260, 200);
