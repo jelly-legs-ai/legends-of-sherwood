@@ -3886,6 +3886,56 @@
    "cellH": 68,
    "cols": 4,
    "frames": 4
+  },
+  "crops": {
+   "potato": [
+    "env/crop_potato_0.png",
+    "env/crop_potato_1.png",
+    "env/crop_potato_2.png",
+    "env/crop_potato_3.png"
+   ],
+   "cabbage": [
+    "env/crop_cabbage_0.png",
+    "env/crop_cabbage_1.png",
+    "env/crop_cabbage_2.png",
+    "env/crop_cabbage_3.png"
+   ],
+   "barley": [
+    "env/crop_barley_0.png",
+    "env/crop_barley_1.png",
+    "env/crop_barley_2.png",
+    "env/crop_barley_3.png"
+   ],
+   "flax": [
+    "env/crop_flax_0.png",
+    "env/crop_flax_1.png",
+    "env/crop_flax_2.png",
+    "env/crop_flax_3.png"
+   ],
+   "yarrow_seed_crop": [
+    "env/crop_yarrow_seed_crop_0.png",
+    "env/crop_yarrow_seed_crop_1.png",
+    "env/crop_yarrow_seed_crop_2.png",
+    "env/crop_yarrow_seed_crop_3.png"
+   ],
+   "wolfsbane_crop": [
+    "env/crop_wolfsbane_crop_0.png",
+    "env/crop_wolfsbane_crop_1.png",
+    "env/crop_wolfsbane_crop_2.png",
+    "env/crop_wolfsbane_crop_3.png"
+   ],
+   "mandrake_crop": [
+    "env/crop_mandrake_crop_0.png",
+    "env/crop_mandrake_crop_1.png",
+    "env/crop_mandrake_crop_2.png",
+    "env/crop_mandrake_crop_3.png"
+   ],
+   "kingsfoil_crop": [
+    "env/crop_kingsfoil_crop_0.png",
+    "env/crop_kingsfoil_crop_1.png",
+    "env/crop_kingsfoil_crop_2.png",
+    "env/crop_kingsfoil_crop_3.png"
+   ]
   }
  },
  "packed": {},

@@ -898,6 +898,11 @@ export class Renderer {
         drawables.push({ d: h.x + h.y + 0.5, node: { type: state.houseFurniture[h.id] ? 'furn_' + h.id : 'hotspot', x: h.x, y: h.y, hot: h.id } });
       }
       drawables.push({ d: HOUSE.door.x + HOUSE.door.y + 1.5, node: { type: 'house_portal', x: HOUSE.door.x, y: HOUSE.door.y + 1, exitHouse: true } });
+      // the garden beds: planted crops rise through their LPC growth stages
+      for (const gp of HOUSE.garden) {
+        const st = state.houseGarden && state.houseGarden[gp.x + ',' + gp.y];
+        if (st) drawables.push({ d: gp.x + gp.y + 0.5, node: { type: 'crop', x: gp.x, y: gp.y, crop: st.crop, t0: st.t0, growMs: st.growMs } });
+      }
     }
 
     drawables.sort((a, b) => a.d - b.d);
@@ -943,6 +948,24 @@ export class Renderer {
 
   drawNode(ctx, node, now) {
     const [sx, sy] = this.screenOf(0, node.x + 0.5, node.y + 0.5);
+    // a growing garden crop: pick the LPC stage sprite by elapsed grow time
+    if (node.type === 'crop' && MEDIA.sheets?.crops?.[node.crop]) {
+      const stages = MEDIA.sheets.crops[node.crop];
+      const t = Math.max(0, Math.min(1, (Date.now() - node.t0) / (node.growMs || 60000)));
+      const im = mimg(stages[Math.min(stages.length - 1, Math.floor(t * stages.length))]);
+      if (im && im.complete && im.naturalWidth) {
+        ctx.drawImage(im, sx - 20, sy - 34, 40, 40);
+        if (t >= 1) {  // ripe: a soft golden shimmer says "harvest me"
+          ctx.save(); ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = 0.25 + 0.15 * Math.sin(now / 300 + node.x);
+          const gr = ctx.createRadialGradient(sx, sy - 14, 0, sx, sy - 14, 20);
+          gr.addColorStop(0, '#ffe27a'); gr.addColorStop(1, '#ffe27a00');
+          ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(sx, sy - 14, 20, 0, 7); ctx.fill();
+          ctx.restore();
+        }
+      }
+      return;
+    }
     // the smith's forge roars with a live fire: 4-frame LPC forge animation
     if (node.type === 'furnace' && MEDIA.sheets?.forge) {
       const f = MEDIA.sheets.forge, im = mimg(f.file);

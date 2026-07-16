@@ -471,6 +471,16 @@ export const HOUSE = { size: 24, door: { x: 12, y: 20 }, hotspots: [
   { id: 'wooden_chair', x: 9, y: 9 }, { id: 'oak_table', x: 12, y: 9 }, { id: 'bed', x: 15, y: 9 },
   { id: 'bookcase', x: 9, y: 12 }, { id: 'house_altar', x: 12, y: 12 }, { id: 'stone_range', x: 15, y: 12 },
   { id: 'workbench', x: 9, y: 15 }, { id: 'trophy_hall', x: 12, y: 15 }, { id: 'greenwood_throne', x: 15, y: 15 },
+],
+// The homestead garden: tilled plots flanking the front path. Crops grow ONLY
+// here — the garden expands with the farming skill, one bed at a time.
+garden: [
+  { x: 8, y: 21, lvl: 1 }, { x: 9, y: 21, lvl: 1 },
+  { x: 15, y: 21, lvl: 8 }, { x: 16, y: 21, lvl: 8 },
+  { x: 8, y: 22, lvl: 18 }, { x: 9, y: 22, lvl: 18 },
+  { x: 15, y: 22, lvl: 30 }, { x: 16, y: 22, lvl: 30 },
+  { x: 4, y: 21, lvl: 40 }, { x: 4, y: 22, lvl: 55 },
+  { x: 20, y: 21, lvl: 70 }, { x: 20, y: 22, lvl: 85 },
 ] };
 
 // Dungeon floors: 48x48 seeded layouts on planes DUNGEON_BASE + floor

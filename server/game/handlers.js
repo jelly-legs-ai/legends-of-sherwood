@@ -396,7 +396,13 @@ function onAction(world, p, msg) {
   const x = msg.x | 0, y = msg.y | 0;
   // dungeon exit ladder
   if (p.plane >= PLANE.DUNGEON_BASE) return dungeonAction(world, p, x, y, msg);
-  if (p.plane >= PLANE.HOUSE_BASE) return; // house build via HOUSE msg
+  if (p.plane >= PLANE.HOUSE_BASE) {
+    // homestead: tending a garden bed is the one clickable action outside —
+    // furniture building still goes through the HOUSE msg
+    const plot = HOUSE.garden.find(g => g.x === x && g.y === y);
+    if (plot) return walkThen(world, p, x, y, () => gardenPlot(world, p, plot, msg));
+    return;
+  }
   if (p.plane === PLANE.COLOSSEUM) return;
   const type = nodeAtTile(world, x, y);
   if (!type) return;
@@ -548,7 +554,9 @@ function farmPatch(world, p, type, node, x, y, msg) {
   const crop = CROPS.find(c => c.seed === seedId);
   if (!crop) return world.send(p, { t: MSG.MSGBOX, m: 'You need seeds to plant here.' });
   if (node.patch === 'herb' && !crop.herb) return world.send(p, { t: MSG.MSGBOX, m: 'This patch is for herbs.' });
-  if (node.patch === 'allotment' && crop.herb) return world.send(p, { t: MSG.MSGBOX, m: 'Herbs go in the herb patch.' });
+  // crops are homestead work now: field allotments no longer take vegetable
+  // seeds — build a house and till your own garden beds
+  if (node.patch === 'allotment') return world.send(p, { t: MSG.MSGBOX, m: 'The village allotment is spoken for. Crops grow in your OWN garden — visit your house and tend the beds out front.' });
   if (p.level('farming') < crop.lvl) return world.send(p, { t: MSG.MSGBOX, m: `You need farming ${crop.lvl}.` });
   if (!p.removeItem(seedId, 1)) return;
   p.farm[key] = { crop: crop.id, t0: now };
@@ -556,6 +564,52 @@ function farmPatch(world, p, type, node, x, y, msg) {
   world.fx(p.plane, x + 0.5, y + 0.5, FX.NATURE, {});
   world.send(p, { t: MSG.MSGBOX, m: `You plant ${ITEMS[seedId].name}. (${crop.growMs / 1000}s)` });
   p.addXp('farming', Math.ceil(crop.xp * 0.3));
+}
+
+// ---------------- the homestead garden ----------------
+// Crops grow only at the player's house: tilled beds flank the front path and
+// unlock one by one as the farming skill rises. State lives in p.farm under
+// "g:x,y" keys so growing crops persist with the save.
+function syncGarden(world, p) {
+  const g = {};
+  for (const [k, st] of Object.entries(p.farm)) {
+    if (!k.startsWith('g:')) continue;
+    const crop = CROPS.find(c => c.id === st.crop);
+    g[k.slice(2)] = { crop: st.crop, t0: st.t0, growMs: crop ? crop.growMs : 60000 };
+  }
+  world.send(p, { t: 'garden', g });
+}
+function gardenPlot(world, p, plot, msg) {
+  const lvl = p.level('farming');
+  if (lvl < plot.lvl) return world.send(p, { t: MSG.MSGBOX, m: `This bed is still overgrown — expand the garden at farming ${plot.lvl}.` });
+  const key = `g:${plot.x},${plot.y}`;
+  const st = p.farm[key];
+  const now = Date.now();
+  if (st) {
+    const crop = CROPS.find(c => c.id === st.crop);
+    if (!crop) { delete p.farm[key]; return syncGarden(world, p); }
+    if (now - st.t0 >= crop.growMs) {
+      delete p.farm[key];
+      const yieldId = crop.herb ? `grimy_${crop.herb}` : crop.id;
+      p.addItem(yieldId, crop.yield);
+      p.addXp('farming', crop.xp);
+      p.anim = 'thrust'; p.animSeq++;
+      world.fx(p.plane, plot.x + 0.5, plot.y + 0.5, FX.NATURE, {});
+      world.send(p, { t: MSG.MSGBOX, m: `You harvest ${crop.yield} × ${ITEMS[yieldId].name}.` });
+    } else world.send(p, { t: MSG.MSGBOX, m: `Still growing… ${Math.ceil((crop.growMs - (now - st.t0)) / 1000)}s to go.` });
+    return syncGarden(world, p);
+  }
+  const seedId = msg.seed || (p.inv.find(s => s && s.id.endsWith('_seed')) || {}).id;
+  const crop = CROPS.find(c => c.seed === seedId);
+  if (!crop) return world.send(p, { t: MSG.MSGBOX, m: 'You need seeds to plant here.' });
+  if (lvl < crop.lvl) return world.send(p, { t: MSG.MSGBOX, m: `You need farming ${crop.lvl}.` });
+  if (!p.removeItem(seedId, 1)) return;
+  p.farm[key] = { crop: crop.id, t0: now };
+  p.anim = 'thrust'; p.animSeq++;
+  world.fx(p.plane, plot.x + 0.5, plot.y + 0.5, FX.NATURE, {});
+  world.send(p, { t: MSG.MSGBOX, m: `You plant ${ITEMS[seedId].name}. (${crop.growMs / 1000}s)` });
+  p.addXp('farming', Math.ceil(crop.xp * 0.3));
+  syncGarden(world, p);
 }
 
 function useShortcut(world, p, type, node, x, y) {
@@ -1387,6 +1441,7 @@ function enterHouse(world, p) {
   p.path = null; p.target = null;
   world.gridMove(p);
   world.send(p, { t: MSG.INTERFACE, iface: 'house', furniture: p.house.furniture, hotspots: HOUSE.hotspots });
+  syncGarden(world, p);   // growing beds render the moment you step onto the grounds
   world.fx(p.plane, p.x, p.y, FX.TELEPORT, { id: p.id });
 }
 function onHouse(world, p, msg) {

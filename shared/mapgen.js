@@ -572,6 +572,8 @@ export function houseTile(x, y) {
     if (edge && !(x === HOUSE.door.x && y === 18)) return TILE.WALL_WOOD;
     return TILE.FLOOR_WOOD;
   }
+  // homestead garden beds: tilled farm soil flanking the front path
+  for (const g of HOUSE.garden) if (g.x === x && g.y === y) return TILE.FARM;
   return TILE.GRASS;
 }
 

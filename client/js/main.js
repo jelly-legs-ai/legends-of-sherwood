@@ -2,6 +2,7 @@
 import { MSG, PLANE, WILDERNESS_Y, REGIONS, TILE } from '/shared/constants.js';
 import { computeWorld, regionAt, dungeonFloor, worldTile } from '/shared/mapgen.js';
 import { QUESTS } from '/shared/data/quests.js';
+import { HOUSE } from '/shared/data/world.js';
 import { ITEMS } from '/shared/data/items.js';
 import { MOBS } from '/shared/data/mobs.js';
 import { NPCS } from '/shared/data/npcs.js';
@@ -19,7 +20,7 @@ const G = {
   net: new Net(), entities: new Map(), me: null, self: null,
   xp: {}, inv: [], equip: {}, quests: {}, milestones: {}, bal: 0,
   prayersOn: new Set(), cooldowns: {}, tab: 'inv', selSpell: null, selectedSeed: null,
-  depletedNodes: new Set(), houseFurniture: {}, style: 'balanced', hoverId: null,
+  depletedNodes: new Set(), houseFurniture: {}, houseGarden: {}, style: 'balanced', hoverId: null,
   abilityKeys: [],
 };
 window.G = G; // debug
@@ -202,6 +203,8 @@ G.net.on('petXp', (m) => { if (G.pets && G.pets[m.idx]) G.pets[m.idx].xp = m.xp;
 G.net.on('petLevel', (m) => UI.toast(`🐾 Your ${String(m.id).replace(/_/g, ' ')} reached level ${m.level}!`));
 G.net.on(MSG.SELF, (m) => { if (m.prayersOn) { G.prayersOn = new Set(m.prayersOn); if (G.tab === 'prayer') UI.renderPanel(); UI.renderAbilities(); } });
 G.net.on('node', (m) => { const k = m.x + ',' + m.y; if (m.off) G.depletedNodes.add(k); else G.depletedNodes.delete(k); });
+// homestead garden state: "x,y" -> { crop, t0, growMs } for the beds out front
+G.net.on('garden', (m) => { G.houseGarden = m.g || {}; });
 G.net.on(MSG.INTERFACE, (m) => {
   switch (m.iface) {
     case 'bank': UI.openBank(m.bank); break;
@@ -348,7 +351,21 @@ function clickGround(e, menu) {
     const f = dungeonFloor(plane - PLANE.DUNGEON_BASE);
     if (Math.hypot(x - f.entrance.x, y - f.entrance.y) < 2 || Math.hypot(x - f.exit.x, y - f.exit.y) < 2) nodeType = 'dungeon_ladder';
   } else if (plane >= PLANE.HOUSE_BASE) {
-    UI.openHouse(G.houseFurniture);
+    // the homestead garden: clicking a tilled bed tends it (plant / harvest);
+    // anywhere else on the grounds opens the furniture book as before
+    const plot = HOUSE.garden.find(g2 => g2.x === x && g2.y === y);
+    if (plot) {
+      const st = G.houseGarden[x + ',' + y];
+      const label = st ? '🌾 Harvest garden bed' : '🌱 Plant garden bed';
+      if (menu) {
+        const ex = st
+          ? `${(st.crop || '').replace(/_/g, ' ')} — ${Math.max(0, Math.ceil((st.growMs - (Date.now() - st.t0)) / 1000))}s to ripen.`
+          : `A tilled garden bed (farming ${plot.lvl}+). Select seeds in your pack, then plant.`;
+        ctxWithWalk(e, [[label, () => send({ t: MSG.ACTION, x, y, seed: G.selectedSeed })]], ex);
+      } else send({ t: MSG.ACTION, x, y, seed: G.selectedSeed });
+      return;
+    }
+    if (!menu) { UI.openHouse(G.houseFurniture); }
     return;
   }
   const decor = nodeType && DECOR[nodeType];   // town furniture is examine-only
@@ -507,7 +524,7 @@ function loop() {
   R._ents = G.entities;
   if (G.me && G.self) {
     G.me.plane = undefined;
-    R.draw({ entities: G.entities, me: Object.assign(G.me, { plane: G.self.plane }), fx, now, depletedNodes: G.depletedNodes, houseFurniture: G.houseFurniture, hoverId: G.hoverId });
+    R.draw({ entities: G.entities, me: Object.assign(G.me, { plane: G.self.plane }), fx, now, depletedNodes: G.depletedNodes, houseFurniture: G.houseFurniture, houseGarden: G.houseGarden, hoverId: G.hoverId });
     // click marker
     if (clickMarker && now - clickMarker.t0 < 600) {
       const [sx, sy] = R.screenOf(0, clickMarker.x, clickMarker.y);
