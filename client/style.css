@@ -385,6 +385,26 @@ button { font-family: inherit; }
 .guide-row .g-kind { width: 74px; flex: none; color: #9c8a5e; font-size: 10.5px; text-transform: uppercase; letter-spacing: .4px; }
 .guide-row .g-label { flex: 1; }
 
+/* #128: skill guides unroll on the LPC parchment scroll — rolled caps top and
+   bottom with the parchment middle tiling behind however long the list runs */
+.scroll-bg {
+  background:
+    url('assets/ui/scroll_top.png') top center / 100% 62px no-repeat,
+    url('assets/ui/scroll_bot.png') bottom center / 100% 58px no-repeat,
+    url('assets/ui/scroll_mid.png') center / 100% 70px repeat-y;
+  background-attachment: local, local, local;
+  image-rendering: pixelated;
+  padding: 34px 36px !important;
+}
+.scroll-bg .guide-head { color: #5a4020; }
+.scroll-bg .guide-head b { color: #3c2a10; }
+.scroll-bg .guide-row { background: rgba(90, 64, 24, 0.08); }
+.scroll-bg .guide-row.got { color: #3c2a10; }
+.scroll-bg .guide-row.got .g-lvl { color: #4a7d20; }
+.scroll-bg .guide-row.need { color: #8d7a5b; }
+.scroll-bg .guide-row.need .g-lvl { color: #a8422e; }
+.scroll-bg .guide-row .g-kind { color: #7d6538; }
+
 /* quest journal colours */
 .quest-item { cursor: pointer; }
 .quest-item.q-locked .qname { color: #e06a5a; }

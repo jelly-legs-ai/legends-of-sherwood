@@ -3529,6 +3529,87 @@
    "kind": "grid",
    "cols": 6,
    "frames": 30
+  },
+  "magic_tornado": {
+   "file": "fx/magic_tornado.png",
+   "w": 512,
+   "h": 512,
+   "frame": 128,
+   "kind": "grid",
+   "cols": 4,
+   "frames": 16
+  },
+  "magic_spikes": {
+   "file": "fx/magic_spikes.png",
+   "w": 640,
+   "h": 256,
+   "frame": 128,
+   "kind": "grid",
+   "cols": 5,
+   "frames": 10
+  },
+  "magic_iceshield": {
+   "file": "fx/magic_iceshield.png",
+   "w": 512,
+   "h": 512,
+   "frame": 128,
+   "kind": "grid",
+   "cols": 4,
+   "frames": 16
+  },
+  "magic_lightningclaw": {
+   "file": "fx/magic_lightningclaw.png",
+   "w": 512,
+   "h": 512,
+   "frame": 128,
+   "kind": "grid",
+   "cols": 4,
+   "frames": 16
+  },
+  "magic_torrentacle": {
+   "file": "fx/magic_torrentacle.png",
+   "w": 512,
+   "h": 512,
+   "frame": 128,
+   "kind": "grid",
+   "cols": 4,
+   "frames": 16
+  },
+  "magic_icetacle": {
+   "file": "fx/magic_icetacle.png",
+   "w": 512,
+   "h": 512,
+   "frame": 128,
+   "kind": "grid",
+   "cols": 4,
+   "frames": 16
+  },
+  "magic_firelion": {
+   "file": "fx/magic_firelion.png",
+   "w": 512,
+   "h": 512,
+   "frame": 128,
+   "kind": "grid",
+   "cols": 4,
+   "frames": 16
+  },
+  "magic_snakebite": {
+   "file": "fx/magic_snakebite.png",
+   "w": 512,
+   "h": 512,
+   "frame": 128,
+   "kind": "grid",
+   "cols": 4,
+   "frames": 16
+  },
+  "magic_turtleshell": {
+   "file": "fx/magic_turtleshell.png",
+   "w": 512,
+   "h": 512,
+   "frame": 128,
+   "kind": "grid",
+   "cols": 4,
+   "frames": 16
   }
  },
  "sheets": {

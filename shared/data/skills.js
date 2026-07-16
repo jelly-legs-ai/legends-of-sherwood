@@ -280,7 +280,7 @@ export const RECIPE_OUTPUT_ALIAS = {
 // MAGIC spellbook
 export const SPELLS = {
   wind_gust: { name: 'Wind gust', lvl: 1, dmg: 4, xp: 8, runes: { air_rune: 1 }, fx: 'ICEBOLT', proj: 'air' },
-  earth_spike: { name: 'Earth spike', lvl: 10, dmg: 7, xp: 12, runes: { air_rune: 1, earth_rune: 1 }, fx: 'THORNS', proj: 'earth' },
+  earth_spike: { name: 'Earth spike', lvl: 10, dmg: 7, xp: 12, runes: { air_rune: 1, earth_rune: 1 }, fx: 'THORNS', proj: 'earth', impact: 'magic_spikes' },
   heal_wounds: { name: 'Heal wounds', lvl: 15, heal: 0.2, xp: 15, runes: { air_rune: 1, water_rune: 1 }, fx: 'HEAL', self: true },
   water_lance: { name: 'Water lance', lvl: 20, dmg: 10, xp: 16, runes: { air_rune: 1, water_rune: 2 }, fx: 'ICEBOLT', proj: 'water' },
   loxley_call: { name: 'Call of Loxley', lvl: 25, teleport: 'loxley', xp: 30, runes: { air_rune: 3 }, fx: 'TELEPORT' },
@@ -298,6 +298,13 @@ export const SPELLS = {
   venom_surge: { name: 'Venom surge', lvl: 70, dmg: 24, xp: 50, runes: { nature_rune: 2, blood_rune: 1 }, fx: 'NATURE', proj: 'sheet:staffhi:2' },
   abyssal_orb: { name: 'Abyssal orb', lvl: 82, dmg: 29, xp: 62, runes: { cosmic_rune: 2, blood_rune: 2 }, fx: 'HOLYBOLT', proj: 'sheet:orb:2', leech: 0.1 },
   twisted_cataclysm: { name: 'Twisted cataclysm', lvl: 95, dmg: 36, xp: 90, runes: { blood_rune: 3, cosmic_rune: 2, fire_rune: 2 }, fx: 'FIREBOLT', proj: 'sheet:twisted_4', aoe: 1 },
+  // ---- extended magic pack spell line (#128): pack-animated impacts ----
+  serpent_strike: { name: 'Serpent strike', lvl: 42, dmg: 16, xp: 28, runes: { nature_rune: 2, air_rune: 1 }, fx: 'NATURE', proj: 'nature', impact: 'magic_snakebite' },
+  whirlwind: { name: 'Whirlwind', lvl: 55, dmg: 20, xp: 38, runes: { air_rune: 4 }, fx: 'ICEBOLT', proj: 'air', impact: 'magic_tornado', aoe: 1 },
+  torrent_grasp: { name: 'Torrent grasp', lvl: 58, dmg: 21, xp: 40, runes: { water_rune: 3, nature_rune: 1 }, fx: 'ICEBOLT', proj: 'water', impact: 'magic_torrentacle' },
+  lightning_claw: { name: 'Lightning claw', lvl: 66, dmg: 23, xp: 48, runes: { air_rune: 3, cosmic_rune: 1 }, fx: 'HOLYBOLT', proj: 'holy', impact: 'magic_lightningclaw' },
+  glacial_grasp: { name: 'Glacial grasp', lvl: 72, dmg: 25, xp: 52, runes: { water_rune: 4, cosmic_rune: 1 }, fx: 'ICEBOLT', proj: 'water', impact: 'magic_icetacle' },
+  fire_lion: { name: 'Fire lion', lvl: 85, dmg: 30, xp: 68, runes: { fire_rune: 4, blood_rune: 1 }, fx: 'FIREBOLT', proj: 'fire', impact: 'magic_firelion', aoe: 1 },
 };
 
 // PRAYER book

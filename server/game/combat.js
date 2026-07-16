@@ -189,7 +189,7 @@ export function resolveHit(world, p, t, style, spell) {
     if (t.kind === 'player') t.lastCombat = Date.now();
     // impact VFX matched to the blow: spells bloom by element, melee/ranged flash
     const imp = style === 'magic' ? spellImpact(spell) : { spec: style === 'ranged' ? 'vfx_smallhit' : 'vfx_impact', tint: null };
-    world.fx(t.plane, t.x, t.y, FX.IMPACT, { id: t.id, spec: imp.spec, tint: imp.tint, size: style === 'magic' ? 78 : 56 });
+    world.fx(t.plane, t.x, t.y, FX.IMPACT, { id: t.id, spec: imp.spec, tint: imp.tint, size: imp.size || (style === 'magic' ? 78 : 56), dur: imp.dur });
     grantCombatXp(p, style, dmg, world);
     if (t.kind === 'player') applyPlayerDamage(world, t, dmg, p);
     else world.applyMobDamage(t, dmg, p);
@@ -198,6 +198,9 @@ export function resolveHit(world, p, t, style, spell) {
 
 // Impact effect for a spell, by its element/projectile.
 function spellImpact(spell) {
+  // extended magic pack (#128): spells carrying their own impact animation
+  // play it full-size on the struck target
+  if (spell?.impact) return { spec: spell.impact, tint: null, size: 110, dur: 850 };
   const el = spell?.proj ? String(spell.proj).replace('sheet:', '').split(':')[0] : '';
   if (spell?.fx === 'FIREBOLT' || /fire|ember|orb|twisted|staffhi/.test(el)) return { spec: 'vfx_explosion', tint: '#ff7a2a' };
   if (spell?.fx === 'ICEBOLT' || /water|ice|air/.test(el)) return { spec: 'vfx_impact', tint: '#7ac8f0' };

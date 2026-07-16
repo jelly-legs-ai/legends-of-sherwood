@@ -1058,7 +1058,10 @@ function onPrayer(world, p, msg) {
     if (pr.protect) for (const o of [...p.prayersOn]) if (PRAYERS[o].protect) p.prayersOn.delete(o);
     p.prayersOn.add(id);
     // a divine flourish when a prayer is invoked, coloured by its nature
-    const spec = pr.protect ? { spec: 'aura_shield', tint: '#9fd8ef' } : pr.boost ? { spec: 'aura_ring', tint: '#fff3b0' } : { spec: 'vfx_puffstars', tint: '#fff3b0' };
+    // protection = the magic-pack turtleshell ward; defence boosts = iceshield
+    const spec = pr.protect ? { spec: 'magic_turtleshell', tint: null }
+      : pr.boost?.defence ? { spec: 'magic_iceshield', tint: null }
+      : pr.boost ? { spec: 'aura_ring', tint: '#fff3b0' } : { spec: 'vfx_puffstars', tint: '#fff3b0' };
     world.fx(p.plane, p.x, p.y, FX.PRAYFX, { id: p.id, spec: spec.spec, tint: spec.tint });
   }
   world.send(p, { t: MSG.SELF, prayersOn: [...p.prayersOn] });

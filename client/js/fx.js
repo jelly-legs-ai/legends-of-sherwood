@@ -71,7 +71,12 @@ export class Fx {
       case FX.TRAP: this.burst(msg, entities, '#c8a26a', 8, 1.5); break;
       case FX.DIG: this.burst(msg, entities, '#b0946a', 8, 1.5); break;
       case FX.CRIT: this.burst(msg, entities, '#ff8a3a', 16, 2.6); break;
-      case FX.BLOCK: this.burst(msg, entities, '#9ab8c8', 12, 2); break;
+      case FX.BLOCK: {
+        this.burst(msg, entities, '#9ab8c8', 12, 2);
+        // magic-pack turtleshell flashes over a successful block
+        this.markers.push({ id: msg.id, x: msg.x, y: msg.y, spec: 'magic_turtleshell', t0: now, dur: 600, size: 76, dy: -18 });
+        break;
+      }
       case FX.STUN: this.text(msg, entities, '✶ stunned', '#e0e0e0'); break;
       case FX.FIRE: this.burst(msg, entities, '#ff9b2a', 12, 2); break;
       case FX.COOK: this.burst(msg, entities, '#ffb86a', 6, 1.4); break;

@@ -358,6 +358,7 @@ function openSkillGuide(sk) {
   }
   rows.sort((a, b) => a.lvl - b.lvl);
   openWin(`📖 ${sk[0].toUpperCase() + sk.slice(1)} guide — level ${lvl}`, (body) => {
+    body.classList.add('scroll-bg');   // the guide unrolls on parchment (#128)
     const head = document.createElement('div');
     head.className = 'guide-head';
     const paid = (G.milestones[sk] || []);
