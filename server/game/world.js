@@ -114,11 +114,33 @@ export class World {
       const ax = zone.x + (Math.random() * 2 - 1) * zone.r, ay = zone.y + (Math.random() * 2 - 1) * zone.r;
       if (!isBlocked(plane, ax | 0, ay | 0)) { x = ax; y = ay; break; }
     }
-    return this.addEntity({
+    const e = this.addEntity({
       kind: 'mob', type, plane, x, y, dir: 2, anim: 'idle', animSeq: 0,
       hp: Math.round(def.life * lvlScale), maxHp: Math.round(def.life * lvlScale), lvl: Math.round(def.lvl * lvlScale),
       zone, home: { x, y }, target: null, lastAttack: 0, damagers: new Map(), lvlScale,
     });
+    e.vis = this.varyHumanVis(def, e.id);
+    return e;
+  }
+
+  // #110: multi-spawned humanoid mobs (guards, outlaws, poachers, barbarians…)
+  // get an individual face — skin, hair and the odd beard vary per entity while
+  // the authored uniform and weapons stay. Bosses, sheet mobs, critters and
+  // monster-headed folk keep their exact authored look.
+  varyHumanVis(def, seed) {
+    const vis = def.vis;
+    if (!vis || !vis.skin || vis.monster || def.boss || def.sheet || def.critter) return null;
+    let h = (seed * 2654435761) >>> 0;
+    const rnd = () => ((h = (h * 1664525 + 1013904223) >>> 0) / 4294967296);
+    const SKINS = ['light', 'light', 'olive', 'taupe', 'brown', 'black', 'bronze'];
+    const STYLES = ['plain', 'bangs', 'bedhead', 'braid', 'buzzcut', 'curly_long'];
+    const COLORS = ['dark_brown', 'dark_brown', 'black', 'black', 'light_brown', 'light_brown', 'blonde', 'ginger', 'gray', 'white', 'ash', 'red', 'copper'];
+    const v = { ...vis };
+    v.skin = SKINS[(rnd() * SKINS.length) | 0];
+    if (vis.hair) v.hair = [STYLES[(rnd() * STYLES.length) | 0], COLORS[(rnd() * COLORS.length) | 0]];
+    if (vis.beard) v.beard = v.hair ? v.hair[1] : COLORS[(rnd() * COLORS.length) | 0];
+    else if (vis.hair && vis.sex !== 'female' && rnd() < 0.25) v.beard = v.hair[1];
+    return v;
   }
   spawnNpcs() {
     for (const id in NPCS) {
@@ -841,7 +863,7 @@ export class World {
   describe(e) {
     const d = { id: e.id, k: e.kind, x: +e.x.toFixed(2), y: +e.y.toFixed(2), dir: e.dir ?? 2, anim: e.anim || 'idle', seq: e.animSeq || 0 };
     if (e.kind === 'player') Object.assign(d, { name: e.name, hp: e.hp, mhp: e.maxHp, vis: e.visual(), cb: e.combatLevel(), skull: e.plane === 0 && e.y < WILDERNESS_Y, ...this.rideState(e) });
-    else if (e.kind === 'mob') { const m = MOBS[e.type]; Object.assign(d, { type: e.type, name: m.name, lvl: e.lvl, hp: e.hp, mhp: e.maxHp, vis: m.vis, critter: m.critter, sheet: m.sheet, tint: m.tint, boss: m.boss, scale: m.scale }); }
+    else if (e.kind === 'mob') { const m = MOBS[e.type]; Object.assign(d, { type: e.type, name: m.name, lvl: e.lvl, hp: e.hp, mhp: e.maxHp, vis: e.vis || m.vis, critter: m.critter, sheet: m.sheet, tint: m.tint, boss: m.boss, scale: m.scale }); }
     else if (e.kind === 'geode') Object.assign(d, { name: `Gem geode (${e.gem})`, gem: e.gem, gemRow: e.gemRow, gemCol: e.gemCol, lvl: e.lvl });
     else if (e.kind === 'chest') Object.assign(d, { name: e.locked ? 'Ornate chest' : 'Treasure chest', variant: e.variant, snow: e.snow ? 1 : 0, locked: e.locked ? 1 : 0 });
     else if (e.kind === 'npc') { const n = NPCS[e.type]; Object.assign(d, { type: e.type, name: n.name, vis: n.vis, npc: 1, shop: !!n.shop, quest: n.quest }); }

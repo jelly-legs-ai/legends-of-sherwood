@@ -740,7 +740,59 @@
   "wing_bat_back": "gear_wing_bat_back.png",
   "wing_bat_front": "gear_wing_bat_front.png",
   "shield_kite_male": "gear_shield_kite_male.png",
-  "shield_kite_female": "gear_shield_kite_female.png"
+  "shield_kite_female": "gear_shield_kite_female.png",
+  "hair_plain_male_white": "hair_plain_male_white.png",
+  "hair_plain_female_white": "hair_plain_female_white.png",
+  "hair_bangs_male_white": "hair_bangs_male_white.png",
+  "hair_bangs_female_white": "hair_bangs_female_white.png",
+  "hair_bedhead_male_white": "hair_bedhead_male_white.png",
+  "hair_bedhead_female_white": "hair_bedhead_female_white.png",
+  "hair_braid_male_white": "hair_braid_male_white.png",
+  "hair_braid_female_white": "hair_braid_female_white.png",
+  "hair_buzzcut_male_white": "hair_buzzcut_male_white.png",
+  "hair_buzzcut_female_white": "hair_buzzcut_female_white.png",
+  "hair_curly_long_male_white": "hair_curly_long_male_white.png",
+  "hair_curly_long_female_white": "hair_curly_long_female_white.png",
+  "beard_white": "beard_white.png",
+  "hair_plain_male_ash": "hair_plain_male_ash.png",
+  "hair_plain_female_ash": "hair_plain_female_ash.png",
+  "hair_bangs_male_ash": "hair_bangs_male_ash.png",
+  "hair_bangs_female_ash": "hair_bangs_female_ash.png",
+  "hair_bedhead_male_ash": "hair_bedhead_male_ash.png",
+  "hair_bedhead_female_ash": "hair_bedhead_female_ash.png",
+  "hair_braid_male_ash": "hair_braid_male_ash.png",
+  "hair_braid_female_ash": "hair_braid_female_ash.png",
+  "hair_buzzcut_male_ash": "hair_buzzcut_male_ash.png",
+  "hair_buzzcut_female_ash": "hair_buzzcut_female_ash.png",
+  "hair_curly_long_male_ash": "hair_curly_long_male_ash.png",
+  "hair_curly_long_female_ash": "hair_curly_long_female_ash.png",
+  "beard_ash": "beard_ash.png",
+  "hair_plain_male_red": "hair_plain_male_red.png",
+  "hair_plain_female_red": "hair_plain_female_red.png",
+  "hair_bangs_male_red": "hair_bangs_male_red.png",
+  "hair_bangs_female_red": "hair_bangs_female_red.png",
+  "hair_bedhead_male_red": "hair_bedhead_male_red.png",
+  "hair_bedhead_female_red": "hair_bedhead_female_red.png",
+  "hair_braid_male_red": "hair_braid_male_red.png",
+  "hair_braid_female_red": "hair_braid_female_red.png",
+  "hair_buzzcut_male_red": "hair_buzzcut_male_red.png",
+  "hair_buzzcut_female_red": "hair_buzzcut_female_red.png",
+  "hair_curly_long_male_red": "hair_curly_long_male_red.png",
+  "hair_curly_long_female_red": "hair_curly_long_female_red.png",
+  "beard_red": "beard_red.png",
+  "hair_plain_male_copper": "hair_plain_male_copper.png",
+  "hair_plain_female_copper": "hair_plain_female_copper.png",
+  "hair_bangs_male_copper": "hair_bangs_male_copper.png",
+  "hair_bangs_female_copper": "hair_bangs_female_copper.png",
+  "hair_bedhead_male_copper": "hair_bedhead_male_copper.png",
+  "hair_bedhead_female_copper": "hair_bedhead_female_copper.png",
+  "hair_braid_male_copper": "hair_braid_male_copper.png",
+  "hair_braid_female_copper": "hair_braid_female_copper.png",
+  "hair_buzzcut_male_copper": "hair_buzzcut_male_copper.png",
+  "hair_buzzcut_female_copper": "hair_buzzcut_female_copper.png",
+  "hair_curly_long_male_copper": "hair_curly_long_male_copper.png",
+  "hair_curly_long_female_copper": "hair_curly_long_female_copper.png",
+  "beard_copper": "beard_copper.png"
  },
  "gear": {
   "torso/plate": {
@@ -2308,7 +2360,11 @@
     "light_brown": "hair_plain_male_light_brown.png",
     "blonde": "hair_plain_male_blonde.png",
     "ginger": "hair_plain_male_ginger.png",
-    "gray": "hair_plain_male_gray.png"
+    "gray": "hair_plain_male_gray.png",
+    "white": "hair_plain_male_white.png",
+    "ash": "hair_plain_male_ash.png",
+    "red": "hair_plain_male_red.png",
+    "copper": "hair_plain_male_copper.png"
    },
    "female": {
     "black": "hair_plain_female_black.png",
@@ -2316,7 +2372,11 @@
     "light_brown": "hair_plain_female_light_brown.png",
     "blonde": "hair_plain_female_blonde.png",
     "ginger": "hair_plain_female_ginger.png",
-    "gray": "hair_plain_female_gray.png"
+    "gray": "hair_plain_female_gray.png",
+    "white": "hair_plain_female_white.png",
+    "ash": "hair_plain_female_ash.png",
+    "red": "hair_plain_female_red.png",
+    "copper": "hair_plain_female_copper.png"
    }
   },
   "bangs": {
@@ -2326,7 +2386,11 @@
     "light_brown": "hair_bangs_male_light_brown.png",
     "blonde": "hair_bangs_male_blonde.png",
     "ginger": "hair_bangs_male_ginger.png",
-    "gray": "hair_bangs_male_gray.png"
+    "gray": "hair_bangs_male_gray.png",
+    "white": "hair_bangs_male_white.png",
+    "ash": "hair_bangs_male_ash.png",
+    "red": "hair_bangs_male_red.png",
+    "copper": "hair_bangs_male_copper.png"
    },
    "female": {
     "black": "hair_bangs_female_black.png",
@@ -2334,7 +2398,11 @@
     "light_brown": "hair_bangs_female_light_brown.png",
     "blonde": "hair_bangs_female_blonde.png",
     "ginger": "hair_bangs_female_ginger.png",
-    "gray": "hair_bangs_female_gray.png"
+    "gray": "hair_bangs_female_gray.png",
+    "white": "hair_bangs_female_white.png",
+    "ash": "hair_bangs_female_ash.png",
+    "red": "hair_bangs_female_red.png",
+    "copper": "hair_bangs_female_copper.png"
    }
   },
   "bedhead": {
@@ -2344,7 +2412,11 @@
     "light_brown": "hair_bedhead_male_light_brown.png",
     "blonde": "hair_bedhead_male_blonde.png",
     "ginger": "hair_bedhead_male_ginger.png",
-    "gray": "hair_bedhead_male_gray.png"
+    "gray": "hair_bedhead_male_gray.png",
+    "white": "hair_bedhead_male_white.png",
+    "ash": "hair_bedhead_male_ash.png",
+    "red": "hair_bedhead_male_red.png",
+    "copper": "hair_bedhead_male_copper.png"
    },
    "female": {
     "black": "hair_bedhead_female_black.png",
@@ -2352,7 +2424,11 @@
     "light_brown": "hair_bedhead_female_light_brown.png",
     "blonde": "hair_bedhead_female_blonde.png",
     "ginger": "hair_bedhead_female_ginger.png",
-    "gray": "hair_bedhead_female_gray.png"
+    "gray": "hair_bedhead_female_gray.png",
+    "white": "hair_bedhead_female_white.png",
+    "ash": "hair_bedhead_female_ash.png",
+    "red": "hair_bedhead_female_red.png",
+    "copper": "hair_bedhead_female_copper.png"
    }
   },
   "braid": {
@@ -2362,7 +2438,11 @@
     "light_brown": "hair_braid_male_light_brown.png",
     "blonde": "hair_braid_male_blonde.png",
     "ginger": "hair_braid_male_ginger.png",
-    "gray": "hair_braid_male_gray.png"
+    "gray": "hair_braid_male_gray.png",
+    "white": "hair_braid_male_white.png",
+    "ash": "hair_braid_male_ash.png",
+    "red": "hair_braid_male_red.png",
+    "copper": "hair_braid_male_copper.png"
    },
    "female": {
     "black": "hair_braid_female_black.png",
@@ -2370,7 +2450,11 @@
     "light_brown": "hair_braid_female_light_brown.png",
     "blonde": "hair_braid_female_blonde.png",
     "ginger": "hair_braid_female_ginger.png",
-    "gray": "hair_braid_female_gray.png"
+    "gray": "hair_braid_female_gray.png",
+    "white": "hair_braid_female_white.png",
+    "ash": "hair_braid_female_ash.png",
+    "red": "hair_braid_female_red.png",
+    "copper": "hair_braid_female_copper.png"
    }
   },
   "buzzcut": {
@@ -2380,7 +2464,11 @@
     "light_brown": "hair_buzzcut_male_light_brown.png",
     "blonde": "hair_buzzcut_male_blonde.png",
     "ginger": "hair_buzzcut_male_ginger.png",
-    "gray": "hair_buzzcut_male_gray.png"
+    "gray": "hair_buzzcut_male_gray.png",
+    "white": "hair_buzzcut_male_white.png",
+    "ash": "hair_buzzcut_male_ash.png",
+    "red": "hair_buzzcut_male_red.png",
+    "copper": "hair_buzzcut_male_copper.png"
    },
    "female": {
     "black": "hair_buzzcut_female_black.png",
@@ -2388,7 +2476,11 @@
     "light_brown": "hair_buzzcut_female_light_brown.png",
     "blonde": "hair_buzzcut_female_blonde.png",
     "ginger": "hair_buzzcut_female_ginger.png",
-    "gray": "hair_buzzcut_female_gray.png"
+    "gray": "hair_buzzcut_female_gray.png",
+    "white": "hair_buzzcut_female_white.png",
+    "ash": "hair_buzzcut_female_ash.png",
+    "red": "hair_buzzcut_female_red.png",
+    "copper": "hair_buzzcut_female_copper.png"
    }
   },
   "curly_long": {
@@ -2398,7 +2490,11 @@
     "light_brown": "hair_curly_long_male_light_brown.png",
     "blonde": "hair_curly_long_male_blonde.png",
     "ginger": "hair_curly_long_male_ginger.png",
-    "gray": "hair_curly_long_male_gray.png"
+    "gray": "hair_curly_long_male_gray.png",
+    "white": "hair_curly_long_male_white.png",
+    "ash": "hair_curly_long_male_ash.png",
+    "red": "hair_curly_long_male_red.png",
+    "copper": "hair_curly_long_male_copper.png"
    },
    "female": {
     "black": "hair_curly_long_female_black.png",
@@ -2406,7 +2502,11 @@
     "light_brown": "hair_curly_long_female_light_brown.png",
     "blonde": "hair_curly_long_female_blonde.png",
     "ginger": "hair_curly_long_female_ginger.png",
-    "gray": "hair_curly_long_female_gray.png"
+    "gray": "hair_curly_long_female_gray.png",
+    "white": "hair_curly_long_female_white.png",
+    "ash": "hair_curly_long_female_ash.png",
+    "red": "hair_curly_long_female_red.png",
+    "copper": "hair_curly_long_female_copper.png"
    }
   }
  },
@@ -2416,7 +2516,11 @@
   "light_brown": "beard_light_brown.png",
   "blonde": "beard_blonde.png",
   "ginger": "beard_ginger.png",
-  "gray": "beard_gray.png"
+  "gray": "beard_gray.png",
+  "white": "beard_white.png",
+  "ash": "beard_ash.png",
+  "red": "beard_red.png",
+  "copper": "beard_copper.png"
  },
  "misc": {
   "shadow": "shadow.png",

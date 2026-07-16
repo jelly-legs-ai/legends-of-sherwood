@@ -21,6 +21,7 @@ export class Player {
     this.sex = look.sex === 'female' ? 'female' : 'male';
     this.skin = look.skin || 'light';
     this.hair = look.hair || ['plain', 'dark_brown'];
+    this.beard = typeof look.beard === 'string' && look.beard ? look.beard.slice(0, 16) : null;
     this.xp = Object.fromEntries(SKILLS.map(s => [s, 0]));
     this.xp.constitution = XP_TABLE[10]; // start with 10 constitution
     this.inv = new Array(INV_SIZE).fill(null);   // {id, qty}
@@ -215,7 +216,7 @@ export class Player {
 
   // Visual descriptor for the client paperdoll compositor
   visual() {
-    const v = { sex: this.sex, skin: this.skin, hair: this.hair };
+    const v = { sex: this.sex, skin: this.skin, hair: this.hair, beard: this.beard || undefined };
     const map = (slot, layer) => {
       const e = this.equip[slot];
       if (!e) return;
@@ -289,7 +290,7 @@ export class Player {
 
   serialize() {
     return {
-      sex: this.sex, skin: this.skin, hair: this.hair, xp: this.xp, inv: this.inv, equip: this.equip,
+      sex: this.sex, skin: this.skin, hair: this.hair, beard: this.beard, xp: this.xp, inv: this.inv, equip: this.equip,
       bank: this.bank, quests: this.quests, kills: this.kills, milestonesPaid: this.milestonesPaid,
       pouch: this.pouch, coinPouch: this.coinPouch, farm: this.farm, house: this.house, relics: this.relics, dungeonBest: this.dungeonBest,
       task: this.task, x: this.x, y: this.y, hp: this.hp, style: this.style,
@@ -298,7 +299,7 @@ export class Player {
   }
   load(s) {
     Object.assign(this, {
-      sex: s.sex ?? this.sex, skin: s.skin ?? this.skin, hair: s.hair ?? this.hair,
+      sex: s.sex ?? this.sex, skin: s.skin ?? this.skin, hair: s.hair ?? this.hair, beard: s.beard ?? this.beard,
       xp: { ...this.xp, ...s.xp }, inv: s.inv ?? this.inv, equip: s.equip ?? {}, bank: s.bank ?? {},
       quests: s.quests ?? {}, kills: s.kills ?? {}, milestonesPaid: s.milestonesPaid ?? {},
       pouch: s.pouch ?? 0, coinPouch: s.coinPouch ?? 0, farm: s.farm ?? {}, house: s.house ?? { furniture: {} }, relics: s.relics ?? {},

@@ -145,7 +145,7 @@ function onHello(world, ws, msg) {
     return sendWelcome(world, existing);
   }
   const isNew = !world.saved[name];
-  const p = new Player(world, name, world.saved[name], { sex: msg.sex, skin: msg.skin, hair: msg.hair });
+  const p = new Player(world, name, world.saved[name], { sex: msg.sex, skin: msg.skin, hair: msg.hair, beard: msg.beard });
   // Bind the sign-in wallet once; a previously bound wallet is immutable. A
   // client-supplied connected address is honoured only for a brand-new binding.
   if (!p.wallet) p.wallet = (typeof msg.wallet === 'string' && VALID_WALLET.test(msg.wallet)) ? msg.wallet.slice(0, 48) : walletFor(name);

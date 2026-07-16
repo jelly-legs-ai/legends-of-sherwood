@@ -38,7 +38,7 @@ async function boot() {
   try {
     const saved = JSON.parse(localStorage.getItem('los-look') || '{}');
     if (saved.name) $('#name').value = saved.name;
-    for (const k of ['sex', 'skin', 'hairstyle', 'haircolor']) if (saved[k]) $('#' + k).value = saved[k];
+    for (const k of ['sex', 'skin', 'hairstyle', 'haircolor', 'beard']) if (saved[k]) $('#' + k).value = saved[k];
   } catch { }
   const pv = $('#preview').getContext('2d');
   pv.imageSmoothingEnabled = false;
@@ -58,6 +58,7 @@ function currentLook() {
   return {
     sex: $('#sex').value, skin: $('#skin').value,
     hair: [$('#hairstyle').value, $('#haircolor').value],
+    beard: $('#beard').value || null,
     torso: ['longsleeve', 'white'], legs: ['pants', 'brown'], feet: ['boots', 'brown'],
   };
 }
@@ -68,8 +69,8 @@ async function join() {
   try {
     if (!G.net.connected) await G.net.connect((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
   } catch { $('#login-status').textContent = 'Cannot reach the realm. Is the server running?'; return; }
-  localStorage.setItem('los-look', JSON.stringify({ name, sex: $('#sex').value, skin: $('#skin').value, hairstyle: $('#hairstyle').value, haircolor: $('#haircolor').value }));
-  G.net.send({ t: MSG.HELLO, name, sex: $('#sex').value, skin: $('#skin').value, hair: [$('#hairstyle').value, $('#haircolor').value] });
+  localStorage.setItem('los-look', JSON.stringify({ name, sex: $('#sex').value, skin: $('#skin').value, hairstyle: $('#hairstyle').value, haircolor: $('#haircolor').value, beard: $('#beard').value }));
+  G.net.send({ t: MSG.HELLO, name, sex: $('#sex').value, skin: $('#skin').value, hair: [$('#hairstyle').value, $('#haircolor').value], beard: $('#beard').value || null });
 }
 
 // ---------------- network handlers ----------------
