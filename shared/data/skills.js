@@ -69,6 +69,10 @@ export const NODES = {
   allotment: { skill: 'farming', lvl: 1, xp: 0, name: 'Allotment patch', patch: 'allotment', anim: 'thrust', fx: 'NATURE' },
   herb_patch: { skill: 'farming', lvl: 20, xp: 0, name: 'Herb patch', patch: 'herb', anim: 'thrust', fx: 'NATURE' },
 
+  // Jungle harvestables (#127): exotic Elderglade flora yielding grimy herbs
+  pitcher_plant: { skill: 'farming', lvl: 35, xp: 65, yield: 'grimy_wolfsbane', respawnMs: 30000, name: 'Pitcher plant', anim: 'thrust', fx: 'NATURE' },
+  heliconia: { skill: 'farming', lvl: 50, xp: 95, yield: 'grimy_mandrake', respawnMs: 40000, name: 'Heliconia bloom', anim: 'thrust', fx: 'NATURE' },
+
   // Agility obstacles (shortcut pairs get coords from mapgen)
   log_balance: { skill: 'agility', lvl: 1, xp: 20, name: 'Log balance', anim: 'walk', fx: 'SPARK', shortcut: true },
   stepping_stones: { skill: 'agility', lvl: 20, xp: 45, name: 'Stepping stones', anim: 'walk', fx: 'SPLASH', shortcut: true },

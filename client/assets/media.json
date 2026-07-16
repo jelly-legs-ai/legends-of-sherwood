@@ -4314,6 +4314,81 @@
    "file": "env/mountain_dark_1.png",
    "w": 178,
    "h": 143
+  },
+  "jungle_tree_great": {
+   "file": "env/jungle_tree_great.png",
+   "w": 300,
+   "h": 355
+  },
+  "jungle_tree_stump": {
+   "file": "env/jungle_tree_stump.png",
+   "w": 335,
+   "h": 252
+  },
+  "jungle_tree_barrel": {
+   "file": "env/jungle_tree_barrel.png",
+   "w": 221,
+   "h": 278
+  },
+  "jungle_log_arch": {
+   "file": "env/jungle_log_arch.png",
+   "w": 250,
+   "h": 100
+  },
+  "jungle_log": {
+   "file": "env/jungle_log.png",
+   "w": 148,
+   "h": 67
+  },
+  "jungle_fern": {
+   "file": "env/jungle_fern.png",
+   "w": 108,
+   "h": 122
+  },
+  "jungle_monstera": {
+   "file": "env/jungle_monstera.png",
+   "w": 98,
+   "h": 83
+  },
+  "jungle_palm": {
+   "file": "env/jungle_palm.png",
+   "w": 76,
+   "h": 153
+  },
+  "jungle_leaves": {
+   "file": "env/jungle_leaves.png",
+   "w": 123,
+   "h": 100
+  },
+  "pitcher_plant": {
+   "file": "env/pitcher_plant.png",
+   "w": 79,
+   "h": 67
+  },
+  "heliconia": {
+   "file": "env/heliconia.png",
+   "w": 72,
+   "h": 105
+  },
+  "ruin_totem": {
+   "file": "env/ruin_totem.png",
+   "w": 43,
+   "h": 192
+  },
+  "ruin_statue": {
+   "file": "env/ruin_statue.png",
+   "w": 55,
+   "h": 100
+  },
+  "ruin_rubble": {
+   "file": "env/ruin_rubble.png",
+   "w": 125,
+   "h": 78
+  },
+  "ruin_gate": {
+   "file": "env/ruin_gate.png",
+   "w": 123,
+   "h": 100
   }
  }
 }
