@@ -281,6 +281,17 @@ export const SHORTCUTS = [
   ['cliff_scramble', 438, 300, 452, 300],    // into the high Peaks
   ['rope_swing', 300, 458, 300, 472],        // over an Elderglade gorge
   ['ice_traverse', 200, 96, 200, 80],        // into the deep Wild Lands
+  // Cliff ladders (#123): timber ladders bolted to the scarps of the high
+  // country — quick vertical hops over otherwise-impassable rock bands.
+  // Sites verified against heightAt/isBlockedOverworld (top strictly higher).
+  ['cliff_ladder', 523, 380, 523, 376],      // the Grey Peaks south scarp
+  ['cliff_ladder', 515, 317.5, 515, 313.5],  // Peaks mid-ridge
+  ['cliff_ladder', 550, 240.5, 550, 238],    // Peaks east shoulder
+  ['cliff_ladder', 433, 243, 433, 240],      // Peaks west approach
+  ['cliff_ladder', 478, 112, 478, 110.5],    // Northmoor crag line
+  ['cliff_ladder', 539, 112, 539, 110.5],    // Northmoor east crags
+  ['cliff_ladder', 338, 151.5, 338, 148],    // Northmoor moor wall
+  ['cliff_ladder', 552, 31, 552, 27],        // the Alpine heights
 ];
 
 // Mob spawn zones: { mob, x, y, r, n } — n concurrent spawns in radius r.

@@ -75,6 +75,7 @@ export const NODES = {
   cliff_scramble: { skill: 'agility', lvl: 40, xp: 90, name: 'Cliff scramble', anim: 'walk', fx: 'SPARK', shortcut: true },
   rope_swing: { skill: 'agility', lvl: 60, xp: 150, name: 'Rope swing', anim: 'walk', fx: 'SPARK', shortcut: true },
   ice_traverse: { skill: 'agility', lvl: 80, xp: 260, name: 'Ice traverse', anim: 'walk', fx: 'SPARK', shortcut: true },
+  cliff_ladder: { skill: 'agility', lvl: 1, xp: 12, name: 'Cliff ladder', anim: 'walk', fx: 'SPARK', shortcut: true },
 
   // Dungeoneering entrance
   dungeon_entrance: { skill: 'dungeoneering', lvl: 1, xp: 0, name: 'Abyssal Depths entrance', anim: 'walk', fx: 'TELEPORT', dungeon: true },

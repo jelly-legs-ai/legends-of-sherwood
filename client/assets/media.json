@@ -3936,7 +3936,27 @@
     "env/crop_kingsfoil_crop_2.png",
     "env/crop_kingsfoil_crop_3.png"
    ]
-  }
+  },
+  "waterfall": {
+   "mid": [
+    "env/waterfall_mid_0.png",
+    "env/waterfall_mid_1.png",
+    "env/waterfall_mid_2.png",
+    "env/waterfall_mid_3.png"
+   ],
+   "base": [
+    "env/waterfall_base_0.png",
+    "env/waterfall_base_1.png",
+    "env/waterfall_base_2.png",
+    "env/waterfall_base_3.png"
+   ]
+  },
+  "water_sparkle": [
+   "env/water_sparkle_0.png",
+   "env/water_sparkle_1.png",
+   "env/water_sparkle_2.png",
+   "env/water_sparkle_3.png"
+  ]
  },
  "packed": {},
  "trees": {
@@ -4254,6 +4274,46 @@
    "file": "env/decor_sun_rug.png",
    "w": 180,
    "h": 100
+  },
+  "mountain_grey_0": {
+   "file": "env/mountain_grey_0.png",
+   "w": 378,
+   "h": 333
+  },
+  "mountain_snow_0": {
+   "file": "env/mountain_snow_0.png",
+   "w": 378,
+   "h": 333
+  },
+  "mountain_grey_1": {
+   "file": "env/mountain_grey_1.png",
+   "w": 172,
+   "h": 142
+  },
+  "mountain_snow_1": {
+   "file": "env/mountain_snow_1.png",
+   "w": 172,
+   "h": 142
+  },
+  "mountain_grey_2": {
+   "file": "env/mountain_grey_2.png",
+   "w": 149,
+   "h": 152
+  },
+  "mountain_snow_2": {
+   "file": "env/mountain_snow_2.png",
+   "w": 149,
+   "h": 152
+  },
+  "mountain_dark_0": {
+   "file": "env/mountain_dark_0.png",
+   "w": 378,
+   "h": 332
+  },
+  "mountain_dark_1": {
+   "file": "env/mountain_dark_1.png",
+   "w": 178,
+   "h": 143
   }
  }
 }

@@ -614,12 +614,23 @@ function gardenPlot(world, p, plot, msg) {
 
 function useShortcut(world, p, type, node, x, y) {
   if (p.level('agility') < node.lvl) return world.send(p, { t: MSG.MSGBOX, m: `You need agility ${node.lvl}.` });
-  const sc = SHORTCUTS.find(s => s[0] === type && ((s[1] === x && s[2] === y) || (s[3] === x && s[4] === y)));
+  // nearest endpoint of the right type within a couple of tiles — the clicked
+  // node coordinate may not equal the authored endpoint exactly (POIS rounding)
+  let sc = null, bd = 9;
+  for (const s of SHORTCUTS) {
+    if (s[0] !== type) continue;
+    const d = Math.min(Math.hypot(s[1] - x, s[2] - y), Math.hypot(s[3] - x, s[4] - y));
+    if (d < bd) { bd = d; sc = s; }
+  }
   if (!sc) return;
   const [, x1, y1, x2, y2] = sc;
-  const dest = (x === x1 && y === y1) ? { x: x2, y: y2 } : { x: x1, y: y1 };
+  // travel to whichever end is farther from the player
+  const d1 = Math.hypot(p.x - x1, p.y - y1);
+  const dest = d1 > Math.hypot(p.x - x2, p.y - y2) ? { x: x1, y: y1 } : { x: x2, y: y2 };
   p.anim = 'walk'; p.animSeq++;
   world.fx(p.plane, x + 0.5, y + 0.5, FX.SPARK, {});
+  if (type === 'cliff_ladder')
+    world.send(p, { t: MSG.MSGBOX, m: dest.y < p.y ? 'You climb the ladder up the cliff.' : 'You climb down the ladder.' });
   setTimeout(() => {
     p.x = dest.x + 0.5; p.y = dest.y + 0.5; p.path = null;
     world.gridMove(p);

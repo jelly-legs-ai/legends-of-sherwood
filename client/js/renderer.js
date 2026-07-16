@@ -2,7 +2,7 @@
 // LPC characters, procedural critters/nodes, day-night tint, northern snow.
 
 import { WORLD, TILE, PLANE, WILDERNESS_Y } from '/shared/constants.js';
-import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV } from '/shared/mapgen.js';
+import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV, SHORTCUTS } from '/shared/mapgen.js';
 import { REGIONS } from '/shared/constants.js';
 import { HOUSE, TOWNS } from '/shared/data/world.js';
 import { composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS, itemIcon, proc } from './sprites.js';
@@ -299,16 +299,33 @@ function paintBlock(g, t, rnd) {
   }
   g.restore();
 }
-const texCache = new Map(); // "t:variant:dark" -> 64x64 canvas
+// ---- 4-season ground -----------------------------------------------------------
+// A year passes in an hour: each season holds for 15 minutes. Temperate greens
+// are tinted toward the LPC 4-season terrain palettes (sampled means — spring
+// 90,151,43 / summer 70,128,50 / autumn 185,158,63 / winter 212,234,239);
+// deserts, snowfields and rock keep their own climate.
+const SEASON_MS = 15 * 60 * 1000;
+export const seasonNow = () => Math.floor(Date.now() / SEASON_MS) % 4;  // 0 spring 1 summer 2 autumn 3 winter
+export const SEASON_NAMES = ['spring', 'summer', 'autumn', 'winter'];
+const SEASONAL_TILES = new Set([TILE.GRASS, TILE.MEADOW, TILE.FOREST, TILE.DEEPFOREST]);
+const SEASON_TINT = ['rgba(150,205,30,0.10)', null, 'rgba(212,148,40,0.20)', 'rgba(216,233,243,0.36)'];
+
+const texCache = new Map(); // "t:variant:dark:season" -> 64x64 canvas
 function tileTexture(t, pick, dark = 0) {
   const v = pick & 3;
-  const key = t + ':' + v + ':' + dark;
+  const sn = SEASONAL_TILES.has(t) ? seasonNow() : 1;
+  const key = t + ':' + v + ':' + dark + ':' + sn;
   let c = texCache.get(key);
   if (!c) {
     c = document.createElement('canvas');
     c.width = 64; c.height = 64;
     const g = c.getContext('2d');
     paintBlock(g, t, mulberry(t * 7919 + v * 104729 + 1));
+    if (SEASON_TINT[sn] && SEASONAL_TILES.has(t)) {
+      g.globalCompositeOperation = 'source-atop';
+      g.fillStyle = SEASON_TINT[sn]; g.fillRect(0, 0, 64, 64);
+      g.globalCompositeOperation = 'source-over';
+    }
     if (dark) { g.globalCompositeOperation = 'source-atop'; g.fillStyle = `rgba(10,8,20,${Math.min(0.5, dark * 0.16)})`; g.fillRect(0, 0, 64, 64); g.globalCompositeOperation = 'source-over'; }
     texCache.set(key, c);
   }
@@ -422,7 +439,14 @@ function fallStatic(dark = 0) {
   return c;
 }
 const _fallAnim = new Map();       // 'mid' | 'base' -> [4 frames]
+let _fallLPC = false;              // flips true (and rebuilds) once the LPC frames load
 function fallAnim(kind) {
+  // upgrade to the LPC animated-waterfall frames once their images stream in
+  const wf = MEDIA.sheets?.waterfall;
+  if (wf && !_fallLPC) {
+    const imgs = [...wf.mid, ...wf.base].map(f => mimg(f));
+    if (imgs.every(im => im && im.complete && im.naturalWidth)) { _fallLPC = true; _fallAnim.clear(); }
+  }
   let fr = _fallAnim.get(kind);
   if (fr) return fr;
   fr = [];
@@ -430,27 +454,38 @@ function fallAnim(kind) {
     const c = document.createElement('canvas'); c.width = 64; c.height = 64;
     const g = c.getContext('2d');
     g.save(); skirtPath(g); g.clip();
-    // falling streaks, phase-shifted downward each frame so the water pours
-    for (let i = 0; i < 9; i++) {
-      const x = 3 + i * 7 + (i % 2 ? 2 : 0);
-      const yTop = 16 + (x <= 32 ? x / 2 : (64 - x) / 2);
-      const len = 10 + (i % 3) * 8;
-      const y0 = yTop + ((f * 12 + i * 17) % 48);
-      g.strokeStyle = i % 3 === 0 ? 'rgba(255,255,255,0.55)' : 'rgba(210,235,250,0.35)';
-      g.lineWidth = i % 3 === 0 ? 2 : 1.4;
-      g.beginPath(); g.moveTo(x, y0); g.lineTo(x, Math.min(64, y0 + len)); g.stroke();
-      if (y0 + len > 64) {   // wrap the streak back to the lip
-        g.beginPath(); g.moveTo(x, yTop); g.lineTo(x, yTop + (y0 + len - 64) * 0.6); g.stroke();
+    if (_fallLPC) {
+      // LPC pixel water pouring down the cliff column
+      const im = mimg(kind === 'base' ? wf.base[f] : wf.mid[f]);
+      g.globalAlpha = 0.92;
+      if (kind === 'base') g.drawImage(im, 0, 12, 64, 52);
+      else { g.drawImage(im, 0, 16, 64, 32); g.drawImage(im, 0, 47, 64, 32); }
+      g.globalAlpha = 1;
+      g.fillStyle = 'rgba(255,255,255,0.15)';  // mist at the lip
+      g.fillRect(0, 16, 64, 4);
+    } else {
+      // falling streaks, phase-shifted downward each frame so the water pours
+      for (let i = 0; i < 9; i++) {
+        const x = 3 + i * 7 + (i % 2 ? 2 : 0);
+        const yTop = 16 + (x <= 32 ? x / 2 : (64 - x) / 2);
+        const len = 10 + (i % 3) * 8;
+        const y0 = yTop + ((f * 12 + i * 17) % 48);
+        g.strokeStyle = i % 3 === 0 ? 'rgba(255,255,255,0.55)' : 'rgba(210,235,250,0.35)';
+        g.lineWidth = i % 3 === 0 ? 2 : 1.4;
+        g.beginPath(); g.moveTo(x, y0); g.lineTo(x, Math.min(64, y0 + len)); g.stroke();
+        if (y0 + len > 64) {   // wrap the streak back to the lip
+          g.beginPath(); g.moveTo(x, yTop); g.lineTo(x, yTop + (y0 + len - 64) * 0.6); g.stroke();
+        }
       }
-    }
-    g.fillStyle = 'rgba(255,255,255,0.18)';   // mist at the lip
-    g.fillRect(0, 16, 64, 5);
-    if (kind === 'base') {                     // churning plunge foam
-      const rnd = mulberry(977 + f * 31);
-      for (let i = 0; i < 10; i++) {
-        const x = 4 + rnd() * 56, y = 44 + rnd() * 18;
-        g.fillStyle = `rgba(240,250,255,${0.22 + rnd() * 0.35})`;
-        g.beginPath(); g.arc(x, y, 2 + rnd() * 3, 0, 7); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.18)';   // mist at the lip
+      g.fillRect(0, 16, 64, 5);
+      if (kind === 'base') {                     // churning plunge foam
+        const rnd = mulberry(977 + f * 31);
+        for (let i = 0; i < 10; i++) {
+          const x = 4 + rnd() * 56, y = 44 + rnd() * 18;
+          g.fillStyle = `rgba(240,250,255,${0.22 + rnd() * 0.35})`;
+          g.beginPath(); g.arc(x, y, 2 + rnd() * 3, 0, 7); g.fill();
+        }
       }
     }
     g.restore();
@@ -617,6 +652,23 @@ function chunkCanvas(plane, cx, cy) {
           if (!WATERS.has(nt) && nt !== TILE.BRIDGE) em |= 1 << k2;
         }
         water.push({ lx, ly, t, ph: (x * 7 + y * 13) % 64, em, drop });
+      }
+      // snowfield melt-lace where snow meets bare ground (terrain-extension
+      // style transition softening; shorelines keep their foam instead)
+      if (t === TILE.SNOW) {
+        const dirs = [[0, -1], [-1, 0], [1, 0], [0, 1]];
+        for (let e = 0; e < 4; e++) {
+          const nt = tileAtPlane(plane, x + dirs[e][0], y + dirs[e][1]);
+          if (nt === TILE.SNOW || nt === TILE.ICE || WATERS.has(nt) || WALLS.has(nt)) continue;
+          const [[ax, ay], [bx, by]] = EDGE_SEG[e];
+          g.save();
+          g.translate(lx - TW / 2, ly - TH / 2);
+          g.strokeStyle = 'rgba(245,250,252,0.5)'; g.lineWidth = 2.2; g.setLineDash([3, 3]);
+          g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.stroke();
+          g.strokeStyle = 'rgba(235,242,248,0.28)'; g.lineWidth = 4; g.setLineDash([2, 5]);
+          g.beginPath(); g.moveTo((ax * 3 + bx) / 4, (ay * 3 + by) / 4 + 1); g.lineTo((ax + bx * 3) / 4, (ay + by * 3) / 4 + 1); g.stroke();
+          g.restore();
+        }
       }
     }
     // dungeon rock: flat dark tile (no tall prism, so corridors stay readable),
@@ -834,6 +886,9 @@ export class Renderer {
     // camera rides the terrain: keep the player vertically centred on slopes
     this._elevOn = plane === PLANE.OVERWORLD;
     this._camE = this._elevOn ? this.elevAt(this.cam.x, this.cam.y) * ESTEP : 0;
+    // season rollover: re-bake ground textures and chunks in the new palette
+    const sn = seasonNow();
+    if (this._seasonStamp !== sn) { this._seasonStamp = sn; texCache.clear(); chunkCache.clear(); }
 
     // ---- terrain chunks ----
     const [camSX, camSY] = toScreen(this.cam.x, this.cam.y);
@@ -861,6 +916,12 @@ export class Renderer {
             continue;
           }
           ctx.drawImage(waterAnim(w.t)[((now / 260 + w.ph) | 0) & 3], sx, sy);
+          // LPC ripple crests drifting over the open water
+          const sp = MEDIA.sheets?.water_sparkle;
+          if (sp) {
+            const si = mimg(sp[((now / 320 + w.ph) | 0) & 3]);
+            if (si && si.complete && si.naturalWidth) ctx.drawImage(si, sx, sy);
+          }
           if (w.em) {
             const f2 = ((now / 430 + w.ph) | 0) & 1;
             for (let e = 0; e < 4; e++) if (w.em & (1 << e)) ctx.drawImage(foam[e][f2], sx, sy);
@@ -964,6 +1025,44 @@ export class Renderer {
           ctx.restore();
         }
       }
+      return;
+    }
+    // a timber ladder bolted to the cliff face, spanning bottom node to top node
+    if (node.type === 'cliff_ladder') {
+      let sc = null, bd = 9;
+      for (const s of SHORTCUTS) {
+        if (s[0] !== 'cliff_ladder') continue;
+        const d = Math.min(Math.hypot(s[1] - node.x, s[2] - node.y), Math.hypot(s[3] - node.x, s[4] - node.y));
+        if (d < bd) { bd = d; sc = s; }
+      }
+      if (!sc) return;
+      const bottom = sc[2] > sc[4] ? [sc[1], sc[2]] : [sc[3], sc[4]];
+      const top = sc[2] > sc[4] ? [sc[3], sc[4]] : [sc[1], sc[2]];
+      if (Math.hypot(node.x - bottom[0], node.y - bottom[1]) > 1) return;  // draw once, from the bottom end
+      const [bx, by] = this.screenOf(0, bottom[0] + 0.5, bottom[1] + 0.5);
+      const [tx, ty] = this.screenOf(0, top[0] + 0.5, top[1] + 0.5);
+      const dx = tx - bx, dy = ty - by, len = Math.hypot(dx, dy);
+      const ux = dx / len, uy = dy / len;              // along the ladder
+      const px2 = -uy, py2 = ux;                       // perpendicular (rail offset)
+      ctx.save();
+      ctx.lineCap = 'round';
+      for (const side of [-6, 6]) {                    // rails
+        ctx.strokeStyle = '#6d4f28'; ctx.lineWidth = 3.4;
+        ctx.beginPath();
+        ctx.moveTo(bx + px2 * side, by - 2 + py2 * side);
+        ctx.lineTo(tx + px2 * side + ux * 6, ty - 8 + py2 * side + uy * 6);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = '#8a6836'; ctx.lineWidth = 2.4;
+      const steps = Math.max(3, (len / 9) | 0);
+      for (let i = 1; i < steps; i++) {                // rungs
+        const rx = bx + ux * (len * i / steps), ry = by - 2 + uy * (len * i / steps) - 3;
+        ctx.beginPath();
+        ctx.moveTo(rx - px2 * 6, ry - py2 * 6);
+        ctx.lineTo(rx + px2 * 6, ry + py2 * 6);
+        ctx.stroke();
+      }
+      ctx.restore();
       return;
     }
     // the smith's forge roars with a live fire: 4-frame LPC forge animation

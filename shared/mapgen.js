@@ -474,10 +474,10 @@ const SCATTER = {
   SHERWOOD: [['tree', 0.045], ['oak_tree', 0.02], ['willow_tree', 0.008], ['maple_tree', 0.006], ['yew_tree', 0.0025], ['rocks_dark', 0.001]],
   ELDERGLADE: [['maple_tree', 0.02], ['yew_tree', 0.006], ['elm_tree', 0.003], ['willow_tree', 0.012], ['rocks_dark', 0.001]],
   FENWOLD: [['willow_tree', 0.02], ['tree', 0.008], ['grave_cross', 0.0006], ['rocks_dark', 0.0008]],
-  NORTHMOOR: [['frostpine_tree', 0.006], ['tree', 0.004], ['rocks_dark', 0.002], ['spire_dark', 0.0006], ['grave_slab', 0.0005]],
-  PEAKS: [['iron_rock', 0.007], ['coal_rock', 0.007], ['silver_rock', 0.0022], ['mithril_rock', 0.0018], ['gold_rock', 0.0015], ['rocks_grey', 0.004], ['spire_grey', 0.0012], ['crag_grey', 0.0006]],
-  WILDLANDS: [['sylvanite_rock', 0.0015], ['frostpine_tree', 0.005], ['rocks_black', 0.003], ['spire_black', 0.001], ['crag_black', 0.0006]],
-  ALPINE: [['frostpine_tree', 0.01], ['silver_rock', 0.003], ['mithril_rock', 0.0022], ['gold_rock', 0.0022], ['sylvanite_rock', 0.0012], ['rocks_grey', 0.0035], ['crag_grey', 0.0008]],
+  NORTHMOOR: [['frostpine_tree', 0.006], ['tree', 0.004], ['rocks_dark', 0.002], ['spire_dark', 0.0006], ['grave_slab', 0.0005], ['mountain_dark_0', 0.0003], ['mountain_dark_1', 0.0006]],
+  PEAKS: [['iron_rock', 0.007], ['coal_rock', 0.007], ['silver_rock', 0.0022], ['mithril_rock', 0.0018], ['gold_rock', 0.0015], ['rocks_grey', 0.004], ['spire_grey', 0.0012], ['crag_grey', 0.0006], ['mountain_grey_0', 0.00035], ['mountain_grey_1', 0.0007], ['mountain_grey_2', 0.0007]],
+  WILDLANDS: [['sylvanite_rock', 0.0015], ['frostpine_tree', 0.005], ['rocks_black', 0.003], ['spire_black', 0.001], ['crag_black', 0.0006], ['mountain_snow_0', 0.0004], ['mountain_snow_1', 0.0007]],
+  ALPINE: [['frostpine_tree', 0.01], ['silver_rock', 0.003], ['mithril_rock', 0.0022], ['gold_rock', 0.0022], ['sylvanite_rock', 0.0012], ['rocks_grey', 0.0035], ['crag_grey', 0.0008], ['mountain_snow_0', 0.0005], ['mountain_snow_1', 0.0008], ['mountain_snow_2', 0.0008]],
   DESERT: [['rocks_sand', 0.004], ['spire_sand', 0.0015], ['crag_sand', 0.0006], ['copper_rock', 0.0018], ['gold_rock', 0.0008]],
 };
 const NODE_OK_TILES = new Set([TILE.GRASS, TILE.MEADOW, TILE.FOREST, TILE.DEEPFOREST, TILE.JUNGLE, TILE.SWAMP, TILE.TUNDRA, TILE.SNOW, TILE.SCREE, TILE.DIRT]);
@@ -519,6 +519,12 @@ export function computeWorld() {
     }
   for (const [type, x, y] of TOWN_PROPS) if (!inAnyBuilding(x, y)) _nodes.set(x + ',' + y, type); // town furniture
   for (const [type, x, y] of POIS) _nodes.set(x + ',' + y, type); // authored POIs win over furniture
+  // both ends of every agility shortcut are clickable nodes (previously only
+  // endpoints that happened to be duplicated in POIS worked)
+  for (const [type, x1, y1, x2, y2] of SHORTCUTS) {
+    _nodes.set(x1 + ',' + y1, type);
+    _nodes.set(x2 + ',' + y2, type);
+  }
   // Fishing spots must sit ON open water. Authored coordinates are approximate
   // (the warped rivers meander, pools wobble), so snap each spot to the nearest
   // water tile within 8 — this guarantees every fishery lands in its pool/river.
@@ -549,7 +555,7 @@ export function worldTile(x, y) {
 }
 
 // Blocking: unwalkable tile, or a gather node occupies it (except flat stations)
-const FLAT_NODES = new Set(['net_spot', 'rod_spot', 'harpoon_spot', 'allotment', 'herb_patch', 'rabbit_run', 'fox_trail', 'deer_track', 'sable_run', 'campfire', 'log_balance', 'stepping_stones', 'cliff_scramble', 'rope_swing', 'ice_traverse', 'roman_ruin', 'saxon_barrow', 'druid_circle', 'norman_keep', 'grail_shrine', 'dungeon_entrance', 'house_portal', 'ge_rope', 'shop_sign']);
+const FLAT_NODES = new Set(['net_spot', 'rod_spot', 'harpoon_spot', 'allotment', 'herb_patch', 'rabbit_run', 'fox_trail', 'deer_track', 'sable_run', 'campfire', 'log_balance', 'stepping_stones', 'cliff_scramble', 'rope_swing', 'ice_traverse', 'cliff_ladder', 'roman_ruin', 'saxon_barrow', 'druid_circle', 'norman_keep', 'grail_shrine', 'dungeon_entrance', 'house_portal', 'ge_rope', 'shop_sign']);
 export function isBlockedOverworld(x, y) {
   if (x < 0 || y < 0 || x >= W || y >= H) return true;
   if (!TILE_WALKABLE.has(worldTile(x, y))) return true;

@@ -422,6 +422,14 @@ const DECOR = {
   dolmen_black: 'A black dolmen. The air hums strangely here.', dolmen_sand: 'A sandstone dolmen half-buried in drift.',
   crag_grey: 'A great grey crag.', crag_dark: 'A looming dark crag.',
   crag_black: 'A jagged black crag.', crag_sand: 'A wind-worn sandstone crag.',
+  mountain_grey_0: 'A mighty grey massif — the bones of the Peaks laid bare.',
+  mountain_grey_1: 'A sheer mountain scarp, moss clinging to its footings.',
+  mountain_grey_2: 'A shoulder of the mountain, all tumbled stone.',
+  mountain_dark_0: 'A brooding dark massif rising from the moor.',
+  mountain_dark_1: 'A dark mountain wall, streaked with old rain.',
+  mountain_snow_0: 'A snowbound massif, white to the crown.',
+  mountain_snow_1: 'A snow-caked mountain scarp.',
+  mountain_snow_2: 'A frozen shoulder of the high country.',
   quench_trough: 'A quenching trough — the water hisses when hot steel goes in.',
   toolbench: "The smith's bench: tongs, punches and half-finished work.",
   smith_anvil: 'A battle-scarred anvil, rung by ten thousand hammer blows.',
@@ -453,6 +461,7 @@ function actionLabel(type) {
   if (n.bench) return '🔧 Restore at the bench';
   if (n.patch) return `🌱 Farm the ${name}`;
   if (n.station) return `🔥 Use ${name}`;
+  if (type === 'cliff_ladder') return '🪜 Climb the ladder';
   if (n.shortcut) return `🤸 Cross the ${name}`;
   const v = SKILL_VERB[n.skill];
   return v ? `${v[0]} ${v[1]} ${name}` : `✋ Use ${name}`;
