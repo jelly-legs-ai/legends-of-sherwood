@@ -20,7 +20,7 @@ export const TOWNS = {
     // The realm's capital: a sealed rampart with gatehouses west, south and
     // east (the castle crag closes the north), two barracks, a full high
     // street of skill shops, and a paved market square in the south-west.
-    name: 'Nottingham', cx: 330, cy: 330, r: 30, walled: true, gates: ['W', 'S', 'E'],
+    name: 'Nottingham', cx: 330, cy: 330, r: 30, walled: true, moat: true, gates: ['W', 'S', 'E'],
     squares: [{ x: 312, y: 340, w: 9, h: 9 }],   // the Great Market (paved)
     buildings: [
       { x: 303, y: 322, w: 7, h: 6, door: 'S', name: 'Bank of Nottingham' },

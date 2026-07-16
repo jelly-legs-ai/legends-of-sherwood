@@ -2,7 +2,7 @@
 // LPC characters, procedural critters/nodes, day-night tint, northern snow.
 
 import { WORLD, TILE, PLANE, WILDERNESS_Y } from '/shared/constants.js';
-import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV, SHORTCUTS } from '/shared/mapgen.js';
+import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV, SHORTCUTS, wallStyleAt } from '/shared/mapgen.js';
 import { REGIONS } from '/shared/constants.js';
 import { HOUSE, TOWNS } from '/shared/data/world.js';
 import { composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS, itemIcon, proc } from './sprites.js';
@@ -590,7 +590,7 @@ function chunkCanvas(plane, cx, cy) {
   let maxH = 0;
   if (plane === PLANE.OVERWORLD)
     for (let j = 0; j < CH; j++) for (let i = 0; i < CH; i++) maxH = Math.max(maxH, heightAt(cx * CH + i, cy * CH + j));
-  const top = 48 + maxH * ESTEP;
+  const top = 80 + maxH * ESTEP;   // headroom for tall crenellated walls on the chunk's first rows
   const canvas = document.createElement('canvas');
   canvas.width = CH * TW; canvas.height = CH * TH + top + 64;
   const g = canvas.getContext('2d');
@@ -703,6 +703,66 @@ function chunkCanvas(plane, cx, cy) {
       };
       const faceL = () => { g.beginPath(); g.moveTo(lx - TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx - TW / 2, ly - wh); g.closePath(); };
       const faceR = () => { g.beginPath(); g.moveTo(lx + TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx + TW / 2, ly - wh); g.closePath(); };
+      // settlement material tiers (#126): walled-town ramparts read as castle
+      // curtain wall in big grey brick with a crenellated parapet; stone
+      // buildings inside those walls build in rounded cobblestone
+      const wallStyle = stone ? wallStyleAt(x, y) : null;
+      if (wallStyle === 'castle') {
+        const cwh = 64;   // taller curtain wall
+        const cFaceL = () => { g.beginPath(); g.moveTo(lx - TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - cwh); g.lineTo(lx - TW / 2, ly - cwh); g.closePath(); };
+        const cFaceR = () => { g.beginPath(); g.moveTo(lx + TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - cwh); g.lineTo(lx + TW / 2, ly - cwh); g.closePath(); };
+        g.fillStyle = tint('#7c8387', wear); cFaceL(); g.fill();
+        g.fillStyle = tint('#9aa2a6', wear); cFaceR(); g.fill();
+        // big grey brick courses with staggered head joints (LPC castle kit look)
+        for (const spec of [[cFaceL, lx - TW / 2], [cFaceR, lx]]) {
+          g.save(); spec[0](); g.clip();
+          g.strokeStyle = '#545b5f'; g.lineWidth = 1.4;
+          for (let row = 1; row < 6; row++) {
+            const yy = ly - cwh + row * (cwh / 6);
+            g.beginPath(); g.moveTo(spec[1], yy); g.lineTo(spec[1] + TW / 2, yy + TH / 4); g.stroke();
+            for (const fx2 of row % 2 ? [0.28, 0.72] : [0.5]) {
+              const jx = spec[1] + (TW / 2) * fx2;
+              g.beginPath(); g.moveTo(jx, yy - cwh / 6 + fx2 * TH / 4 + 3); g.lineTo(jx, yy + fx2 * TH / 4 + 1); g.stroke();
+            }
+          }
+          g.restore();
+        }
+        // wall-walk cap + crenellated parapet along the two far edges
+        g.fillStyle = tint('#aab2b6', wear);
+        g.beginPath(); g.moveTo(lx, ly - TH / 2 - cwh); g.lineTo(lx + TW / 2, ly - cwh); g.lineTo(lx, ly + TH / 2 - cwh); g.lineTo(lx - TW / 2, ly - cwh); g.closePath(); g.fill();
+        g.strokeStyle = '#00000030'; g.lineWidth = 1; g.stroke();
+        for (const dir of [-1, 1]) {   // -1: NW edge, +1: NE edge
+          for (const f of [0.2, 0.55, 0.9]) {
+            const mx = lx + dir * (TW / 2) * f, my = ly - TH / 2 - cwh + (TH / 2) * f;
+            g.fillStyle = tint(dir < 0 ? '#8d959a' : '#9aa2a6', wear);
+            g.fillRect(mx - 4, my - 7, 8, 8);
+            g.strokeStyle = '#545b5f88'; g.strokeRect(mx - 4, my - 7, 8, 8);
+          }
+        }
+        continue;
+      }
+      if (wallStyle === 'cobble') {
+        g.fillStyle = tint('#6b6860', wear); faceL(); g.fill();
+        g.fillStyle = tint('#838078', wear); faceR(); g.fill();
+        // rounded river cobbles packed in mortar
+        for (const spec of [[faceL, lx - TW / 2, 0], [faceR, lx, 1]]) {
+          g.save(); spec[0](); g.clip();
+          const rnd = mulberry(x * 131 + y * 977 + spec[2]);
+          for (let i = 0; i < 16; i++) {
+            const px3 = spec[1] + rnd() * (TW / 2), py3 = ly - wh + 3 + rnd() * (wh + TH / 2 - 8);
+            const rw = 4 + rnd() * 4, rh2 = 3 + rnd() * 3;
+            const c3 = ['#918e86', '#7b786f', '#9c9992', '#868378'][(rnd() * 4) | 0];
+            g.fillStyle = c3;
+            g.beginPath(); g.ellipse(px3, py3, rw / 2, rh2 / 2, 0, 0, 7); g.fill();
+            g.strokeStyle = '#4f4c45aa'; g.lineWidth = 0.8; g.stroke();
+          }
+          g.restore();
+        }
+        g.fillStyle = tint('#9a978e', wear);
+        g.beginPath(); g.moveTo(lx, ly - TH / 2 - wh); g.lineTo(lx + TW / 2, ly - wh); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx - TW / 2, ly - wh); g.closePath(); g.fill();
+        g.strokeStyle = '#00000030'; g.lineWidth = 1; g.stroke();
+        continue;
+      }
       // the Sunfall Sands build in adobe: cream sun-baked plaster with a
       // protruding beam row, capped flat — no thatch in the desert
       const adobe = !stone && regionAt(x, y) === 'DESERT';

@@ -337,6 +337,18 @@ function townTile(x, y) {
     if (Math.abs(x - t.cx) > t.r * 1.5 + 6 || Math.abs(y - t.cy) > t.r * 1.5 + 6) continue;
     const d = dist(x, y, t.cx, t.cy);
     const rr = townRadius(t, x, y);
+    // Castle moat (#126): a water ring hugs the outside of the rampart, with a
+    // timber drawbridge carrying each gate road over it (LPC castle kit look).
+    if (t.moat && t.walled && d >= rr && d < rr + 2.4) {
+      const gw = 3;
+      for (const s of (t.gates || [])) {
+        if (s === 'W' && x < t.cx && Math.abs(y - t.cy) <= gw) return TILE.BRIDGE;
+        if (s === 'E' && x > t.cx && Math.abs(y - t.cy) <= gw) return TILE.BRIDGE;
+        if (s === 'S' && y > t.cy && Math.abs(x - t.cx) <= gw) return TILE.BRIDGE;
+        if (s === 'N' && y < t.cy && Math.abs(x - t.cx) <= gw) return TILE.BRIDGE;
+      }
+      return TILE.WATER;
+    }
     if (d < rr) {
       if (t.walled) {
         // Sealed rampart: a tile is wall if ANY of its 8 neighbours falls off
@@ -363,6 +375,24 @@ function townTile(x, y) {
     }
   }
   return -1;
+}
+
+// Wall material tiers (#126): walled-town perimeter walls read as castle
+// curtain wall (big grey brick, crenellated); stone buildings inside those
+// walls build in cobblestone; everything else keeps its tile-type material.
+export function wallStyleAt(x, y) {
+  for (const key in TOWNS) {
+    const t = TOWNS[key];
+    if (!t.walled) continue;
+    if (Math.abs(x - t.cx) > t.r * 1.5 + 8 || Math.abs(y - t.cy) > t.r * 1.5 + 8) continue;
+    if (dist(x, y, t.cx, t.cy) >= townRadius(t, x, y)) continue;
+    for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) {
+      if (!ox && !oy) continue;
+      if (dist(x + ox, y + oy, t.cx, t.cy) >= townRadius(t, x + ox, y + oy)) return 'castle';
+    }
+    return 'cobble';
+  }
+  return null;
 }
 
 // ---- main tile function ----------------------------------------------------------
