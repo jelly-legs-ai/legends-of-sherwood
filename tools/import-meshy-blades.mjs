@@ -76,58 +76,114 @@ function endWidths(im, ax) {
   return { lo: nLo ? wLo / nLo : 0, hi: nHi ? wHi / nHi : 0 };
 }
 
-// remap one sheet: for each frame cell, measure the old blade (union alpha),
-// then draw the Meshy blade over it via similarity transform, masked to the
-// layer's own silhouette
-function remapSheet(sheetIm, cellW, cellH, unionAt, blade, bladeGrip, bladeTip, palette) {
-  const out = makeImage(sheetIm.w, sheetIm.h);
-  const cols = sheetIm.w / cellW, rows = sheetIm.h / cellH;
+// keep only the largest 4-connected opaque component — Meshy renders often
+// carry stray floating shards that would wreck the pose fit and the paint
+function largestComponent(im) {
+  const W = im.w, H = im.h;
+  const label = new Int32Array(W * H).fill(-1);
+  let bestId = -1, bestN = 0, id = 0;
+  for (let s = 0; s < W * H; s++) {
+    if (label[s] !== -1 || im.data[s * 4 + 3] <= 40) continue;
+    const stack = [s]; label[s] = id; let n = 0;
+    while (stack.length) {
+      const i = stack.pop(); n++;
+      const x = i % W, y = (i / W) | 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+        const ni = ny * W + nx;
+        if (label[ni] === -1 && im.data[ni * 4 + 3] > 40) { label[ni] = id; stack.push(ni); }
+      }
+    }
+    if (n > bestN) { bestN = n; bestId = id; }
+    id++;
+  }
+  const o = makeImage(W, H);
+  for (let i = 0; i < W * H; i++) if (label[i] === bestId)
+    for (let k = 0; k < 4; k++) o.data[i * 4 + k] = im.data[i * 4 + k];
+  return o;
+}
+// dilate an alpha mask by r pixels (chebyshev)
+function dilate(maskAt, W, H, r) {
+  const out = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    let hit = 0;
+    for (let dy = -r; dy <= r && !hit; dy++) for (let dx = -r; dx <= r; dx++)
+      if (maskAt(x + dx, y + dy) > 40) { hit = 1; break; }
+    out[y * W + x] = hit;
+  }
+  return out;
+}
+
+// remap one animation: measure the old blade pose from the fg+bg union, then
+// paint the Meshy blade full-bodied via supersampled coverage — pixels land in
+// the fg or bg layer by nearest old-silhouette membership (dilated), so the
+// behind-the-body split survives without starving the blade to slivers
+function remapAnim(fgSheet, bgSheet, cellW, cellH, blade, bladeGrip, bladeTip, palette) {
+  const ref = fgSheet || bgSheet;
+  const outFg = fgSheet ? makeImage(ref.w, ref.h) : null;
+  const outBg = bgSheet ? makeImage(ref.w, ref.h) : null;
+  const cols = ref.w / cellW, rows = ref.h / cellH;
+  const alphaOf = (sheet, ox, oy) => (x, y) =>
+    (sheet && x >= 0 && y >= 0 && x < cellW && y < cellH) ? sheet.data[((oy + y) * sheet.w + ox + x) * 4 + 3] : 0;
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
     const ox = c * cellW, oy = r * cellH;
-    const ax = axisOf({ w: cellW, h: cellH }, (x, y) => unionAt(ox + x, oy + y));
+    const fgA = alphaOf(fgSheet, ox, oy), bgA = alphaOf(bgSheet, ox, oy);
+    const unionAt = (x, y) => Math.max(fgA(x, y), bgA(x, y));
+    const ax = axisOf({ w: cellW, h: cellH }, unionAt);
     if (!ax) continue;                                   // empty/round frame: leave blank
+    const fgD = fgSheet && dilate(fgA, cellW, cellH, 2);
+    const bgD = bgSheet && dilate(bgA, cellW, cellH, 2);
     // grip end = axis end nearest the body anchor (frame centre, low)
     const bx = cellW / 2, by = cellH * 0.58;
     const pLo = { x: ax.cx + ax.ux * ax.min, y: ax.cy + ax.uy * ax.min };
     const pHi = { x: ax.cx + ax.ux * ax.max, y: ax.cy + ax.uy * ax.max };
     const dLo = Math.hypot(pLo.x - bx, pLo.y - by), dHi = Math.hypot(pHi.x - bx, pHi.y - by);
     const grip = dLo < dHi ? pLo : pHi, tip = dLo < dHi ? pHi : pLo;
-    // similarity transform mapping bladeGrip->grip, bladeTip->tip
     const sdx = bladeTip.x - bladeGrip.x, sdy = bladeTip.y - bladeGrip.y;
     const ddx = tip.x - grip.x, ddy = tip.y - grip.y;
     const sLen = Math.hypot(sdx, sdy) || 1, dLen = Math.hypot(ddx, ddy) || 1;
     const scale = dLen / sLen;
     const cosT = (sdx * ddx + sdy * ddy) / (sLen * dLen);
     const sinT = (sdx * ddy - sdy * ddx) / (sLen * dLen);
-    // inverse-sample: for each dest px inside the old silhouette, pull from blade
+    const box = Math.max(1, Math.round(0.5 / scale));    // supersample radius in blade px
     for (let y = 0; y < cellH; y++) for (let x = 0; x < cellW; x++) {
-      const layerA = sheetIm.data[((oy + y) * sheetIm.w + ox + x) * 4 + 3];
-      if (layerA <= 40) continue;                        // stay inside the old silhouette
       const rx = x - grip.x, ry = y - grip.y;
       const sx2 = (rx * cosT + ry * sinT) / scale + bladeGrip.x;
       const sy2 = (-rx * sinT + ry * cosT) / scale + bladeGrip.y;
-      const ix = Math.round(sx2), iy = Math.round(sy2);
-      if (ix < 0 || iy < 0 || ix >= blade.w || iy >= blade.h) continue;
-      const so = (iy * blade.w + ix) * 4;
-      if (blade.data[so + 3] <= 40) continue;
-      // palette-snap to the icon's own colours
+      // coverage-weighted average over the source box
+      let cov = 0, n = 0, ar = 0, ag = 0, ab = 0;
+      for (let by2 = -box; by2 <= box; by2++) for (let bx2 = -box; bx2 <= box; bx2++) {
+        const ix = Math.round(sx2 + bx2), iy = Math.round(sy2 + by2);
+        n++;
+        if (ix < 0 || iy < 0 || ix >= blade.w || iy >= blade.h) continue;
+        const so = (iy * blade.w + ix) * 4;
+        if (blade.data[so + 3] <= 40) continue;
+        cov++; ar += blade.data[so]; ag += blade.data[so + 1]; ab += blade.data[so + 2];
+      }
+      if (!n || cov / n < 0.35) continue;                // not enough blade under this pixel
+      ar /= cov; ag /= cov; ab /= cov;
       let best = 0, bd = 1e9;
       for (let p = 0; p < palette.length; p += 3) {
-        const d = (blade.data[so] - palette[p]) ** 2 + (blade.data[so + 1] - palette[p + 1]) ** 2 + (blade.data[so + 2] - palette[p + 2]) ** 2;
+        const d = (ar - palette[p]) ** 2 + (ag - palette[p + 1]) ** 2 + (ab - palette[p + 2]) ** 2;
         if (d < bd) { bd = d; best = p; }
       }
-      const dof = ((oy + y) * out.w + ox + x) * 4;
-      out.data[dof] = palette[best]; out.data[dof + 1] = palette[best + 1]; out.data[dof + 2] = palette[best + 2];
-      out.data[dof + 3] = 255;
+      // layer by (dilated) old-silhouette membership; novel pixels default fg
+      const i2 = y * cellW + x;
+      const target = (fgD && fgD[i2]) ? outFg : (bgD && bgD[i2]) ? outBg : outFg || outBg;
+      if (!target) continue;
+      const dof = ((oy + y) * target.w + ox + x) * 4;
+      target.data[dof] = palette[best]; target.data[dof + 1] = palette[best + 1]; target.data[dof + 2] = palette[best + 2];
+      target.data[dof + 3] = 255;
     }
   }
-  return out;
+  return { fg: outFg, bg: outBg };
 }
 
 const neutralOf = (dict) => dict && (dict.steel || dict.iron || Object.values(dict).find(Boolean));
 
 for (const [icon, itemId, baseType, key] of BLADES) {
-  const blade = trim(decode(fs.readFileSync(`model assets/meshy/renders/blade_${icon}.png`)));
+  const blade = trim(largestComponent(decode(fs.readFileSync(`model assets/meshy/renders/blade_${icon}.png`))));
   const bAx = axisOf(blade, (x, y) => A(blade, x, y), false);
   const bw = endWidths(blade, bAx);
   const pLo = { x: bAx.cx + bAx.ux * bAx.min, y: bAx.cy + bAx.uy * bAx.min };
@@ -143,28 +199,30 @@ for (const [icon, itemId, baseType, key] of BLADES) {
     if (!seen.has(k2)) { seen.add(k2); palette.push(ic.data[p], ic.data[p + 1], ic.data[p + 2]); }
   }
   const w = manifest.weapons[baseType];
-  const emit = (srcFile, tag, unionFiles) => {
-    const sheet = decode(fs.readFileSync(path.join(LPC, srcFile)));
-    const cellH = sheet.h % 64 === 0 && sheet.w === 832 ? 64 : sheet.h / 4;
-    const cellW = cellH;
-    // union alpha across fg+bg of the same anim keeps the pose measurement whole
-    const unions = unionFiles.map(f => decode(fs.readFileSync(path.join(LPC, f))));
-    const unionAt = (x, y) => Math.max(...unions.map(u => A(u, x, y)));
-    const outIm = remapSheet(sheet, cellW, cellH, unionAt, blade, bladeGrip, bladeTip, palette);
+  const load = (f) => f ? decode(fs.readFileSync(path.join(LPC, f))) : null;
+  const cellOf = (sheet) => (sheet.h % 64 === 0 && sheet.w === 832) ? 64 : sheet.h / 4;
+  const write = (im, tag) => {
     const outFile = `uweap_${key}_${tag}.png`;
-    fs.writeFileSync(path.join(LPC, outFile), encode(outIm.w, outIm.h, outIm.data));
+    fs.writeFileSync(path.join(LPC, outFile), encode(im.w, im.h, im.data));
     return outFile;
   };
   // composite fg (universal layout), if the base has one
   const fgN = neutralOf(w.fg);
-  if (fgN) { w.fg[key] = emit(fgN, 'fg', [fgN]); }
-  // per-anim sheets (slash, walk, …): remap fg and bg with a shared union
+  if (fgN) {
+    const sheet = load(fgN);
+    const cell = cellOf(sheet);
+    const { fg } = remapAnim(sheet, null, cell, cell, blade, bladeGrip, bladeTip, palette);
+    w.fg[key] = write(fg, 'fg');
+  }
+  // per-anim sheets (slash, walk, …): fg and bg remapped together so the
+  // behind-the-body split stays intact
   for (const [anim, parts] of Object.entries(w.perAnim || {})) {
-    const files = ['fg', 'bg'].map(p => neutralOf(parts[p])).filter(Boolean);
-    for (const part of ['fg', 'bg']) {
-      const n = neutralOf(parts[part]);
-      if (n) parts[part][key] = emit(n, `${anim}_${part}`, files);
-    }
+    const fgS = load(neutralOf(parts.fg)), bgS = load(neutralOf(parts.bg));
+    if (!fgS && !bgS) continue;
+    const cell = cellOf(fgS || bgS);
+    const { fg, bg } = remapAnim(fgS, bgS, cell, cell, blade, bladeGrip, bladeTip, palette);
+    if (fg) parts.fg[key] = write(fg, `${anim}_fg`);
+    if (bg) parts.bg[key] = write(bg, `${anim}_bg`);
   }
   console.log(itemId.padEnd(24), '->', key);
 }
