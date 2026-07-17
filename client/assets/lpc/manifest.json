@@ -1979,26 +1979,32 @@
    "perAnim": {
     "walk": {
      "fg": {
-      "steel": "wep_longsword_walk_fg.png"
+      "steel": "wep_longsword_walk_fg.png",
+      "u_rexfang": "uweap_u_rexfang_walk_fg.png"
      },
      "bg": {
-      "steel": "wep_longsword_walk_bg.png"
+      "steel": "wep_longsword_walk_bg.png",
+      "u_rexfang": "uweap_u_rexfang_walk_bg.png"
      }
     },
     "slash": {
      "fg": {
-      "steel": "wep_longsword_slash_fg.png"
+      "steel": "wep_longsword_slash_fg.png",
+      "u_rexfang": "uweap_u_rexfang_slash_fg.png"
      },
      "bg": {
-      "steel": "wep_longsword_slash_bg.png"
+      "steel": "wep_longsword_slash_bg.png",
+      "u_rexfang": "uweap_u_rexfang_slash_bg.png"
      }
     },
     "thrust": {
      "fg": {
-      "steel": "wep_longsword_thrust_fg.png"
+      "steel": "wep_longsword_thrust_fg.png",
+      "u_rexfang": "uweap_u_rexfang_thrust_fg.png"
      },
      "bg": {
-      "steel": "wep_longsword_thrust_bg.png"
+      "steel": "wep_longsword_thrust_bg.png",
+      "u_rexfang": "uweap_u_rexfang_thrust_bg.png"
      }
     }
    }
@@ -2139,18 +2145,26 @@
    "perAnim": {
     "walk": {
      "fg": {
-      "steel": "wep_scimitar_walk_fg.png"
+      "steel": "wep_scimitar_walk_fg.png",
+      "u_ripper": "uweap_u_ripper_walk_fg.png",
+      "u_tyrant": "uweap_u_tyrant_walk_fg.png"
      },
      "bg": {
-      "steel": "wep_scimitar_walk_bg.png"
+      "steel": "wep_scimitar_walk_bg.png",
+      "u_ripper": "uweap_u_ripper_walk_bg.png",
+      "u_tyrant": "uweap_u_tyrant_walk_bg.png"
      }
     },
     "slash": {
      "fg": {
-      "steel": "wep_scimitar_slash_fg.png"
+      "steel": "wep_scimitar_slash_fg.png",
+      "u_ripper": "uweap_u_ripper_slash_fg.png",
+      "u_tyrant": "uweap_u_tyrant_slash_fg.png"
      },
      "bg": {
-      "steel": "wep_scimitar_slash_bg.png"
+      "steel": "wep_scimitar_slash_bg.png",
+      "u_ripper": "uweap_u_ripper_slash_bg.png",
+      "u_tyrant": "uweap_u_tyrant_slash_bg.png"
      }
     }
    }
@@ -2159,18 +2173,22 @@
    "perAnim": {
     "walk": {
      "fg": {
-      "steel": "wep_saber_walk_fg.png"
+      "steel": "wep_saber_walk_fg.png",
+      "u_burrow": "uweap_u_burrow_walk_fg.png"
      },
      "bg": {
-      "steel": "wep_saber_walk_bg.png"
+      "steel": "wep_saber_walk_bg.png",
+      "u_burrow": "uweap_u_burrow_walk_bg.png"
      }
     },
     "slash": {
      "fg": {
-      "steel": "wep_saber_slash_fg.png"
+      "steel": "wep_saber_slash_fg.png",
+      "u_burrow": "uweap_u_burrow_slash_fg.png"
      },
      "bg": {
-      "steel": "wep_saber_slash_bg.png"
+      "steel": "wep_saber_slash_bg.png",
+      "u_burrow": "uweap_u_burrow_slash_bg.png"
      }
     }
    }
@@ -2179,18 +2197,26 @@
    "perAnim": {
     "walk": {
      "fg": {
-      "steel": "wep_longsword_alt_walk_fg.png"
+      "steel": "wep_longsword_alt_walk_fg.png",
+      "u_gollux": "uweap_u_gollux_walk_fg.png",
+      "u_dragonbane": "uweap_u_dragonbane_walk_fg.png"
      },
      "bg": {
-      "steel": "wep_longsword_alt_walk_bg.png"
+      "steel": "wep_longsword_alt_walk_bg.png",
+      "u_gollux": "uweap_u_gollux_walk_bg.png",
+      "u_dragonbane": "uweap_u_dragonbane_walk_bg.png"
      }
     },
     "slash": {
      "fg": {
-      "steel": "wep_longsword_alt_slash_fg.png"
+      "steel": "wep_longsword_alt_slash_fg.png",
+      "u_gollux": "uweap_u_gollux_slash_fg.png",
+      "u_dragonbane": "uweap_u_dragonbane_slash_fg.png"
      },
      "bg": {
-      "steel": "wep_longsword_alt_slash_bg.png"
+      "steel": "wep_longsword_alt_slash_bg.png",
+      "u_gollux": "uweap_u_gollux_slash_bg.png",
+      "u_dragonbane": "uweap_u_dragonbane_slash_bg.png"
      }
     }
    }
@@ -2200,21 +2226,37 @@
     "walk": {
      "fg": {
       "blue": "wep_glowsword_walk_fg_blue.png",
-      "red": "wep_glowsword_walk_fg_red.png"
+      "red": "wep_glowsword_walk_fg_red.png",
+      "u_hellrender": "uweap_u_hellrender_walk_fg.png",
+      "u_glacier": "uweap_u_glacier_walk_fg.png",
+      "u_reaver": "uweap_u_reaver_walk_fg.png",
+      "u_abyssal": "uweap_u_abyssal_walk_fg.png"
      },
      "bg": {
       "blue": "wep_glowsword_walk_bg_blue.png",
-      "red": "wep_glowsword_walk_bg_red.png"
+      "red": "wep_glowsword_walk_bg_red.png",
+      "u_hellrender": "uweap_u_hellrender_walk_bg.png",
+      "u_glacier": "uweap_u_glacier_walk_bg.png",
+      "u_reaver": "uweap_u_reaver_walk_bg.png",
+      "u_abyssal": "uweap_u_abyssal_walk_bg.png"
      }
     },
     "slash": {
      "fg": {
       "blue": "wep_glowsword_slash_fg_blue.png",
-      "red": "wep_glowsword_slash_fg_red.png"
+      "red": "wep_glowsword_slash_fg_red.png",
+      "u_hellrender": "uweap_u_hellrender_slash_fg.png",
+      "u_glacier": "uweap_u_glacier_slash_fg.png",
+      "u_reaver": "uweap_u_reaver_slash_fg.png",
+      "u_abyssal": "uweap_u_abyssal_slash_fg.png"
      },
      "bg": {
       "blue": "wep_glowsword_slash_bg_blue.png",
-      "red": "wep_glowsword_slash_bg_red.png"
+      "red": "wep_glowsword_slash_bg_red.png",
+      "u_hellrender": "uweap_u_hellrender_slash_bg.png",
+      "u_glacier": "uweap_u_glacier_slash_bg.png",
+      "u_reaver": "uweap_u_reaver_slash_bg.png",
+      "u_abyssal": "uweap_u_abyssal_slash_bg.png"
      }
     }
    }

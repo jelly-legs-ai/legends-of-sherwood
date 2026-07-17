@@ -569,19 +569,21 @@ def('convoy_strongbox', { name: 'Convoy strongbox', value: 0, tradeable: false, 
 // Every rare blade wields the LPC model its ICON depicts: scimitars, sabers,
 // katanas, alt-longsword greatblades and native blue/red energy glowswords —
 // single-finish models tint to the blade's colour, glowswords use theirs.
+// u_* colours are exact-match Meshy-derived blade sheets (tools/import-meshy-blades.mjs);
+// tidebreaker & aracnyx still await generation credits and keep their tinted look
 export const RARE_SWORDS = [
-  ['blade_of_the_burrow', 'Blade of the Burrow', 20, 1, 0, 'saber', 'tide'],
+  ['blade_of_the_burrow', 'Blade of the Burrow', 20, 1, 0, 'saber', 'u_burrow'],
   ['tidebreaker_cutlass', 'Tidebreaker cutlass', 30, 6, 0, 'longsword', 'tide'],
-  ['fanged_ripper', 'Fanged ripper', 40, 11, 0, 'scimitar', 'venom'],
-  ['gollux_greatblade', 'Gollux greatblade', 50, 14, 1, 'longsword_alt', 'steel'],
-  ['glacier_edge', 'Glacier edge', 55, 25, 0, 'glowsword', 'blue'],
-  ['tyrants_cleaver', "Tyrant's cleaver", 65, 39, 1, 'scimitar', 'ember'],
-  ['rexfang_saber', 'Rexfang saber', 72, 27, 0, 'longsword', 'ember'],
-  ['abyssal_edge', 'Abyssal edge', 78, 34, 0, 'glowsword', 'abyss'],
+  ['fanged_ripper', 'Fanged ripper', 40, 11, 0, 'scimitar', 'u_ripper'],
+  ['gollux_greatblade', 'Gollux greatblade', 50, 14, 1, 'longsword_alt', 'u_gollux'],
+  ['glacier_edge', 'Glacier edge', 55, 25, 0, 'glowsword', 'u_glacier'],
+  ['tyrants_cleaver', "Tyrant's cleaver", 65, 39, 1, 'scimitar', 'u_tyrant'],
+  ['rexfang_saber', 'Rexfang saber', 72, 27, 0, 'longsword', 'u_rexfang'],
+  ['abyssal_edge', 'Abyssal edge', 78, 34, 0, 'glowsword', 'u_abyssal'],
   ['aracnyx_talon', 'Aracnyx talon', 82, 4, 0, 'katana', 'venom'],
-  ['glacial_reaver', 'Glacial reaver', 86, 29, 1, 'glowsword', 'blue'],
-  ['hellrender', 'Hellrender', 92, 8, 1, 'glowsword', 'red'],
-  ['dragonbane_greatsword', 'Dragonbane greatsword', 95, 20, 1, 'greatsword', 'gold'],
+  ['glacial_reaver', 'Glacial reaver', 86, 29, 1, 'glowsword', 'u_reaver'],
+  ['hellrender', 'Hellrender', 92, 8, 1, 'glowsword', 'u_hellrender'],
+  ['dragonbane_greatsword', 'Dragonbane greatsword', 95, 20, 1, 'greatsword', 'u_dragonbane'],
 ];
 // A signature aura colour per rare blade so each reads as its own weapon.
 const SWORD_GLOW = {
