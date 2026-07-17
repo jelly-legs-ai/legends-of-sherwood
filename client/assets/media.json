@@ -4048,39 +4048,39 @@
  "packed": {},
  "trees": {
   "tree": {
-   "file": "env/tree_tree.png",
-   "w": 94,
-   "h": 136
+   "file": "env/mp_tree.png",
+   "w": 137,
+   "h": 123
   },
   "oak_tree": {
-   "file": "env/tree_oak_tree.png",
-   "w": 94,
-   "h": 138
+   "file": "env/mp_oak_tree.png",
+   "w": 137,
+   "h": 116
   },
   "elm_tree": {
-   "file": "env/tree_elm_tree.png",
-   "w": 94,
-   "h": 142
+   "file": "env/mp_elm_tree.png",
+   "w": 57,
+   "h": 124
   },
   "willow_tree": {
-   "file": "env/tree_willow_tree.png",
-   "w": 94,
-   "h": 138
+   "file": "env/mp_willow_tree.png",
+   "w": 124,
+   "h": 126
   },
   "yew_tree": {
-   "file": "env/tree_yew_tree.png",
-   "w": 85,
-   "h": 136
+   "file": "env/mp_yew_tree.png",
+   "w": 40,
+   "h": 123
   },
   "maple_tree": {
-   "file": "env/tree_maple_tree.png",
-   "w": 94,
-   "h": 138
+   "file": "env/mp_maple_tree.png",
+   "w": 83,
+   "h": 126
   },
   "frostpine_tree": {
-   "file": "env/tree_frostpine_tree.png",
-   "w": 85,
-   "h": 109
+   "file": "env/mp_frostpine_tree.png",
+   "w": 75,
+   "h": 122
   },
   "signpost_arrow": {
    "file": "env/decor_signpost_arrow.png",
@@ -4254,48 +4254,48 @@
   },
   "copper_rock": {
    "file": "env/st_copper_rock.png",
-   "w": 62,
-   "h": 59
+   "w": 56,
+   "h": 56
   },
   "tin_rock": {
    "file": "env/st_tin_rock.png",
-   "w": 62,
-   "h": 59
+   "w": 56,
+   "h": 56
   },
   "iron_rock": {
    "file": "env/st_iron_rock.png",
-   "w": 62,
-   "h": 59
+   "w": 56,
+   "h": 56
   },
   "coal_rock": {
    "file": "env/st_coal_rock.png",
-   "w": 62,
-   "h": 59
+   "w": 56,
+   "h": 56
   },
   "silver_rock": {
    "file": "env/st_silver_rock.png",
-   "w": 62,
-   "h": 59
+   "w": 56,
+   "h": 56
   },
   "mithril_rock": {
    "file": "env/st_mithril_rock.png",
-   "w": 62,
-   "h": 59
+   "w": 56,
+   "h": 56
   },
   "gold_rock": {
    "file": "env/st_gold_rock.png",
-   "w": 62,
-   "h": 59
+   "w": 56,
+   "h": 56
   },
   "sylvanite_rock": {
    "file": "env/st_sylvanite_rock.png",
-   "w": 62,
-   "h": 59
+   "w": 56,
+   "h": 56
   },
   "essence_rock": {
    "file": "env/st_essence_rock.png",
-   "w": 62,
-   "h": 59
+   "w": 56,
+   "h": 56
   },
   "smith_anvil": {
    "file": "env/st_smith_anvil.png",

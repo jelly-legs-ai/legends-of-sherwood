@@ -499,6 +499,18 @@ function fallAnim(kind) {
         // the lip stays pinned at the edge while the water below it scrolls
         g.drawImage(mimg(wf.top[pf]), 0, 12, 64, 34);
       }
+      if (kind === 'top') {
+        // the crest keeps its water SURFACE: cut the diamond top face back out
+        // so the baked river top + live shimmer stay visible, and break a foam
+        // lip along the spill edges where the surface tips over
+        g.globalCompositeOperation = 'destination-out';
+        g.beginPath(); g.moveTo(32, -1); g.lineTo(65, 16); g.lineTo(32, 33); g.lineTo(-1, 16); g.closePath(); g.fill();
+        g.globalCompositeOperation = 'source-over';
+        g.strokeStyle = `rgba(245,252,255,${0.5 + 0.2 * Math.sin(f)})`; g.lineWidth = 2.5;
+        g.setLineDash(f & 1 ? [4, 3] : [3, 4]);
+        g.beginPath(); g.moveTo(1, 17); g.lineTo(32, 33.5); g.lineTo(63, 17); g.stroke();
+        g.setLineDash([]);
+      }
       if (kind === 'base') {
         // plunge pool: splash ring over the scrolled body, plus churn foam
         g.drawImage(mimg(wf.base[pf]), 0, 12, 64, 52);
@@ -510,8 +522,6 @@ function fallAnim(kind) {
         }
       }
       g.globalAlpha = 1;
-      g.fillStyle = 'rgba(255,255,255,0.16)';  // mist where the water breaks the lip
-      if (kind === 'top') g.fillRect(0, 14, 64, 4);
     } else {
       // falling streaks, phase-shifted downward each frame so the water pours
       for (let i = 0; i < 9; i++) {
@@ -700,7 +710,22 @@ function chunkCanvas(plane, cx, cy) {
           const nt = tileAtPlane(plane, x + dirs[k2][0], y + dirs[k2][1]);
           if (!WATERS.has(nt) && nt !== TILE.BRIDGE) em |= 1 << k2;
         }
-        water.push({ lx, ly, t, ph: (x * 7 + y * 13) % 64, em, drop });
+        // churned pool: any lower water tile within a block of a spilling fall
+        // boils with whitewater where the falls crash down
+        let churn = 0;
+        if (!drop) {
+          outer: for (let ny2 = y - 2; ny2 <= y + 2; ny2++) {
+            for (let nx2 = x - 2; nx2 <= x + 2; nx2++) {
+              if (nx2 === x && ny2 === y) continue;
+              if (!WATERS.has(tileAtPlane(plane, nx2, ny2))) continue;
+              const nh = chunkElev(plane, nx2, ny2);
+              if (nh <= h) continue;
+              const nDrop = nh - Math.max(0, Math.min(chunkElev(plane, nx2 + 1, ny2), chunkElev(plane, nx2, ny2 + 1), chunkElev(plane, nx2 + 1, ny2 + 1)));
+              if (nDrop >= 1) { churn = 1; break outer; }
+            }
+          }
+        }
+        water.push({ lx, ly, t, ph: (x * 7 + y * 13) % 64, em, drop, churn });
       }
       // snowfield melt-lace where snow meets bare ground (terrain-extension
       // style transition softening; shorelines keep their foam instead)
@@ -1043,9 +1068,9 @@ export class Renderer {
               const kind = k === 0 ? 'top' : k === w.drop ? 'base' : 'mid' + (k & 1);
               ctx.drawImage(fallAnim(kind)[ff], sx, sy + k * ESTEP);
             }
-            // whitewater churning on the pool where the fall lands
-            ctx.drawImage(fallAnim('splash')[ff], sx, sy + w.drop * ESTEP + 16);
           }
+          // whitewater boils across every pool tile within a block of the falls
+          if (w.churn) ctx.drawImage(fallAnim('splash')[((now / 90 + w.ph) | 0) & 7], sx, sy);
         }
       }
     }

@@ -53,7 +53,13 @@ const saveIcon = (name, im) => {
 
 // --- ore vein rocks: one strong base rock, dyed to every metal ---------------
 const ore = decode(fs.readFileSync(path.join(O, 'lpc-ore-and-forge/ore.png')));
-const veinBase = crop(ore, 64, 160, 64, 64);
+// ONE boulder per vein (the old 64px cell caught a 4-rock cluster): the
+// orange-flecked single at (67,67), doubled to node scale so the flecks
+// carry the metal tint
+const veinSmall = crop(ore, 67, 67, 28, 28);
+const veinBase = makeImage(56, 56);
+for (let y = 0; y < 56; y++) for (let x = 0; x < 56; x++)
+  for (let k = 0; k < 4; k++) veinBase.data[(y * 56 + x) * 4 + k] = veinSmall.data[(((y / 2) | 0) * 28 + ((x / 2) | 0)) * 4 + k];
 const VEIN_TINT = {
   copper_rock: '#b87333', tin_rock: '#a8a8b0', iron_rock: '#8d6a5a', coal_rock: '#2e2e34',
   silver_rock: '#dfe4ec', mithril_rock: '#4a62a8', gold_rock: '#e8c84e', sylvanite_rock: '#7fe07f', essence_rock: '#b09fe0',
