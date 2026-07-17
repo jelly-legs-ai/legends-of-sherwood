@@ -450,6 +450,31 @@ function fallAnim(kind) {
   let fr = _fallAnim.get(kind);
   if (fr) return fr;
   fr = [];
+  // whitewater churning on the pool at the fall's foot: a diamond-masked
+  // 64x32 overlay of the pack's splash ring plus boiling foam
+  if (kind === 'splash') {
+    for (let f = 0; f < 8; f++) {
+      const c = document.createElement('canvas'); c.width = 64; c.height = 32;
+      const g = c.getContext('2d');
+      g.save();
+      g.beginPath(); g.moveTo(32, 0); g.lineTo(64, 16); g.lineTo(32, 32); g.lineTo(0, 16); g.closePath(); g.clip();
+      const wfb = _fallLPC && mimg(MEDIA.sheets.waterfall.base[f & 3]);
+      if (wfb) { g.globalAlpha = 0.8; g.drawImage(wfb, 0, 26, 64, 26, 0, 3, 64, 26); g.globalAlpha = 1; }
+      const rnd = mulberry(313 + f * 47);
+      for (let i = 0; i < 12; i++) {   // boiling foam, biggest at the impact line
+        const x = 8 + rnd() * 48, y = 4 + rnd() * 20;
+        g.fillStyle = `rgba(240,250,255,${0.25 + rnd() * 0.4})`;
+        g.beginPath(); g.arc(x, y, 1.5 + rnd() * 3 * (1 - y / 32), 0, 7); g.fill();
+      }
+      g.strokeStyle = 'rgba(255,255,255,0.35)'; g.lineWidth = 1.5;   // spreading ripple arcs
+      const rr = 8 + (f / 8) * 18;
+      g.beginPath(); g.ellipse(32, 12, rr, rr * 0.45, 0, 0, 7); g.stroke();
+      g.restore();
+      fr.push(c);
+    }
+    _fallAnim.set(kind, fr);
+    return fr;
+  }
   for (let f = 0; f < 8; f++) {
     const c = document.createElement('canvas'); c.width = 64; c.height = 64;
     const g = c.getContext('2d');
@@ -460,9 +485,9 @@ function fallAnim(kind) {
       // top of it. Stacked cliff segments alternate mid0/mid1 so the band
       // phase lines up across segment seams and the fall reads as one sheet.
       const pf = f & 3;                                  // pack ripple frame
-      // odd cliff segments (the lip sits at k=1) shift the band half a wrap so
-      // the sheet is continuous across the 32px segment seams
-      const phase = (kind === 'mid1' || kind === 'top') ? 32 : 0;
+      // odd cliff segments shift the band half a wrap so the sheet is
+      // continuous across the 32px segment seams (the crest sits at k=0, even)
+      const phase = kind === 'mid1' ? 32 : 0;
       const off = (f * 8 + phase) % 64;
       const body = mimg(wf.mid[pf]);
       g.globalAlpha = 0.95;
@@ -1012,10 +1037,14 @@ export class Renderer {
           }
           if (w.drop) {   // pouring waterfall down the cliff face
             const ff = ((now / 90 + w.ph) | 0) & 7;
-            for (let k = 1; k <= w.drop; k++) {
-              const kind = k === w.drop ? 'base' : k === 1 ? 'top' : 'mid' + (k & 1);
+            // k=0 is the spilling tile's own skirt — the crest band right under
+            // the river lip — then the cliff segments, ending in the plunge
+            for (let k = 0; k <= w.drop; k++) {
+              const kind = k === 0 ? 'top' : k === w.drop ? 'base' : 'mid' + (k & 1);
               ctx.drawImage(fallAnim(kind)[ff], sx, sy + k * ESTEP);
             }
+            // whitewater churning on the pool where the fall lands
+            ctx.drawImage(fallAnim('splash')[ff], sx, sy + w.drop * ESTEP + 16);
           }
         }
       }

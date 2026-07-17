@@ -100,33 +100,91 @@ function save(name, im, group = 'trees') {
   return file;
 }
 
-// ---- mountains: massifs + cliff-band cuts, grey / dark / snow ---------------
+// ---- mountains: solid massifs + natural crescent ridges, grey / dark / snow --
+// The source mounds are hollow ring examples with stray inner-wall fragments.
+// A chamfer distance transform over the silhouette finds the rim (near the
+// outline) vs the interior: the massif keeps its rim and re-lays the whole
+// interior as clean plateau; the ridges keep only the front/east rim crescent
+// so every edge follows the rock's own silhouette (no straight cuts).
 {
   const grey = decode(fs.readFileSync(path.join(O, 'lpc-mountains-from-the-mana-world/mountains-v6-tmw.png')));
   const snow = decode(fs.readFileSync(path.join(O, 'lpc-mountains-from-the-mana-world/mountains-v6-tmw-snow.png')));
-  // content sits at (608,1188); pale mound y 0-335, dark mound y ~1700-2040 (sheet coords)
-  const cutsPale = [
-    ['0', 608, 1188, 388, 336, false],    // full pale massif (inpainted silhouette)
-    ['1', 618, 1378, 172, 146, true],     // left cliff band
-    ['2', 838, 1368, 158, 156, true],     // right cliff band
-  ];
-  const cutsDark = [
-    ['0', 608, 1700, 388, 332, false],    // full dark massif
-    ['1', 628, 1888, 178, 144, true],
-  ];
-  // clean plateau patches for the hole fill, sampled inside each mound's rim
+
+  // L1 chamfer distance to the true OUTSIDE (transparent pixels reachable from
+  // the border) — interior holes are NOT outside, so hole edges and the stray
+  // inner-wall fragments measure as deep interior and get cleaned up
+  function distField(im) {
+    const W = im.w, H = im.h, INF = 1e9;
+    const outside = new Uint8Array(W * H);
+    const stack = [];
+    const tryPush = (x, y) => { const i = y * W + x; if (!outside[i] && im.data[i * 4 + 3] <= 20) { outside[i] = 1; stack.push(i); } };
+    for (let x = 0; x < W; x++) { tryPush(x, 0); tryPush(x, H - 1); }
+    for (let y = 0; y < H; y++) { tryPush(0, y); tryPush(W - 1, y); }
+    while (stack.length) {
+      const i = stack.pop(), x = i % W, y = (i / W) | 0;
+      if (x > 0) tryPush(x - 1, y);
+      if (x < W - 1) tryPush(x + 1, y);
+      if (y > 0) tryPush(x, y - 1);
+      if (y < H - 1) tryPush(x, y + 1);
+    }
+    const d = new Float32Array(W * H);
+    for (let i = 0; i < W * H; i++) d[i] = outside[i] ? 0 : INF;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x;
+      if (x > 0) d[i] = Math.min(d[i], d[i - 1] + 1);
+      if (y > 0) d[i] = Math.min(d[i], d[i - W] + 1);
+    }
+    for (let y = H - 1; y >= 0; y--) for (let x = W - 1; x >= 0; x--) {
+      const i = y * W + x;
+      if (x < W - 1) d[i] = Math.min(d[i], d[i + 1] + 1);
+      if (y < H - 1) d[i] = Math.min(d[i], d[i + W] + 1);
+    }
+    return d;
+  }
+  const RIM = 30;
+  // massif: rim kept, everything deeper (holes AND stray fragments) re-laid
+  // as clean plateau gravel
+  function massif(im, patch) {
+    const d = distField(im);
+    for (let y = 0; y < im.h; y++) for (let x = 0; x < im.w; x++) {
+      const i = y * im.w + x;
+      if (d[i] <= RIM) continue;
+      // jitter the patch phase per cell so the gravel doesn't tile in a grid
+      const cx2 = (x / patch.w) | 0, cy2 = (y / patch.h) | 0;
+      const jx = ((cx2 * 73856093 ^ cy2 * 19349663) >>> 0) % patch.w;
+      const jy = ((cx2 * 83492791 ^ cy2 * 2654435761) >>> 0) % patch.h;
+      const p = px(patch, (x + jx) % patch.w, (y + jy) % patch.h);
+      const o = i * 4;
+      im.data[o] = p[0]; im.data[o + 1] = p[1]; im.data[o + 2] = p[2]; im.data[o + 3] = 255;
+    }
+    return im;
+  }
+  // ridge: only the rim band on the given side survives, fading out at the tips
+  function ridge(im, side) {
+    const d = distField(im), W = im.w, H = im.h;
+    const yMid = H * 0.42, xMid = W * 0.5, FADE = 18;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x, o = i * 4;
+      if (!im.data[o + 3]) continue;
+      if (d[i] > RIM) { im.data[o + 3] = 0; continue; }         // interior gone
+      const keep = side === 'south' ? y - yMid : x - xMid;      // signed distance past the cut
+      if (keep < 0) im.data[o + 3] = keep > -FADE ? im.data[o + 3] * (1 + keep / FADE) : 0;
+    }
+    return im;
+  }
+
+  const MOUND_PALE = [608, 1188, 388, 336], MOUND_DARK = [608, 1700, 388, 332];
   const patchPale = crop(grey, 668, 1248, 64, 48);
   const patchSnow = crop(snow, 668, 1248, 64, 48);
   const patchDark = crop(grey, 668, 1760, 64, 48);
-  for (const [i, x, y, w, h, feather] of cutsPale) {
-    const c = fillWithTexture(crop(grey, x, y, w, h), patchPale);
-    save(`mountain_grey_${i}`, feather ? featherTop(c) : c);
-    const s = fillWithTexture(crop(snow, x, y, w, h), patchSnow);
-    save(`mountain_snow_${i}`, feather ? featherTop(s) : s);
-  }
-  for (const [i, x, y, w, h, feather] of cutsDark) {
-    const c = fillWithTexture(crop(grey, x, y, w, h), patchDark);
-    save(`mountain_dark_${i}`, feather ? featherTop(c) : c);
+  for (const [tag, sheet, mound, patch] of [
+    ['grey', grey, MOUND_PALE, patchPale],
+    ['snow', snow, MOUND_PALE, patchSnow],
+    ['dark', grey, MOUND_DARK, patchDark],
+  ]) {
+    save(`mountain_${tag}_0`, massif(crop(sheet, ...mound), patch));
+    save(`mountain_${tag}_1`, ridge(crop(sheet, ...mound), 'south'));
+    save(`mountain_${tag}_2`, ridge(crop(sheet, ...mound), 'east'));
   }
 }
 

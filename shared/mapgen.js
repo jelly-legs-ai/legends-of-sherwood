@@ -511,7 +511,7 @@ const SCATTER = {
     ['pitcher_plant', 0.004], ['heliconia', 0.004],
     ['ruin_totem', 0.001], ['ruin_statue', 0.001], ['ruin_rubble', 0.0015], ['ruin_gate', 0.0004]],
   FENWOLD: [['willow_tree', 0.02], ['tree', 0.008], ['grave_cross', 0.0006], ['rocks_dark', 0.0008]],
-  NORTHMOOR: [['frostpine_tree', 0.006], ['tree', 0.004], ['rocks_dark', 0.002], ['spire_dark', 0.0006], ['grave_slab', 0.0005], ['mountain_dark_0', 0.0003], ['mountain_dark_1', 0.0006]],
+  NORTHMOOR: [['frostpine_tree', 0.006], ['tree', 0.004], ['rocks_dark', 0.002], ['spire_dark', 0.0006], ['grave_slab', 0.0005], ['mountain_snow_0', 0.0003], ['mountain_snow_1', 0.0004], ['mountain_snow_2', 0.0004]],
   PEAKS: [['iron_rock', 0.007], ['coal_rock', 0.007], ['silver_rock', 0.0022], ['mithril_rock', 0.0018], ['gold_rock', 0.0015], ['rocks_grey', 0.004], ['spire_grey', 0.0012], ['crag_grey', 0.0006], ['mountain_grey_0', 0.00035], ['mountain_grey_1', 0.0007], ['mountain_grey_2', 0.0007]],
   WILDLANDS: [['sylvanite_rock', 0.0015], ['frostpine_tree', 0.005], ['rocks_black', 0.003], ['spire_black', 0.001], ['crag_black', 0.0006], ['mountain_snow_0', 0.0004], ['mountain_snow_1', 0.0007]],
   ALPINE: [['frostpine_tree', 0.01], ['silver_rock', 0.003], ['mithril_rock', 0.0022], ['gold_rock', 0.0022], ['sylvanite_rock', 0.0012], ['rocks_grey', 0.0035], ['crag_grey', 0.0008], ['mountain_snow_0', 0.0005], ['mountain_snow_1', 0.0008], ['mountain_snow_2', 0.0008]],
@@ -535,13 +535,35 @@ export function scatterNodeAt(x, y) {
   for (const [type, dens] of list) {
     const isTree = type === 'tree' || type.endsWith('_tree');
     acc += isTree ? dens * groveMult : dens;
-    if (r < acc) return type;
+    if (r < acc) {
+      // mountain formations only rise from locally-flat ground so the base
+      // never straddles a cliff step (#131)
+      if (type.startsWith('mountain_')) {
+        const h = heightAt(x, y);
+        for (const [ox, oy] of [[-2, 0], [2, 0], [0, -2], [0, 2], [-2, -2], [2, 2]])
+          if (Math.abs(heightAt(x + ox, y + oy) - h) > 1) return null;
+      }
+      return type;
+    }
   }
   return null;
 }
 
+// Big formations claim their full footprint, not just the anchor tile (#131):
+// [rx, ry] tile radii around the anchor become unwalkable so players can't
+// stroll through a mountain's flanks or a giant trunk.
+const NODE_FOOTPRINT = {
+  mountain_grey_0: [2, 2], mountain_snow_0: [2, 2], mountain_dark_0: [2, 2],
+  mountain_grey_1: [2, 1], mountain_snow_1: [2, 1], mountain_dark_1: [2, 1],
+  mountain_grey_2: [1, 2], mountain_snow_2: [1, 2], mountain_dark_2: [1, 2],
+  jungle_tree_great: [2, 1], jungle_tree_stump: [2, 1], jungle_tree_barrel: [1, 1],
+  jungle_log_arch: [1, 0], jungle_log: [1, 0], ruin_gate: [1, 0],
+  crag_grey: [1, 1], crag_dark: [1, 1], crag_black: [1, 1], crag_sand: [1, 1],
+  dolmen_grey: [1, 0], dolmen_dark: [1, 0], dolmen_black: [1, 0], dolmen_sand: [1, 0],
+};
+
 // ---- full map computation (cached) ---------------------------------------------------
-let _tiles = null, _nodes = null;
+let _tiles = null, _nodes = null, _footprint = null;
 export function computeWorld() {
   if (_tiles) return { tiles: _tiles, nodes: _nodes };
   _tiles = new Uint8Array(W * H);
@@ -582,6 +604,16 @@ export function computeWorld() {
     _nodes.delete(key);
     if (best && !_nodes.has(best)) _nodes.set(best, type);
   }
+  // big formations spread their collision over the surrounding tiles
+  _footprint = new Set();
+  for (const [key, type] of _nodes) {
+    const fp = NODE_FOOTPRINT[type];
+    if (!fp) continue;
+    const [fx, fy] = key.split(',').map(Number);
+    for (let dy = -fp[1]; dy <= fp[1]; dy++)
+      for (let dx = -fp[0]; dx <= fp[0]; dx++)
+        if (dx || dy) _footprint.add((fx + dx) + ',' + (fy + dy));
+  }
   return { tiles: _tiles, nodes: _nodes };
 }
 
@@ -596,8 +628,10 @@ const FLAT_NODES = new Set(['net_spot', 'rod_spot', 'harpoon_spot', 'allotment',
 export function isBlockedOverworld(x, y) {
   if (x < 0 || y < 0 || x >= W || y >= H) return true;
   if (!TILE_WALKABLE.has(worldTile(x, y))) return true;
-  const n = computeWorld().nodes.get((x | 0) + ',' + (y | 0));
+  const key = (x | 0) + ',' + (y | 0);
+  const n = computeWorld().nodes.get(key);
   if (n && !FLAT_NODES.has(n)) return true;
+  if (_footprint.has(key)) return true;   // inside a big formation's base
   return false;
 }
 
