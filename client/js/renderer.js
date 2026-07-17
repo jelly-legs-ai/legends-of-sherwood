@@ -696,10 +696,24 @@ function chunkCanvas(plane, cx, cy) {
       water.push({ lx, ly, t: TILE.RIVER, x, y, ph: (x * 7 + y * 13) % 64, bridge: true });
     } else if (!WALLS.has(t)) {
       const isWater = WATERS.has(t);
-      for (let k = drop; k >= 1; k--) {
-        // elevated water pours over the cliff: the drop column is falling water
-        const fill = isWater ? fallStatic(k) : tileTexture(TILE.DIRT, ((shade * 8) | 0) + k, k);
-        g.drawImage(fill, lx - TW / 2, ly - TH / 2 + k * ESTEP);
+      // Per-face drops: the tile's two camera-facing prism faces belong to the
+      // SW neighbour (y+1, screen left half) and SE neighbour (x+1, right
+      // half). Water only pours over a face whose OWN neighbour sits lower —
+      // internal faces (same-level water behind them) stay dry. Land cliffs
+      // keep the full min-neighbour column (the prism corner needs the fill).
+      const dl = isWater ? Math.max(0, h - Math.max(0, chunkElev(plane, x, y + 1))) : 0;
+      const dr = isWater ? Math.max(0, h - Math.max(0, chunkElev(plane, x + 1, y))) : 0;
+      if (isWater) {
+        if (dl || dr) {
+          g.save(); g.beginPath();
+          if (dl) g.rect(lx - TW / 2, ly - TH / 2, TW / 2, (dl + 1) * ESTEP + TH * 2);
+          if (dr) g.rect(lx, ly - TH / 2, TW / 2, (dr + 1) * ESTEP + TH * 2);
+          g.clip();
+          for (let k = Math.max(dl, dr); k >= 1; k--) g.drawImage(fallStatic(k), lx - TW / 2, ly - TH / 2 + k * ESTEP);
+          g.restore();
+        }
+      } else for (let k = drop; k >= 1; k--) {
+        g.drawImage(tileTexture(TILE.DIRT, ((shade * 8) | 0) + k, k), lx - TW / 2, ly - TH / 2 + k * ESTEP);
       }
       g.drawImage(tileTexture(t, (shade * 8) | 0), lx - TW / 2, ly - TH / 2);
       if (isWater) {
@@ -711,21 +725,22 @@ function chunkCanvas(plane, cx, cy) {
           if (!WATERS.has(nt) && nt !== TILE.BRIDGE) em |= 1 << k2;
         }
         // churned pool: any lower water tile within a block of a spilling fall
-        // boils with whitewater where the falls crash down
+        // boils with whitewater where the falls crash down (per-face spills
+        // only — a purely diagonal step has no visible curtain, so no churn)
         let churn = 0;
-        if (!drop) {
+        if (!dl && !dr) {
           outer: for (let ny2 = y - 2; ny2 <= y + 2; ny2++) {
             for (let nx2 = x - 2; nx2 <= x + 2; nx2++) {
               if (nx2 === x && ny2 === y) continue;
               if (!WATERS.has(tileAtPlane(plane, nx2, ny2))) continue;
               const nh = chunkElev(plane, nx2, ny2);
               if (nh <= h) continue;
-              const nDrop = nh - Math.max(0, Math.min(chunkElev(plane, nx2 + 1, ny2), chunkElev(plane, nx2, ny2 + 1), chunkElev(plane, nx2 + 1, ny2 + 1)));
+              const nDrop = Math.max(nh - Math.max(0, chunkElev(plane, nx2, ny2 + 1)), nh - Math.max(0, chunkElev(plane, nx2 + 1, ny2)));
               if (nDrop >= 1) { churn = 1; break outer; }
             }
           }
         }
-        water.push({ lx, ly, t, ph: (x * 7 + y * 13) % 64, em, drop, churn });
+        water.push({ lx, ly, t, ph: (x * 7 + y * 13) % 64, em, drop: Math.max(dl, dr), dl, dr, churn });
       }
       // snowfield melt-lace where snow meets bare ground (terrain-extension
       // style transition softening; shorelines keep their foam instead)
@@ -1062,11 +1077,21 @@ export class Renderer {
           }
           if (w.drop) {   // pouring waterfall down the cliff face
             const ff = ((now / 90 + w.ph) | 0) & 7;
-            // k=0 is the spilling tile's own skirt — the crest band right under
-            // the river lip — then the cliff segments, ending in the plunge
-            for (let k = 0; k <= w.drop; k++) {
-              const kind = k === 0 ? 'top' : k === w.drop ? 'base' : 'mid' + (k & 1);
-              ctx.drawImage(fallAnim(kind)[ff], sx, sy + k * ESTEP);
+            // One clipped column per EXTERNAL face: left half where the SW
+            // neighbour sits lower, right half where the SE one does. Internal
+            // faces (same-level water in front) get no curtain at all.
+            for (const [side, d] of [[0, w.dl], [1, w.dr]]) {
+              if (!d) continue;
+              ctx.save(); ctx.beginPath();
+              ctx.rect(sx + side * TW / 2, sy, TW / 2, (d + 1) * ESTEP + TH * 2);
+              ctx.clip();
+              // k=0 is the spilling tile's own crest — the band right under
+              // the river lip — then the cliff segments, ending in the plunge
+              for (let k = 0; k <= d; k++) {
+                const kind = k === 0 ? 'top' : k === d ? 'base' : 'mid' + (k & 1);
+                ctx.drawImage(fallAnim(kind)[ff], sx, sy + k * ESTEP);
+              }
+              ctx.restore();
             }
           }
           // whitewater boils across every pool tile within a block of the falls
@@ -1239,11 +1264,35 @@ export class Renderer {
         return;
       }
     }
+    // fishing spots: a live, quietly bubbling patch of water
+    if (/_spot$/.test(type)) { this.drawFishingSpot(ctx, sx, sy, node, now); return; }
     const spr = nodeSprite(type, node.off);
-    // gentle bob for fishing spots
-    const bob = /spot/.test(type) ? Math.sin(now / 400 + node.x) * 2 : 0;
-    if (spr.width === 96) ctx.drawImage(spr, sx - 48, sy - 112 + bob);   // tall HD trees
-    else ctx.drawImage(spr, sx - 32, sy - 64 + bob);
+    ctx.drawImage(spr, spr.width === 96 ? sx - 48 : sx - 32, spr.width === 96 ? sy - 112 : sy - 64);
+  }
+  // Subtle bubbling marks a fishing spot: slow expanding ripple rings and a
+  // handful of small bubbles that rise a touch and fade — clean, no froth.
+  drawFishingSpot(ctx, sx, sy, node, now) {
+    const seed = (node.x * 31 + node.y * 17) % 97;
+    ctx.save();
+    ctx.lineWidth = 1.8;
+    for (let i = 0; i < 2; i++) {   // two staggered ripples, expanding then gone
+      const t = (now / 2100 + i * 0.5 + seed * 0.13) % 1;
+      ctx.strokeStyle = `rgba(220,245,255,${(0.6 * (1 - t)).toFixed(3)})`;
+      ctx.beginPath(); ctx.ellipse(sx, sy, 4 + t * 14, (4 + t * 14) * 0.45, 0, 0, 7); ctx.stroke();
+    }
+    for (let i = 0; i < 6; i++) {   // small bubbles surfacing and popping
+      const period = 900 + (i % 3) * 320;
+      const t = ((now + seed * 211) / period + i * 0.41) % 1;
+      const bx = sx + Math.sin(i * 2.4 + seed) * 9;
+      const by = sy + 1 - t * 7 + Math.cos(i * 1.7) * 2;
+      ctx.fillStyle = `rgba(238,250,255,${(0.9 * (1 - t)).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(bx, by, 1.2 + (i % 3) * 0.8, 0, 7); ctx.fill();
+    }
+    // a small breaking-surface glint so the spot reads at a glance
+    const gp = 0.55 + 0.45 * Math.sin(now / 350 + seed);
+    ctx.fillStyle = `rgba(255,255,255,${(0.5 * gp).toFixed(3)})`;
+    ctx.fillRect(sx - 1, sy - 2, 3, 2);
+    ctx.restore();
   }
   // A one-tile segment of the Grand Exchange teller desk. In a row these tile
   // into a continuous wooden divide; `window` segments add a glazed booth above

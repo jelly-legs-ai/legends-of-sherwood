@@ -10,7 +10,7 @@ import { NPCS } from '../../shared/data/npcs.js';
 import { NODES } from '../../shared/data/skills.js';
 import { ITEMS } from '../../shared/data/items.js';
 import { SPAWNS, BOSS_SPAWNS, EVENTS, ANCHORS, ARENA, TOWNS } from '../../shared/data/world.js';
-import { PETS, PET_DROPS, PET_ODDS, PET_POWER, petLevel } from '../../shared/data/pets.js';
+import { PETS, PET_DROPS, PET_ODDS, PET_POWER, PET_MAX_LEVEL, petLevel, petStage } from '../../shared/data/pets.js';
 import { Ledger } from './economy.js';
 import { tickCombat, mobAttack } from './combat.js';
 import { createStore } from './store.js';
@@ -652,8 +652,11 @@ export class World {
     const rec = owner.pets[rosterIdx];
     if (!rec) return null;
     const def = PETS[rec.id];
+    // evolving pets take the form their level has earned
+    const st = petStage(def, petLevel(rec.xp));
     const pet = this.addEntity({
-      kind: 'pet', type: rec.id, name: def.name, critter: def.critter, cls: def.cls,
+      kind: 'pet', type: rec.id, name: st?.name || def.name, critter: st ? st.critter : def.critter,
+      sheet: st?.sheet, tint: st?.tint, scale: st?.scale, cls: def.cls,
       owner: owner.id, rosterIdx, plane: owner.plane, x: owner.x + 1, y: owner.y,
       dir: 2, anim: 'idle', animSeq: 0, hp: 1, maxHp: 1, lastAttack: 0, lastUtility: 0,
     });
@@ -727,7 +730,15 @@ export class World {
     if (after > before) {
       this.send(owner, { t: 'petLevel', id: rec.id, level: after });
       this.fx(owner.plane, owner.x, owner.y, FX.LEVELUP, { id: owner.activePetEnt });
-      if (after === 150) this.announce(`🐾 ${owner.name}'s ${PETS[rec.id].name} reached the maximum level 150!`);
+      // crossing an evolution threshold: respawn the pet in its new form
+      const def = PETS[rec.id];
+      const st = petStage(def, after);
+      if (st && st !== petStage(def, before)) {
+        const ent = this.entities.get(owner.activePetEnt);
+        if (ent) { this.removeEntity(ent); this.spawnPet(owner, ent.rosterIdx); }
+        this.announce(`🐾 ${owner.name}'s ${def.name} evolved into ${st.name === def.name ? 'its next form' : `a ${st.name}`}!`);
+      }
+      if (after === PET_MAX_LEVEL) this.announce(`🐾 ${owner.name}'s ${PETS[rec.id].name} reached the maximum level ${PET_MAX_LEVEL}!`);
     }
     this.send(owner, { t: 'petXp', idx: owner.activePet, xp: rec.xp });
   }
@@ -875,7 +886,7 @@ export class World {
     else if (e.kind === 'pet') {
       const owner = this.entities.get(e.owner);
       const rec = owner?.pets?.[e.rosterIdx];
-      Object.assign(d, { type: e.type, name: e.name, critter: e.critter, pet: 1, lvl: rec ? petLevel(rec.xp) : 1, cls: e.cls });
+      Object.assign(d, { type: e.type, name: e.name, critter: e.critter, sheet: e.sheet, tint: e.tint, scale: e.scale, pet: 1, lvl: rec ? petLevel(rec.xp) : 1, cls: e.cls });
     }
     return d;
   }

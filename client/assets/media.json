@@ -4049,38 +4049,38 @@
  "trees": {
   "tree": {
    "file": "env/mp_tree.png",
-   "w": 137,
-   "h": 123
+   "w": 89,
+   "h": 93
   },
   "oak_tree": {
    "file": "env/mp_oak_tree.png",
-   "w": 137,
-   "h": 116
+   "w": 71,
+   "h": 90
   },
   "elm_tree": {
    "file": "env/mp_elm_tree.png",
-   "w": 57,
-   "h": 124
+   "w": 45,
+   "h": 91
   },
   "willow_tree": {
    "file": "env/mp_willow_tree.png",
-   "w": 124,
-   "h": 126
+   "w": 94,
+   "h": 94
   },
   "yew_tree": {
    "file": "env/mp_yew_tree.png",
-   "w": 40,
-   "h": 123
+   "w": 39,
+   "h": 82
   },
   "maple_tree": {
    "file": "env/mp_maple_tree.png",
-   "w": 83,
-   "h": 126
+   "w": 71,
+   "h": 91
   },
   "frostpine_tree": {
    "file": "env/mp_frostpine_tree.png",
-   "w": 75,
-   "h": 122
+   "w": 63,
+   "h": 87
   },
   "signpost_arrow": {
    "file": "env/decor_signpost_arrow.png",

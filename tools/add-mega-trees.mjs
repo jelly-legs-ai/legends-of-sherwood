@@ -1,5 +1,5 @@
 // Trees Mega Pack import: replace the seven wood-species models with
-// height128 trees from the mega pack (opengameart.org trees-mega-pack).
+// height96 trees from the mega pack (opengameart.org trees-mega-pack).
 // Each species is one tree flood-extracted from the sheet at a seed point
 // (shadow included), then hue-mapped toward the species' canopy palette —
 // greens shift, trunks and snow stay.
@@ -14,17 +14,18 @@ const ENV = path.resolve('client/assets/env');
 const MEDIA = path.resolve('client/assets/media.json');
 const media = JSON.parse(fs.readFileSync(MEDIA, 'utf8'));
 
-const sheet = decode(fs.readFileSync(path.join(O, 'trees-mega-pack/height128.png')));
+const sheet = decode(fs.readFileSync(path.join(O, 'trees-mega-pack/height96.png')));
 
 // species -> [seedX, seedY, hueShift°, satMul, lumMul] (hue only moves greens)
+// Seeds are hand-picked on the height96 sheet (1537x1440).
 const SPECIES = {
-  tree: [140, 60, 0, 1, 1],              // bushy mid broadleaf, as-is
-  oak_tree: [650, 570, -10, 1.05, 0.92], // broad domed canopy, deepened green
-  elm_tree: [450, 190, 18, 1.0, 1.06],   // tall broadleaf, lighter yellow-green
-  willow_tree: [720, 190, 8, 0.9, 1.0],  // weeping willow, soft sage
-  yew_tree: [640, 440, -8, 1.1, 0.62],   // dark column conifer, near-black green
-  maple_tree: [1310, 300, 0, 1, 1],      // autumn crimson tree, as-is
-  frostpine_tree: [555, 320, 0, 1, 1],   // snow-clad pine, as-is
+  tree: [450, 127, 0, 1, 1],             // bushy mid broadleaf, as-is
+  oak_tree: [1042, 705, 10, 1.0, 0.86],  // broad domed canopy, deepened green
+  elm_tree: [400, 45, 18, 1.0, 1.06],    // tall broadleaf, lighter yellow-green
+  willow_tree: [820, 45, 8, 0.9, 1.0],   // weeping willow, soft sage
+  yew_tree: [840, 335, -8, 1.1, 0.62],   // dark column conifer, near-black green
+  maple_tree: [618, 310, 0, 1, 1],       // autumn crimson tree, as-is
+  frostpine_tree: [1000, 225, 0, 1, 1],  // snow-clad pine, as-is
 };
 
 const A = (x, y) => (x >= 0 && y >= 0 && x < sheet.w && y < sheet.h) ? sheet.data[(y * sheet.w + x) * 4 + 3] : 0;

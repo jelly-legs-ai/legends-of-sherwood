@@ -1,6 +1,6 @@
 // Player pets. Found as super-rare and ultra-rare drops (each mob's pool lists
 // [superRarePet, ultraRarePet]); the best pets come from bosses and endgame
-// content. Pets level to 150 by being active while their owner fights.
+// content. Pets level to the cap by being active while their owner fights.
 //
 // Classes:
 //   defense — protects its owner (damage reduction + outright blocks), never attacks
@@ -8,7 +8,7 @@
 //   utility — jack-of-all-trades: feeds its owner from their pack, retrieves
 //             their ground drops, and both blocks and attacks (at half strength)
 
-export const PET_MAX_LEVEL = 150;
+export const PET_MAX_LEVEL = 200;
 
 // Same classic curve as player skills, extended to level 150.
 export const PET_XP = (() => {
@@ -51,6 +51,36 @@ export const PETS = {
   dragon_whelp: { name: 'Dragon whelp', cls: 'offense', tier: 6, critter: 'whelp' },
 };
 
+// ---------------------------------------------------------------------------
+// Evolution. Pets with an `evo` array change form as they level: the stages
+// are spaced at equal intervals across the level cap, so 4 stages at cap 200
+// means a new form every 50 levels. Stage visuals may be mob sheets — every
+// mob-based stage renders at HALF the wild mob's size (MOB_PET_SIZE), at all
+// stages, so a grown pet never crowds its owner off the screen.
+export const MOB_PET_SIZE = 0.5;
+export function petStage(def, lvl) {
+  if (!def.evo || def.evo.length < 2) return null;
+  const step = PET_MAX_LEVEL / def.evo.length;
+  return def.evo[Math.min(def.evo.length - 1, Math.floor(lvl / step))];
+}
+
+// Tier 7 — the dragonflights. A stolen egg from each flight; the wild mobs'
+// four life stages (hatchling 0.55 → young 0.85 → adult 1.2 → elder 1.5)
+// become the pet's evolution line, halved per MOB_PET_SIZE.
+for (const c of ['blue', 'green', 'red', 'aethereal']) {
+  const Nm = c[0].toUpperCase() + c.slice(1);
+  const tint = c === 'aethereal' ? 'spectral' : undefined;
+  PETS[`baby_${c}_dragon`] = {
+    name: `Baby ${c} dragon`, cls: 'offense', tier: 7,
+    evo: [
+      { name: `Baby ${c} dragon`, sheet: `dragon_${c}`, tint, scale: 0.55 * MOB_PET_SIZE },
+      { name: `Young ${c} dragon`, sheet: `dragon_${c}`, tint, scale: 0.85 * MOB_PET_SIZE },
+      { name: `${Nm} dragon`, sheet: `dragon_${c}`, tint, scale: 1.2 * MOB_PET_SIZE },
+      { name: `Elder ${c} dragon`, sheet: `dragon_${c}`, tint, scale: 1.5 * MOB_PET_SIZE },
+    ],
+  };
+}
+
 // Per-mob pet pools: [superRare, ultraRare?]. Bosses use far better odds.
 export const PET_DROPS = {
   // starter zones
@@ -75,7 +105,18 @@ export const PET_DROPS = {
   guy_of_gisborne: ['falcon', 'gryphon_chick'], sheriff_of_nottingham: ['gryphon_chick', 'dragon_whelp'],
   troll_king: ['golemling', 'dragon_whelp'], frost_giant: ['golemling', 'dragon_whelp'],
   abyssal_horror: ['imp', 'dragon_whelp'],
+  // Vermithrax hoards the rarest egg of all
+  dragon_tyrant: ['dragon_whelp', 'baby_aethereal_dragon'],
 };
+// The dragonflights guard their own young: grown wyrms carry the flight's baby
+// in the ultra slot, twin-headed elites in the super slot, and the elder twin
+// bosses roll boss odds on both.
+for (const c of ['blue', 'green', 'red', 'aethereal']) {
+  PET_DROPS[`${c}_dragon`] = ['dragon_whelp', `baby_${c}_dragon`];
+  PET_DROPS[`elder_${c}_dragon`] = ['dragon_whelp', `baby_${c}_dragon`];
+  PET_DROPS[`twin_headed_${c}_dragon`] = [`baby_${c}_dragon`];
+  PET_DROPS[`elder_twin_headed_${c}_dragon`] = ['dragon_whelp', `baby_${c}_dragon`];
+}
 export const PET_ODDS = { superRare: 1 / 1500, ultraRare: 1 / 6000, bossSuper: 1 / 120, bossUltra: 1 / 450 };
 
 // Combat maths per class (L = pet level)

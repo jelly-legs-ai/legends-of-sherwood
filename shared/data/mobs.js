@@ -146,7 +146,7 @@ mob('horse', { name: 'Horse', lvl: 6, life: 40, atk: 0, def: 6, critter: 'horse'
   drops: [['bones', 1, 1]] });
 mob('llama', { name: 'Llama', lvl: 4, life: 22, atk: 0, def: 3, sheet: 'farm_llama', style: 'melee', scale: 0.85, farm: { wool: 'alpaca_wool', shearXp: 30 },
   drops: [['bones', 1, 1], ['alpaca_wool', 1, 0.4]] });
-mob('turkey', { name: 'Turkey', lvl: 2, life: 8, atk: 1, def: 1, sheet: 'farm_turkey', style: 'melee', scale: 0.55,
+mob('turkey', { name: 'Turkey', lvl: 2, life: 8, atk: 1, def: 1, sheet: 'farm_turkey', style: 'melee', scale: 0.42,
   drops: [['bones', 1, 1], ['feathers', [4, 10], 1], ['raw_fowl', 1, 0.8]] });
 mob('chicken', { name: 'Chicken', lvl: 1, life: 4, atk: 0, def: 1, sheet: 'farm_chicken', style: 'melee', scale: 0.38,
   drops: [['bones', 1, 1], ['feathers', [1, 4], 1]] });
@@ -232,21 +232,21 @@ mob('blood_wolf', { name: 'Blood wolf', lvl: 58, life: 175, atk: 36, def: 30, sh
 mob('gilded_wolf', { name: 'Gilded wolf', lvl: 72, life: 260, atk: 46, def: 40, sheet: 'wolf_gold', style: 'melee', aggro: true, speed: 3.6, howl: true, shil: 2,
   drops: [['big_bones', 1, 1], ['wolf_pelt', [1, 3], 0.7], ['gold_ore', [1, 2], 0.3], ['coins', [40, 140], 0.9]] });
 // Songbirds & raptors: ambient hunter quarry — snare them for plumes and meat.
-mob('robin_bird', { name: 'Robin', lvl: 1, life: 3, atk: 0, def: 0, sheet: 'bird_robin', style: 'melee', scale: 0.8, speed: 3.2,
+mob('robin_bird', { name: 'Robin', lvl: 1, life: 3, atk: 0, def: 0, sheet: 'bird_robin', style: 'melee', scale: 0.24, speed: 3.2,
   drops: [['feathers', [2, 6], 1], ['songbird_plume', 1, 0.4] ] });
-mob('sparrow', { name: 'Sparrow', lvl: 1, life: 3, atk: 0, def: 0, sheet: 'bird_sparrow', style: 'melee', scale: 0.8, speed: 3.2,
+mob('sparrow', { name: 'Sparrow', lvl: 1, life: 3, atk: 0, def: 0, sheet: 'bird_sparrow', style: 'melee', scale: 0.22, speed: 3.2,
   drops: [['feathers', [2, 6], 1], ['songbird_plume', 1, 0.35]] });
-mob('bluejay', { name: 'Bluejay', lvl: 3, life: 6, atk: 1, def: 1, sheet: 'bird_bluejay', style: 'melee', scale: 0.8, speed: 3.4,
+mob('bluejay', { name: 'Bluejay', lvl: 3, life: 6, atk: 1, def: 1, sheet: 'bird_bluejay', style: 'melee', scale: 0.25, speed: 3.4,
   drops: [['feathers', [3, 8], 1], ['songbird_plume', 1, 0.5]] });
-mob('cardinal', { name: 'Cardinal', lvl: 5, life: 9, atk: 1, def: 2, sheet: 'bird_cardinal', style: 'melee', scale: 0.8, speed: 3.4,
+mob('cardinal', { name: 'Cardinal', lvl: 5, life: 9, atk: 1, def: 2, sheet: 'bird_cardinal', style: 'melee', scale: 0.27, speed: 3.4,
   drops: [['feathers', [3, 8], 1], ['songbird_plume', 1, 0.55]] });
-mob('carrion_crow', { name: 'Carrion crow', lvl: 12, life: 24, atk: 6, def: 5, sheet: 'bird_crow', style: 'melee', aggro: true, scale: 0.9, speed: 3.6,
+mob('carrion_crow', { name: 'Carrion crow', lvl: 12, life: 24, atk: 6, def: 5, sheet: 'bird_crow', style: 'melee', aggro: true, scale: 0.34, speed: 3.6,
   drops: [['feathers', [4, 10], 1], ['raven_plume', 1, 0.3], ['bones', 1, 0.6]] });
-mob('white_dove', { name: 'White dove', lvl: 2, life: 5, atk: 0, def: 1, sheet: 'bird_dove', style: 'melee', scale: 0.8, speed: 3.4,
+mob('white_dove', { name: 'White dove', lvl: 2, life: 5, atk: 0, def: 1, sheet: 'bird_dove', style: 'melee', scale: 0.24, speed: 3.4,
   drops: [['feathers', [3, 8], 1], ['songbird_plume', 1, 0.4]] });
-mob('crag_eagle', { name: 'Crag eagle', lvl: 34, life: 84, atk: 20, def: 15, sheet: 'bird_eagle', style: 'melee', aggro: true, speed: 3.8,
+mob('crag_eagle', { name: 'Crag eagle', lvl: 34, life: 84, atk: 20, def: 15, sheet: 'bird_eagle', style: 'melee', aggro: true, scale: 0.5, speed: 3.8,
   drops: [['feathers', [6, 14], 1], ['eagle_plume', 1, 0.35], ['bones', 1, 0.8]] });
-mob('wren', { name: 'Wren', lvl: 1, life: 3, atk: 0, def: 0, sheet: 'bird_wren', style: 'melee', scale: 0.75, speed: 3.2,
+mob('wren', { name: 'Wren', lvl: 1, life: 3, atk: 0, def: 0, sheet: 'bird_wren', style: 'melee', scale: 0.2, speed: 3.2,
   drops: [['feathers', [2, 5], 1], ['songbird_plume', 1, 0.3]] });
 // The imp warband: five kits climbing the ladder, plus dyed skins deeper in.
 mob('imp', { name: 'Imp', lvl: 12, life: 28, atk: 7, def: 5, sheet: 'imp', style: 'melee', aggro: true, speed: 3.0,

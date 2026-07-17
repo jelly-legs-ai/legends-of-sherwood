@@ -595,7 +595,7 @@ export function openStation(station, title) {
 }
 
 // ---------------- pets ----------------
-import { PETS, PET_XP, petLevel, PET_MAX_LEVEL, PET_POWER } from '/shared/data/pets.js';
+import { PETS, PET_XP, petLevel, petStage, PET_MAX_LEVEL, PET_POWER } from '/shared/data/pets.js';
 const CLS_INFO = {
   defense: ['🛡 Defense', 'Guards you: reduces damage taken and can block hits outright. Never attacks.'],
   offense: ['⚔ Offense', 'Fights beside you: attacks your target. Never blocks.'],
@@ -621,10 +621,11 @@ function renderPets(p) {
     const cur = PET_XP[lvl], next = PET_XP[Math.min(PET_MAX_LEVEL, lvl + 1)];
     const pct = lvl >= PET_MAX_LEVEL ? 100 : Math.floor(100 * (rec.xp - cur) / Math.max(1, next - cur));
     const active = G.activePet === idx;
+    const stage = petStage(def, lvl);
     const row = document.createElement('div');
     row.className = 'quest-item';
     row.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
-      <span class="qname">${active ? '● ' : ''}${def.name} <small style="color:#8ae0b0">Lv.${lvl}${lvl >= PET_MAX_LEVEL ? ' MAX' : ''}</small></span>
+      <span class="qname">${active ? '● ' : ''}${stage?.name || def.name} <small style="color:#8ae0b0">Lv.${lvl}${lvl >= PET_MAX_LEVEL ? ' MAX' : ''}</small></span>
       <span style="font-size:11px;color:#b3a06d">${CLS_INFO[def.cls][0]}</span></div>
       <div class="bar" style="margin-top:3px"><i style="width:${pct}%"></i></div>`;
     const btns = document.createElement('div');
@@ -635,10 +636,11 @@ function renderPets(p) {
     b.onclick = () => G.net.send(active ? { t: 'pet', dismiss: 1 } : { t: 'pet', activate: idx });
     btns.appendChild(b);
     row.appendChild(btns);
-    row.onmouseenter = (e) => tooltip(e, `<b>${def.name}</b> — Tier ${def.tier} ${CLS_INFO[def.cls][0]}<br>${CLS_INFO[def.cls][1]}<br>` +
+    row.onmouseenter = (e) => tooltip(e, `<b>${stage?.name || def.name}</b> — Tier ${def.tier} ${CLS_INFO[def.cls][0]}<br>${CLS_INFO[def.cls][1]}<br>` +
       (def.cls !== 'defense' ? `Hit: ~${PET_POWER.attackDamage(def.cls, lvl).toFixed(0)} ` : '') +
       (def.cls !== 'offense' ? `Guard: -${Math.round(PET_POWER.damageReduction(def.cls, lvl) * 100)}% dmg, ${Math.round(PET_POWER.blockChance(def.cls, lvl) * 100)}% block` : '') +
-      `<br>Levels up while active as you fight (max ${PET_MAX_LEVEL}).`);
+      `<br>Levels up while active as you fight (max ${PET_MAX_LEVEL}).` +
+      (def.evo ? `<br>Evolves every ${Math.round(PET_MAX_LEVEL / def.evo.length)} levels — ${def.evo.length} forms.` : ''));
     row.onmouseleave = hideTooltip;
     p.appendChild(row);
   });
