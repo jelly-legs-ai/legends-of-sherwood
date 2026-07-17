@@ -80,10 +80,55 @@ export function drawCreature(ctx, key, e, animName, now, sx, sy, scale = 1) {
     const rate = a === 'idle' ? 110 : 70;
     fi = Math.floor((now + (e.id % 97) * 53) / rate) % total;
   }
-  return drawFrame(ctx, def, m, e, a, now, sx, sy, scale, fi);
+  const h = drawFrame(ctx, def, m, e, a, now, sx, sy, scale, fi);
+  drawCustomAnimLayers(ctx, key, a, fi, total, e, sx, sy, scale, now);
+  return h;
 }
 
-function drawFrame(ctx, def, m, e, a, now, sx, sy, scale, fi) {
+// ---------------------------------------------------------------------------
+// Custom animations (admin Animations creator): FX layers keyed to a creature
+// animation, positioned per frame in the studio. A layer labelled 'projectile'
+// launches from its last recorded position when the animation passes its final
+// frame, flying out in the facing direction (smart tracking).
+export const CUSTOM_ANIMS = {};   // 'base:anim' -> [layers]
+export function registerCustomAnims(defs) {
+  for (const d of Object.values(defs || {})) {
+    if (!d || !d.base) continue;
+    const k = d.base + ':' + (d.anim || 'attack');
+    (CUSTOM_ANIMS[k] = CUSTOM_ANIMS[k] || []).push(...(d.layers || []));
+  }
+}
+export function customLayerPos(l, fi) {
+  // nearest recorded studio offset at or below this frame, lerped to the next
+  const keys = Object.keys(l.offsets || {}).map(Number).sort((a, b) => a - b);
+  if (!keys.length) return [0, -20];
+  let lo = keys[0], hi = keys[keys.length - 1];
+  for (const k of keys) { if (k <= fi) lo = k; if (k >= fi) { hi = k; break; } }
+  const A = l.offsets[lo], B = l.offsets[hi];
+  const t = hi > lo ? (fi - lo) / (hi - lo) : 0;
+  return [A[0] + (B[0] - A[0]) * t, A[1] + (B[1] - A[1]) * t];
+}
+function drawCustomAnimLayers(ctx, key, a, fi, total, e, sx, sy, scale, now) {
+  const layers = CUSTOM_ANIMS[key + ':' + a];
+  if (!layers) return;
+  const flip = e.dir === 1 ? -1 : 1;
+  for (const l of layers) {
+    const from = l.from | 0, to = l.to ?? total - 1;
+    if (fi >= from && fi <= to) {
+      const [dx, dy] = customLayerPos(l, fi);
+      drawFxSprite(ctx, l.fx, (fi - from) / Math.max(1, to - from), sx + dx * flip * scale, sy + dy * scale, (l.size || 42) * scale);
+    } else if (l.projectile && fi > to) {
+      // smart tracking: after release the fx streaks onward, fading out
+      const t = Math.min(1, (fi - to) / Math.max(2, total - to));
+      const [dx, dy] = customLayerPos(l, to);
+      ctx.save(); ctx.globalAlpha = 1 - t * 0.6;
+      drawFxSprite(ctx, l.fx, t, sx + (dx + t * 90) * flip * scale, sy + dy * scale - t * 8, (l.size || 42) * scale);
+      ctx.restore();
+    }
+  }
+}
+
+export function drawFrame(ctx, def, m, e, a, now, sx, sy, scale, fi) {
   const im = mimg(m.file);
   if (!im) return 0;
   const fw = def.frame;

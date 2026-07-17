@@ -64,6 +64,27 @@ export function petStage(def, lvl) {
   return def.evo[Math.min(def.evo.length - 1, Math.floor(lvl / step))];
 }
 
+// Wolf pups — every wolf type's pup grows through the pack ranks. Stage
+// visuals reuse the wild pack's sheet at the pack's own sizes (pup 0.3 →
+// young 0.4 → adult 0.5 → alpha 0.8), halved per MOB_PET_SIZE.
+const WOLF_PUPS = {
+  grey_wolf: ['Grey wolf', 'wolf_grey', 2], sherwood_wolf: ['Sherwood wolf', 'wolf_timber', 2],
+  dire_wolf: ['Dire wolf', 'wolf_shadow', 3], moor_wolf: ['Moor wolf', 'wolf_dusk', 4],
+  blood_wolf: ['Blood wolf', 'wolf_blood', 5], winter_wolf: ['Winter wolf', 'winter_wolf', 5],
+  ice_wolf: ['Arctic wolf', 'wolf_arctic', 5], gilded_wolf: ['Gilded wolf', 'wolf_gold', 6],
+};
+for (const [w, [nm, sheet, tier]] of Object.entries(WOLF_PUPS)) {
+  PETS[`${w}_pup`] = {
+    name: `${nm} pup`, cls: 'offense', tier,
+    evo: [
+      { name: `${nm} pup`, sheet, scale: 0.3 * MOB_PET_SIZE },
+      { name: `Young ${nm.toLowerCase()}`, sheet, scale: 0.4 * MOB_PET_SIZE },
+      { name: nm, sheet, scale: 0.5 * MOB_PET_SIZE },
+      { name: `Alpha ${nm.toLowerCase()}`, sheet, scale: 0.8 * MOB_PET_SIZE },
+    ],
+  };
+}
+
 // Tier 7 — the dragonflights. A stolen egg from each flight; the wild mobs'
 // four life stages (hatchling 0.55 → young 0.85 → adult 1.2 → elder 1.5)
 // become the pet's evolution line, halved per MOB_PET_SIZE.
@@ -117,7 +138,14 @@ for (const c of ['blue', 'green', 'red', 'aethereal']) {
   PET_DROPS[`twin_headed_${c}_dragon`] = [`baby_${c}_dragon`];
   PET_DROPS[`elder_twin_headed_${c}_dragon`] = ['dragon_whelp', `baby_${c}_dragon`];
 }
-export const PET_ODDS = { superRare: 1 / 1500, ultraRare: 1 / 6000, bossSuper: 1 / 120, bossUltra: 1 / 450 };
+// Every wolf carries its own pup in the super slot (any old ultra is kept);
+// pack Alphas guard the pup at much better odds (PET_ODDS.alphaSuper).
+for (const w of Object.keys(WOLF_PUPS)) {
+  const ultra = PET_DROPS[w]?.[1];
+  PET_DROPS[w] = ultra ? [`${w}_pup`, ultra] : [`${w}_pup`];
+  PET_DROPS[`alpha_${w}`] = ultra ? [`${w}_pup`, ultra] : [`${w}_pup`];
+}
+export const PET_ODDS = { superRare: 1 / 1500, ultraRare: 1 / 6000, bossSuper: 1 / 120, bossUltra: 1 / 450, alphaSuper: 1 / 250, alphaUltra: 1 / 1500 };
 
 // Combat maths per class (L = pet level)
 export const PET_POWER = {

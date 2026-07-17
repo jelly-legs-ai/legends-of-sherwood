@@ -6,9 +6,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { MSG, SHILLING, MILESTONE_LEVELS, MILESTONE_SHILLINGS } from '../../shared/constants.js';
-import { ITEMS } from '../../shared/data/items.js';
+import { ITEMS, registerCustomItems } from '../../shared/data/items.js';
 import { MOBS } from '../../shared/data/mobs.js';
 import { XP_TABLE, PLANE } from '../../shared/constants.js';
+import { applyMapOverrides, MAP_OVERRIDES } from '../../shared/mapgen.js';
+import { SPAWNS, BOSS_SPAWNS } from '../../shared/data/world.js';
 
 const HELP = [
   'players — list online players',
@@ -185,6 +187,73 @@ export function handleAdminMessage(world, ws, msg) {
       return send({ t: 'events', builtin: world.builtinEvents(), custom: world.customEvents, state: Object.fromEntries(Object.entries(world.eventState).map(([k, v]) => [k, { active: !!v.active }])) });
     }
     case 'cmd': return send({ t: 'cmd', out: runCommand(world, String(msg.line || '')) });
+
+    // ---------------- Map Studio ----------------
+    case 'mapedit': {
+      // set: sparse patch {tiles:{'x,y':t|null}, elev:{'x,y':h|null}, nodes:{'x,y':type|null}, levels:{id:lv|null}}
+      if (msg.set) {
+        const ov = world.mapOverrides;
+        for (const k of ['tiles', 'elev', 'nodes']) {
+          for (const [key, v] of Object.entries(msg.set[k] || {})) {
+            if (!/^-?\d+,-?\d+$/.test(key)) continue;
+            if (v === null && k !== 'nodes') delete ov[k][key];
+            else ov[k][key] = k === 'nodes' ? (v === null ? null : String(v).slice(0, 48)) : (v | 0);
+          }
+        }
+        for (const [id, lv] of Object.entries(msg.set.levels || {})) {
+          const safe = String(id).replace(/\W/g, '_').slice(0, 32);
+          if (lv === null) delete ov.levels[safe];
+          else {
+            const slots = Object.values(ov.levels).map(l => l.slot);
+            ov.levels[safe] = {
+              name: String(lv.name || safe).slice(0, 48),
+              slot: ov.levels[safe]?.slot ?? (lv.slot ?? (Math.max(0, ...slots) + 1)),
+              size: Math.min(160, Math.max(16, lv.size | 0 || 64)),
+              fill: lv.fill | 0, tiles: lv.tiles || ov.levels[safe]?.tiles || {},
+            };
+          }
+        }
+        try { fs.writeFileSync(path.join(world.dataDir, 'map-overrides.json'), JSON.stringify(ov)); } catch (e) { console.error('[mapedit] save', e.message); }
+        applyMapOverrides(msg.set);   // hot-apply: collision, nodes, levels update live
+        world.vault.alert('event', `admin map edit — ${Object.keys(msg.set.tiles || {}).length}t/${Object.keys(msg.set.elev || {}).length}e/${Object.keys(msg.set.nodes || {}).length}n`);
+      }
+      return send({ t: 'mapedit', overrides: world.mapOverrides });
+    }
+    case 'spawnzones': {
+      // mob mode: authored spawn zones + live mob census for the overlay
+      const live = {};
+      for (const e of world.entities.values()) if (e.kind === 'mob') live[e.type] = (live[e.type] || 0) + 1;
+      return send({ t: 'spawnzones', spawns: SPAWNS, bosses: BOSS_SPAWNS, live });
+    }
+    case 'customItems': {
+      if (msg.create) {
+        const c = msg.create;
+        const id = String(c.id || c.name || 'custom_' + Date.now()).toLowerCase().replace(/\W+/g, '_').slice(0, 40);
+        world.customItems[id] = {
+          name: String(c.name || id).slice(0, 60), value: Math.max(1, c.value | 0),
+          layers: (Array.isArray(c.layers) ? c.layers : []).slice(0, 12),
+        };
+        registerCustomItems({ [id]: world.customItems[id] });
+        try { fs.writeFileSync(path.join(world.dataDir, 'custom-items.json'), JSON.stringify(world.customItems, null, 1)); } catch { }
+        world.vault.alert('event', `admin created custom item '${id}'`);
+      }
+      if (msg.remove) { delete world.customItems[msg.remove]; delete ITEMS[msg.remove]; try { fs.writeFileSync(path.join(world.dataDir, 'custom-items.json'), JSON.stringify(world.customItems, null, 1)); } catch { } }
+      return send({ t: 'customItems', items: world.customItems });
+    }
+    case 'customAnims': {
+      if (msg.create) {
+        const c = msg.create;
+        const id = String(c.id || 'anim_' + Date.now()).toLowerCase().replace(/\W+/g, '_').slice(0, 40);
+        world.customAnims[id] = {
+          base: String(c.base || '').slice(0, 48), anim: String(c.anim || 'attack').slice(0, 24),
+          layers: (Array.isArray(c.layers) ? c.layers : []).slice(0, 8),
+        };
+        try { fs.writeFileSync(path.join(world.dataDir, 'custom-anims.json'), JSON.stringify(world.customAnims, null, 1)); } catch { }
+        world.vault.alert('event', `admin created custom animation '${id}'`);
+      }
+      if (msg.remove) { delete world.customAnims[msg.remove]; try { fs.writeFileSync(path.join(world.dataDir, 'custom-anims.json'), JSON.stringify(world.customAnims, null, 1)); } catch { } }
+      return send({ t: 'customAnims', anims: world.customAnims });
+    }
   }
 }
 
@@ -283,6 +352,20 @@ function runCommand(world, line) {
         p.path = null; world.gridMove(p);
         world.send(p, { t: MSG.RESPAWN, x: p.x, y: p.y });
         return `warped ${p.name} to ${args[1]},${args[2]}`;
+      }
+      case 'level': {
+        // level <player> <id|overworld> — enter a Map Studio custom level
+        const p = P(args[0]); if (!p) return `no player '${args[0]}'`;
+        if (!args[1] || args[1] === 'overworld' || args[1] === '0') {
+          p.plane = PLANE.OVERWORLD; p.x = 300.5; p.y = 500.5;
+        } else {
+          const lv = world.mapOverrides.levels[args[1]];
+          if (!lv) return `no level '${args[1]}' — known: ${Object.keys(world.mapOverrides.levels).join(', ') || '(none)'}`;
+          p.plane = -10 - lv.slot; p.x = (lv.size >> 1) + 0.5; p.y = (lv.size >> 1) + 0.5;
+        }
+        p.path = null; world.gridMove(p);
+        world.send(p, { t: MSG.RESPAWN, x: p.x, y: p.y, plane: p.plane });
+        return `sent ${p.name} to ${args[1] || 'overworld'}`;
       }
       case 'heal': {
         const p = P(args[0]); if (!p) return `no player '${args[0]}'`;

@@ -217,6 +217,22 @@ export function itemIcon(id) {
     if (drawMediaIcon(g, def.micon, 1, 1, 30)) cache.set(id, c);
     return c;
   }
+  // custom items (admin Creation menu): compose from existing icons with the
+  // studio's per-layer transforms — position, scale, rotation, mirror, alpha
+  if (def.custom && def.layers?.length) {
+    for (const l of def.layers) {
+      const src = itemIcon(l.id);
+      g.save();
+      g.translate(16 + (l.x || 0), 16 + (l.y || 0));
+      g.rotate((l.rot || 0) * Math.PI / 180);
+      g.scale((l.mx ? -1 : 1) * (l.scale || 1), (l.my ? -1 : 1) * (l.scale || 1));
+      g.globalAlpha = l.alpha ?? 1;
+      g.drawImage(src, -16, -16);
+      g.restore();
+    }
+    cache.set(id, c);
+    return c;
+  }
   cache.set(id, c);
   const name = id;
   const pal = metalFor(name);

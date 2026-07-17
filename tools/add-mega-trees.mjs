@@ -19,7 +19,7 @@ const sheet = decode(fs.readFileSync(path.join(O, 'trees-mega-pack/height96.png'
 // species -> [seedX, seedY, hueShift°, satMul, lumMul] (hue only moves greens)
 // Seeds are hand-picked on the height96 sheet (1537x1440).
 const SPECIES = {
-  tree: [450, 127, 0, 1, 1],             // bushy mid broadleaf, as-is
+  tree: [220, 135, 4, 1.0, 1.04],        // ASH: tall slender trunk, airy light canopy
   oak_tree: [1042, 705, 10, 1.0, 0.86],  // broad domed canopy, deepened green
   elm_tree: [400, 45, 18, 1.0, 1.06],    // tall broadleaf, lighter yellow-green
   willow_tree: [820, 45, 8, 0.9, 1.0],   // weeping willow, soft sage

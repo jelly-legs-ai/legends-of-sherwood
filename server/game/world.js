@@ -104,7 +104,11 @@ export class World {
 
   // ---------------- spawning ----------------
   spawnMobs() {
-    for (const z of SPAWNS) for (let i = 0; i < z.n; i++) this.spawnMob(z.mob, z, PLANE.OVERWORLD);
+    for (const z of SPAWNS) for (let i = 0; i < z.n; i++) {
+      // wolf packs run behind one Alpha: the zone's first spawn takes the rank
+      const alpha = i === 0 && MOBS[`alpha_${z.mob}`] ? `alpha_${z.mob}` : z.mob;
+      this.spawnMob(alpha, z, PLANE.OVERWORLD);
+    }
     for (const b of BOSS_SPAWNS) this.spawnMob(b.mob, { x: b.x, y: b.y, r: 2, n: 1 }, PLANE.OVERWORLD);
   }
   spawnMob(type, zone, plane, lvlScale = 1) {
@@ -192,8 +196,8 @@ export class World {
     // Pet drops: [superRare, ultraRare] pool per mob; bosses roll far better odds.
     const petPool = PET_DROPS[mob.type];
     if (petPool) {
-      const superOdds = def.boss ? PET_ODDS.bossSuper : PET_ODDS.superRare;
-      const ultraOdds = def.boss ? PET_ODDS.bossUltra : PET_ODDS.ultraRare;
+      const superOdds = def.boss ? PET_ODDS.bossSuper : def.alpha ? PET_ODDS.alphaSuper : PET_ODDS.superRare;
+      const ultraOdds = def.boss ? PET_ODDS.bossUltra : def.alpha ? PET_ODDS.alphaUltra : PET_ODDS.ultraRare;
       let dropped = null;
       if (petPool[1] && Math.random() < ultraOdds) dropped = petPool[1];
       else if (petPool[0] && Math.random() < superOdds) dropped = petPool[0];

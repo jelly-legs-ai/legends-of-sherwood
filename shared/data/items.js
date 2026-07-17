@@ -650,3 +650,13 @@ def('frostgiant_heart', { name: 'Frost giant heart', value: 15000, material: tru
 def('elder_heartwood', { name: 'Elder heartwood', value: 12000, material: true, unique: true });
 
 export function itemName(id) { return ITEMS[id] ? ITEMS[id].name : id; }
+
+// ---- Map Studio / Compositor custom items ----------------------------------
+// Items authored in the admin studio's Creation menu. The def carries the
+// layer recipe so the client can compose the icon from existing game art.
+export function registerCustomItems(defs) {
+  for (const [id, d] of Object.entries(defs || {})) {
+    if (!d || ITEMS[id]?.custom === false) continue;
+    def(id, { name: d.name || id, value: Math.max(1, d.value | 0), custom: true, layers: d.layers || [] });
+  }
+}

@@ -6,6 +6,42 @@ import { WORLD, TILE, TILE_WALKABLE, PLANE } from './constants.js';
 import { TOWNS, POIS, SHORTCUTS, ARENA, HOUSE, DUNGEON_MAP } from './data/world.js';
 
 const W = WORLD.W, H = WORLD.H;
+export const WORLD_W = W, WORLD_H = H;
+
+// ---- Map Studio overrides ---------------------------------------------------
+// Hand-authored edits from the admin Map Studio, layered over the procedural
+// world: per-tile terrain + elevation, node add/remove ("x,y" -> type or null),
+// and free-standing custom levels (caves/dungeons) on their own planes.
+// Both server and client apply the same overrides file, so the map still
+// never crosses the network. Custom level planes: plane = -10 - slot.
+export const MAP_OVERRIDES = { tiles: {}, elev: {}, nodes: {}, levels: {} };
+export function applyMapOverrides(ov) {
+  if (!ov) return;
+  for (const k of ['tiles', 'elev', 'nodes']) {
+    for (const [key, v] of Object.entries(ov[k] || {})) {
+      if (v === null && k !== 'nodes') delete MAP_OVERRIDES[k][key];
+      else MAP_OVERRIDES[k][key] = v;
+    }
+  }
+  for (const [id, lv] of Object.entries(ov.levels || {})) {
+    if (lv === null) delete MAP_OVERRIDES.levels[id];
+    else MAP_OVERRIDES.levels[id] = lv;
+  }
+  _tiles = _nodes = _footprint = null;   // recompute the cached world
+}
+export function customLevel(slot) {
+  for (const lv of Object.values(MAP_OVERRIDES.levels)) if (lv.slot === slot) return lv;
+  return null;
+}
+function customLevelTile(slot, x, y) {
+  const lv = customLevel(slot);
+  if (!lv) return TILE.OCEAN;
+  const S2 = lv.size || 64;
+  if (x < 0 || y < 0 || x >= S2 || y >= S2) return TILE.WALL;
+  if (x === 0 || y === 0 || x === S2 - 1 || y === S2 - 1) return TILE.WALL;
+  const t = lv.tiles?.[(x | 0) + ',' + (y | 0)];
+  return t !== undefined ? t : (lv.fill ?? TILE.CAVE);
+}
 
 // ---- deterministic hashing / noise -----------------------------------------
 function hash2(x, y, s = 0) {
@@ -474,6 +510,8 @@ export const MAX_ELEV = 8;
 
 export function heightAt(x, y) {
   if (x < 0 || y < 0 || x >= W || y >= H) return 0;
+  const hov = MAP_OVERRIDES.elev[(x | 0) + ',' + (y | 0)];
+  if (hov !== undefined) return hov;
   const t = worldTile(x, y);
   if (t === TILE.OCEAN || t === TILE.SAND) return 0;
   const reg = regionAt(x, y);
@@ -604,6 +642,15 @@ export function computeWorld() {
     _nodes.delete(key);
     if (best && !_nodes.has(best)) _nodes.set(best, type);
   }
+  // Map Studio overrides win over everything procedural: painted terrain,
+  // then placed (or null = removed) nodes
+  for (const [key, t] of Object.entries(MAP_OVERRIDES.tiles)) {
+    const [ox, oy] = key.split(',').map(Number);
+    if (ox >= 0 && oy >= 0 && ox < W && oy < H) _tiles[oy * W + ox] = t;
+  }
+  for (const [key, t] of Object.entries(MAP_OVERRIDES.nodes)) {
+    if (t === null) _nodes.delete(key); else _nodes.set(key, t);
+  }
   // big formations spread their collision over the surrounding tiles
   _footprint = new Set();
   for (const [key, type] of _nodes) {
@@ -684,6 +731,7 @@ export function dungeonFloor(floor) {
 
 export function tileAtPlane(plane, x, y) {
   if (plane === PLANE.OVERWORLD) return worldTile(x, y);
+  if (plane <= -10) return customLevelTile(-10 - plane, x, y);   // Map Studio levels
   if (plane === PLANE.COLOSSEUM) return arenaTile(x, y);
   if (plane >= PLANE.DUNGEON_BASE) {
     const f = dungeonFloor(plane - PLANE.DUNGEON_BASE);

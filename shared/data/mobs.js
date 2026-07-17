@@ -23,7 +23,7 @@ mob('smuggler', { name: 'Smuggler', lvl: 16, life: 38, atk: 9, def: 8, style: 'r
   drops: [['bones', 1, 1], ['coins', [6, 20], 0.9], ['copper_arrow', [4, 12], 0.5], ['raw_trout', 1, 0.3], ['shortbow', 1, 0.04]] });
 
 // ---- Sherwood (10-40) -------------------------------------------------------
-mob('sherwood_wolf', { name: 'Sherwood wolf', lvl: 18, life: 44, atk: 11, def: 9, sheet: 'wolf_timber', style: 'melee', aggro: true, howl: true,
+mob('sherwood_wolf', { name: 'Sherwood wolf', lvl: 18, life: 44, atk: 11, def: 9, sheet: 'wolf_timber', style: 'melee', aggro: true, howl: true, scale: 0.5,
   drops: [['bones', 1, 1], ['wolf_pelt', 1, 0.35], ['verdant_charm', 1, 0.12]] });
 // A common road brigand — scruffy tan leathers and a brown hood, not the pristine
 // Lincoln green of Robin and his Merry Men.
@@ -81,7 +81,7 @@ mob('eyrie_hawk', { name: 'Eyrie hawk', lvl: 50, life: 120, atk: 30, def: 22, cr
 mob('moor_brigand', { name: 'Moor brigand', lvl: 62, life: 190, atk: 38, def: 34, style: 'melee', aggro: true,
   vis: { skin: 'light', hair: ['bedhead', 'ginger'], torso: ['chainmail', 'iron'], legs: ['plate', 'iron'], head: ['kettle', 'iron'], weapon: ['sword', 'steel'] },
   drops: [['bones', 1, 1], ['coins', [40, 120], 0.9], ['steel_sword', 1, 0.03], ['damasked_sword', 1, 0.008], ['hearty_stew', 1, 0.15], ['cobalt_charm', 1, 0.15]] });
-mob('ice_wolf', { name: 'Arctic wolf', lvl: 66, life: 210, atk: 42, def: 36, sheet: 'wolf_arctic', style: 'melee', aggro: true, speed: 3.4, howl: true,
+mob('ice_wolf', { name: 'Arctic wolf', lvl: 66, life: 210, atk: 42, def: 36, sheet: 'wolf_arctic', style: 'melee', aggro: true, speed: 3.4, howl: true, scale: 0.5,
   drops: [['big_bones', 1, 1], ['wolf_pelt', 1, 0.5], ['sable_pelt', 1, 0.2], ['cobalt_charm', 1, 0.2]] });
 mob('frost_sprite', { name: 'Frost sprite', lvl: 60, life: 160, atk: 40, def: 28, style: 'magic', aggro: true, critter: 'sprite',
   drops: [['water_rune', [5, 14], 0.7], ['air_rune', [5, 14], 0.7], ['cosmic_rune', [1, 4], 0.3]] });
@@ -174,7 +174,7 @@ mob('tusked_boar', { name: 'Tusked boar', lvl: 24, life: 58, atk: 14, def: 12, s
   drops: [['big_bones', 1, 1], ['raw_venison', 1, 0.5], ['coins', [6, 20], 0.6]] });
 mob('marauder', { name: 'Marauder', lvl: 30, life: 74, atk: 17, def: 15, sheet: 'brigand', style: 'melee', aggro: true,
   drops: [['bones', 1, 1], ['coins', [10, 34], 0.9], ['steel_sword', 1, 0.02], ['attack_potion', 1, 0.1], ['blade_of_the_burrow', 1, 0.003]] });
-mob('dire_wolf', { name: 'Dire wolf', lvl: 35, life: 88, atk: 20, def: 16, sheet: 'wolf_shadow', style: 'melee', aggro: true, speed: 3.4, howl: true,
+mob('dire_wolf', { name: 'Dire wolf', lvl: 35, life: 88, atk: 20, def: 16, sheet: 'wolf_shadow', style: 'melee', aggro: true, speed: 3.4, howl: true, scale: 0.5,
   drops: [['big_bones', 1, 1], ['wolf_pelt', 1, 0.45], ['crimson_charm', 1, 0.12]] });
 mob('barrow_skeleton', { name: 'Barrow skeleton', lvl: 38, life: 92, atk: 22, def: 18, sheet: 'skeleton_warrior', style: 'melee', aggro: true,
   drops: [['bones', 1, 1], ['coins', [12, 40], 0.8], ['iron_sword', 1, 0.04], ['damaged_saxon_brooch', 1, 0.12], ['tome_attack', 1, 0.004]] });
@@ -200,7 +200,7 @@ mob('ice_golem', { name: 'Ice golem', lvl: 66, life: 230, atk: 50, def: 42, shee
 mob('crag_raptor', { name: 'Crag raptor', lvl: 60, life: 176, atk: 37, def: 28, sheet: 'archeopteryx', style: 'melee', aggro: true, speed: 3.6, scale: 0.9,
   drops: [['big_bones', 1, 1], ['feathers', [8, 20], 1], ['raw_venison', 1, 0.4], ['amber_charm', 1, 0.2]] });
 // Northmoor / winter
-mob('winter_wolf', { name: 'Winter wolf', lvl: 58, life: 168, atk: 36, def: 30, sheet: 'winter_wolf', style: 'melee', aggro: true, speed: 3.5, scale: 1.15,
+mob('winter_wolf', { name: 'Winter wolf', lvl: 58, life: 168, atk: 36, def: 30, sheet: 'winter_wolf', style: 'melee', aggro: true, speed: 3.5, scale: 0.5,
   drops: [['big_bones', 1, 1], ['wolf_pelt', 1, 0.5], ['sable_pelt', 1, 0.15], ['cobalt_charm', 1, 0.18]] });
 mob('wild_reindeer', { name: 'Wild reindeer', lvl: 22, life: 60, atk: 8, def: 14, sheet: 'wild_reindeer', style: 'melee', speed: 3.2,
   drops: [['big_bones', 1, 1], ['raw_venison', [1, 2], 0.8]] });
@@ -223,14 +223,26 @@ mob('abyssal_sentinel', { name: 'Abyssal sentinel', lvl: 76, life: 300, atk: 50,
 
 // ---- OGA mob pass: wolf packs, birds, imps, LPC monsters, barbarians ----------
 // New wolf colours round out the pack ladder; every wolf howls to rally packmates.
-mob('grey_wolf', { name: 'Grey wolf', lvl: 10, life: 26, atk: 6, def: 5, sheet: 'wolf_grey', style: 'melee', aggro: true, howl: true,
+mob('grey_wolf', { name: 'Grey wolf', lvl: 10, life: 26, atk: 6, def: 5, sheet: 'wolf_grey', style: 'melee', aggro: true, howl: true, scale: 0.5,
   drops: [['bones', 1, 1], ['wolf_pelt', 1, 0.25]] });
-mob('moor_wolf', { name: 'Moor wolf', lvl: 46, life: 120, atk: 27, def: 22, sheet: 'wolf_dusk', style: 'melee', aggro: true, speed: 3.4, howl: true,
+mob('moor_wolf', { name: 'Moor wolf', lvl: 46, life: 120, atk: 27, def: 22, sheet: 'wolf_dusk', style: 'melee', aggro: true, speed: 3.4, howl: true, scale: 0.5,
   drops: [['big_bones', 1, 1], ['wolf_pelt', 1, 0.5], ['verdant_charm', 1, 0.15]] });
-mob('blood_wolf', { name: 'Blood wolf', lvl: 58, life: 175, atk: 36, def: 30, sheet: 'wolf_blood', style: 'melee', aggro: true, speed: 3.5, howl: true,
+mob('blood_wolf', { name: 'Blood wolf', lvl: 58, life: 175, atk: 36, def: 30, sheet: 'wolf_blood', style: 'melee', aggro: true, speed: 3.5, howl: true, scale: 0.5,
   drops: [['big_bones', 1, 1], ['wolf_pelt', [1, 2], 0.6], ['crimson_charm', 1, 0.2]] });
-mob('gilded_wolf', { name: 'Gilded wolf', lvl: 72, life: 260, atk: 46, def: 40, sheet: 'wolf_gold', style: 'melee', aggro: true, speed: 3.6, howl: true, shil: 2,
+mob('gilded_wolf', { name: 'Gilded wolf', lvl: 72, life: 260, atk: 46, def: 40, sheet: 'wolf_gold', style: 'melee', aggro: true, speed: 3.6, howl: true, shil: 2, scale: 0.5,
   drops: [['big_bones', 1, 1], ['wolf_pelt', [1, 3], 0.7], ['gold_ore', [1, 2], 0.3], ['coins', [40, 140], 0.9]] });
+
+// Every wolf pack runs behind one ALPHA: 80% of a player tall where the pack
+// stands half, harder-hitting and faster, and far likelier to be trailed by a
+// stealable pup (see pets.js). Spawned one-per-pack by the world spawner.
+export const WOLF_TYPES = ['grey_wolf', 'sherwood_wolf', 'dire_wolf', 'moor_wolf', 'blood_wolf', 'winter_wolf', 'ice_wolf', 'gilded_wolf'];
+for (const w of WOLF_TYPES) {
+  const b = MOBS[w];
+  mob(`alpha_${w}`, { ...b, name: `Alpha ${b.name.toLowerCase()}`, alpha: true,
+    lvl: b.lvl + 6, life: Math.round(b.life * 1.7), atk: Math.round(b.atk * 1.35), def: Math.round(b.def * 1.35),
+    scale: 0.8, speed: (b.speed || 3.2) + 0.2,
+    drops: [...b.drops, ['coins', [b.lvl, b.lvl * 4], 0.8]] });
+}
 // Songbirds & raptors: ambient hunter quarry — snare them for plumes and meat.
 mob('robin_bird', { name: 'Robin', lvl: 1, life: 3, atk: 0, def: 0, sheet: 'bird_robin', style: 'melee', scale: 0.24, speed: 3.2,
   drops: [['feathers', [2, 6], 1], ['songbird_plume', 1, 0.4] ] });

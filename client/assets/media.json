@@ -4049,8 +4049,8 @@
  "trees": {
   "tree": {
    "file": "env/mp_tree.png",
-   "w": 89,
-   "h": 93
+   "w": 91,
+   "h": 92
   },
   "oak_tree": {
    "file": "env/mp_oak_tree.png",

@@ -1,9 +1,10 @@
 // Legends of Sherwood — client entry: login, game state, input, main loop.
 import { MSG, PLANE, WILDERNESS_Y, REGIONS, TILE } from '/shared/constants.js';
-import { computeWorld, regionAt, dungeonFloor, worldTile } from '/shared/mapgen.js';
+import { computeWorld, regionAt, dungeonFloor, worldTile, applyMapOverrides } from '/shared/mapgen.js';
 import { QUESTS } from '/shared/data/quests.js';
 import { HOUSE } from '/shared/data/world.js';
-import { ITEMS } from '/shared/data/items.js';
+import { ITEMS, registerCustomItems } from '/shared/data/items.js';
+import { registerCustomAnims } from './media.js';
 import { MOBS } from '/shared/data/mobs.js';
 import { NPCS } from '/shared/data/npcs.js';
 import { SPELLS, NODES } from '/shared/data/skills.js';
@@ -33,6 +34,12 @@ window.R = R; // debug
 // ---------------- login ----------------
 async function boot() {
   await Promise.all([loadManifest(), loadMedia()]);
+  // admin-authored world edits + custom content, shared with the server
+  const j = (u) => fetch(u).then(r => r.json()).catch(() => null);
+  const [mapOv, customItems, customAnims] = await Promise.all([j('/map-overrides.json'), j('/custom-items.json'), j('/custom-anims.json')]);
+  applyMapOverrides(mapOv);
+  registerCustomItems(customItems || {});
+  registerCustomAnims(customAnims || {});
   computeWorld(); // warm map cache before first frame
   // restore last look
   try {

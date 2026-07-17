@@ -3,12 +3,15 @@
 // creature (animated), FX and equipped weapon through the GAME'S OWN modules —
 // what you preview here is exactly what ships.
 
-import { ITEMS } from '/shared/data/items.js';
+import { ITEMS, registerCustomItems } from '/shared/data/items.js';
 import { MOBS } from '/shared/data/mobs.js';
 import { PETS } from '/shared/data/pets.js';
-import { SPELLS, PRAYERS } from '/shared/data/skills.js';
-import { loadMedia, MEDIA, drawCreature, drawFxSprite, drawFxBand } from './media.js';
-import { loadManifest, composite, drawChar, drawOversize, critterSprite, ANIMS } from './sprites.js';
+import { SPELLS, PRAYERS, NODES } from '/shared/data/skills.js';
+import { TILE } from '/shared/constants.js';
+import { computeWorld, worldTile, heightAt, regionAt, applyMapOverrides, MAP_OVERRIDES, WORLD_W, WORLD_H } from '/shared/mapgen.js';
+import { SPAWNS, BOSS_SPAWNS, TOWNS } from '/shared/data/world.js';
+import { loadMedia, MEDIA, drawCreature, drawFrame, drawFxSprite, drawFxBand, customLayerPos } from './media.js';
+import { loadManifest, composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS } from './sprites.js';
 import { itemIcon } from './icons.js';
 
 const $ = (s) => document.querySelector(s);
@@ -38,6 +41,10 @@ function onMsg(m) {
   else if (m.t === 'securityLog') { state.security = m.log; if (view === 'dash') render(); }
   else if (m.t === 'security') { state.security.unshift(m.entry); if (view === 'dash') render(); }
   else if (m.t === 'cmd') { state.term.push({ text: m.out, cls: '' }); termOut(m.out); }
+  else if (m.t === 'mapedit') { state.mapedit = m.overrides; msOnServerOverrides(m.overrides); }
+  else if (m.t === 'spawnzones') { state.spawns = m; if (view === 'map' && MS.mobMode) msSide(); }
+  else if (m.t === 'customItems') { state.customItems = m.items; registerCustomItems(m.items); if (view === 'comp' && compMode === 'create') renderComp(); }
+  else if (m.t === 'customAnims') { state.customAnims = m.anims; if (view === 'comp' && compMode === 'anims') renderComp(); }
 }
 
 // ---------------- nav ----------------
@@ -62,6 +69,7 @@ function render() {
   if (view === 'sim') return renderSim();
   if (view === 'vault') return renderVault();
   if (view === 'events') return renderEvents();
+  if (view === 'map') return renderMapStudio();
   if (view === 'comp') return renderComp();
 }
 
@@ -310,15 +318,24 @@ async function ensureAssets() {
   await Promise.all([loadMedia(), loadManifest()]);
   assetsReady = true;
 }
-let compTab = 'items', compSel = null;
+let compTab = 'items', compSel = null, compMode = 'browse';
 function renderComp() {
-  main.innerHTML = `<h2>Asset compositor <span style="color:var(--dim);font-size:11px">— rendered by the live game modules</span></h2>
+  main.innerHTML = `<h2>Asset compositor <span style="color:--dim;font-size:11px;color:var(--dim)">— rendered by the live game modules</span></h2>
+    <div class="tabs2">${[['browse', 'Browse'], ['create', 'Creation menu'], ['anims', 'Animations creator']].map(([m, l]) => `<button data-m="${m}" class="${compMode === m ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <div id="comp-body"></div>`;
+  for (const b of main.querySelectorAll('[data-m]')) b.onclick = () => { compMode = b.dataset.m; cancelAnimationFrame(raf); renderComp(); };
+  if (compMode === 'browse') renderCompBrowse();
+  else if (compMode === 'create') ensureAssets().then(renderCompCreate);
+  else ensureAssets().then(renderCompAnims);
+}
+function renderCompBrowse() {
+  $('#comp-body').innerHTML = `
     <div class="tabs2">${['items', 'creatures', 'weapons', 'fx', 'pets', 'spells'].map(t => `<button data-t="${t}" class="${compTab === t ? 'on' : ''}">${t}</button>`).join('')}
       <input id="comp-q" placeholder="filter…" style="margin-left:auto">
     </div>
     <div id="preview"><i style="color:var(--dim)">select an asset below to preview it</i></div>
     <div class="grid" id="comp-grid"></div>`;
-  for (const b of main.querySelectorAll('.tabs2 button')) b.onclick = () => { compTab = b.dataset.t; compSel = null; renderComp(); };
+  for (const b of $('#comp-body').querySelectorAll('[data-t]')) b.onclick = () => { compTab = b.dataset.t; compSel = null; renderComp(); };
   $('#comp-q').oninput = () => fillGrid($('#comp-q').value.toLowerCase());
   ensureAssets().then(() => { fillGrid(''); if (compSel) preview(compSel); });
 }
@@ -607,6 +624,554 @@ function previewSpell(g, s, alive) {
 function orbAt(g, x, y, col) {
   g.save(); g.shadowColor = col; g.shadowBlur = 10; g.fillStyle = col;
   g.beginPath(); g.arc(x, y, 7, 0, 7); g.fill(); g.restore();
+}
+
+// ============================================================================
+// MAP STUDIO — live visual world editor. Renders the generated world 1px/tile
+// into a base canvas, then pans (WASD / drag) and zooms over it. Edits stage
+// locally as a sparse patch and hot-apply on Save: the server persists them,
+// updates live collision, and every game client loads them at boot.
+// ============================================================================
+const TILE_META = [
+  [TILE.OCEAN, 'Ocean', '#173a5e'], [TILE.WATER, 'Water', '#2d6da8'], [TILE.RIVER, 'River', '#3f86c2'],
+  [TILE.SAND, 'Sand', '#dbc384'], [TILE.GRASS, 'Grass', '#5d9440'], [TILE.MEADOW, 'Meadow', '#79a84e'],
+  [TILE.DIRT, 'Dirt', '#8a6a44'], [TILE.FOREST, 'Forest', '#3f7031'], [TILE.DEEPFOREST, 'Deep forest', '#2c5426'],
+  [TILE.SWAMP, 'Swamp', '#5c6b3c'], [TILE.JUNGLE, 'Jungle', '#2f6b3a'], [TILE.ROCK, 'Rock', '#7d7d85'],
+  [TILE.SCREE, 'Scree', '#9a9a8e'], [TILE.TUNDRA, 'Tundra', '#a8b09a'], [TILE.SNOW, 'Snow', '#e8edf2'],
+  [TILE.ICE, 'Ice', '#bcdcec'], [TILE.ROAD, 'Road', '#a08054'], [TILE.BRIDGE, 'Bridge', '#8a5c30'],
+  [TILE.PATH, 'Cobble path', '#9a8f80'], [TILE.FARM, 'Farm soil', '#6b4a2c'],
+  [TILE.FLOOR_WOOD, 'Wood floor', '#7c5a34'], [TILE.FLOOR_STONE, 'Stone floor', '#8c8c94'],
+  [TILE.WALL, 'Stone wall', '#4a4a52'], [TILE.WALL_WOOD, 'Wood wall', '#5c3f22'],
+  [TILE.CAVE, 'Cave floor', '#54465c'], [TILE.LAVA_ROCK, 'Lava rock', '#4a2c2c'],
+  [TILE.WATER_SWAMP, 'Bog water', '#41543e'],
+];
+const TILE_RGB = {}; const TILE_NAME = {};
+for (const [t, n, c] of TILE_META) { TILE_NAME[t] = n; TILE_RGB[t] = [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)]; }
+const MS_CATALOG = () => ({
+  'Trees': Object.keys(MEDIA.trees || {}),
+  'Ores & mining': Object.keys(NODES).filter(k => NODES[k].skill === 'mining'),
+  'Fishing': Object.keys(NODES).filter(k => NODES[k].skill === 'fishing'),
+  'Farming & hunter': Object.keys(NODES).filter(k => ['farming', 'hunter'].includes(NODES[k].skill)),
+  'Agility & POI': Object.keys(NODES).filter(k => ['agility', 'archaeology'].includes(NODES[k].skill)),
+  'Stations': ['anvil', 'furnace', 'range', 'loom', 'spinning_wheel', 'chapel_altar', 'bank_booth', 'ge_booth', 'campfire', 'well', 'obelisk', 'museum_bench', 'bakery_stall', 'gem_stall'],
+  'Formations (pack)': ['rocks_grey', 'rocks_black', 'rocks_sand', 'spire_grey', 'spire_black', 'spire_sand', 'crag_grey', 'crag_black', 'crag_sand', 'dolmen_grey', 'mountain_grey_0', 'mountain_grey_1', 'mountain_grey_2', 'mountain_snow_0', 'mountain_snow_1', 'mountain_snow_2'],
+  'Decor': ['signpost', 'grave', 'scarecrow', 'wash_line', 'shop_sign', 'dungeon_entrance', 'cliff_ladder', 'ge_rope'],
+});
+const MS = {
+  vp: { x: 600, y: 420, z: 4 }, tool: 'pan', terrain: TILE.GRASS, elevDelta: +1,
+  node: 'tree', brush: 1, level: null, mobMode: false, zoneSel: null,
+  pending: { tiles: {}, elev: {}, nodes: {}, levels: {} }, dirty: 0,
+  base: null, baseRows: 0, drag: null, mouse: null, thumbs: new Map(), inited: false,
+};
+function msPendingCount() { return Object.keys(MS.pending.tiles).length + Object.keys(MS.pending.elev).length + Object.keys(MS.pending.nodes).length + Object.keys(MS.pending.levels).length; }
+function msOnServerOverrides(ov) {
+  if (MS.inited) return;                       // first load only: apply saved edits
+  MS.inited = true;
+  applyMapOverrides(ov);
+  MS.base = null; MS.baseRows = 0;             // rebuild the base image with them
+}
+const msKey = (x, y) => x + ',' + y;
+function msTileAt(x, y) { const v = MS.pending.tiles[msKey(x, y)]; return v !== undefined ? v : worldTile(x, y); }
+function msElevAt(x, y) { const v = MS.pending.elev[msKey(x, y)]; return v !== undefined ? v : heightAt(x, y); }
+function msNodeAt(x, y) { const k = msKey(x, y); return MS.pending.nodes[k] !== undefined ? MS.pending.nodes[k] : computeWorld().nodes.get(k); }
+function msPixel(x, y) {
+  // base-canvas pixel colour for one tile: terrain tinted by elevation
+  const t = msTileAt(x, y), h = msElevAt(x, y);
+  const c = TILE_RGB[t] || [255, 0, 255];
+  const f = 0.82 + h * 0.045;
+  return `rgb(${Math.min(255, c[0] * f) | 0},${Math.min(255, c[1] * f) | 0},${Math.min(255, c[2] * f) | 0})`;
+}
+function msPatchBase(x, y) { if (MS.base) { const g = MS.base.getContext('2d'); g.fillStyle = msPixel(x, y); g.fillRect(x, y, 1, 1); } }
+function msThumb(type) {
+  let c = MS.thumbs.get(type);
+  if (!c) {
+    const src = MEDIA.trees?.[type] ? null : nodeSprite(type);
+    c = document.createElement('canvas'); c.width = 26; c.height = 26;
+    const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+    if (src) g.drawImage(src, 0, 0, src.width, src.height, 0, 0, 26, 26);
+    else { // tree image from media
+      const tm = MEDIA.trees[type]; const im = tm && new Image();
+      if (im) { im.src = tm.file.startsWith('assets') ? tm.file : 'assets/' + tm.file; im.onload = () => { const g2 = c.getContext('2d'); g2.imageSmoothingEnabled = false; g2.drawImage(im, 0, 0, 26, 26); }; }
+    }
+    MS.thumbs.set(type, c);
+  }
+  return c;
+}
+function renderMapStudio() {
+  const lv = MS.level && msLevels()[MS.level];
+  main.innerHTML = `<h2 style="margin-bottom:8px">Map Studio ${lv ? `— level <span style="color:var(--tx)">${MS.level}</span>` : '— overworld'}
+    <span style="color:var(--dim);font-size:11px;margin-left:10px">WASD pan · wheel/± zoom · drag to use tool</span></h2>
+  <div id="ms">
+    <div id="ms-tools">
+      ${[['pan', '✋', 'Pan / inspect'], ['terrain', '🖌', 'Paint terrain'], ['elev', '⛰', 'Raise/lower ground'], ['node', '🌳', 'Place model'], ['erase', '⌫', 'Erase model'], ['mob', '👹', 'Mob mode']].map(([t, ic, tip]) => `<button data-tool="${t}" title="${tip}" class="${(t === 'mob' ? MS.mobMode : MS.tool === t && !MS.mobMode) ? 'on' : ''}">${ic}</button>`).join('')}
+      <div style="flex:1"></div>
+      <button id="ms-zin" title="zoom in">＋</button><button id="ms-zout" title="zoom out">－</button>
+    </div>
+    <div id="ms-mid">
+      <canvas id="ms-canvas"></canvas>
+      <div id="ms-status">building world…</div>
+    </div>
+    <div id="ms-side"></div>
+  </div>`;
+  for (const b of main.querySelectorAll('[data-tool]')) b.onclick = () => {
+    if (b.dataset.tool === 'mob') { MS.mobMode = !MS.mobMode; if (MS.mobMode) send({ t: 'spawnzones' }); }
+    else { MS.tool = b.dataset.tool; MS.mobMode = false; }
+    renderMapStudio();
+  };
+  $('#ms-zin').onclick = () => msZoom(1.5); $('#ms-zout').onclick = () => msZoom(1 / 1.5);
+  msSide();
+  const cv = $('#ms-canvas');
+  msBindInput(cv);
+  ensureAssets().then(() => { if (!state.mapedit) send({ t: 'mapedit' }); msLoop(cv); });
+}
+function msLevels() { return { ...(state.mapedit?.levels || MAP_OVERRIDES.levels), ...MS.pending.levels }; }
+function msSide() {
+  const side = $('#ms-side');
+  if (!side) return;
+  const levels = msLevels();
+  if (MS.mobMode) {
+    const z = MS.zoneSel;
+    const def = z && MOBS[z.mob];
+    side.innerHTML = `<h3>Mob mode</h3>
+      <div style="font-size:11.5px;color:var(--dim)">Spawn zones glow on the map — click one for its details. Live census refreshes on toggle.</div>
+      ${z ? `<h3>${def?.name || z.mob}</h3><div id="ms-inspect">
+        zone: ${z.x},${z.y} r${z.r} × ${z.n}<br>
+        level ${def?.lvl} — ${def?.life} hp, atk ${def?.atk}, def ${def?.def}<br>
+        style ${def?.style}${def?.aggro ? ' · aggro' : ''}${def?.howl ? ' · howls' : ''}${def?.alpha ? ' · ALPHA' : ''}<br>
+        live in world: ${state.spawns?.live?.[z.mob] ?? '…'}<br>
+        drops: ${(def?.drops || []).slice(0, 6).map(d => d[0]).join(', ')}</div>` : ''}
+      <h3>All zones</h3>
+      <div style="font-size:11px;max-height:300px;overflow:auto">${(state.spawns?.spawns || []).map((s, i) => `<div style="cursor:pointer;padding:1px 0" data-z="${i}">${s.mob} ×${s.n} @ ${s.x},${s.y}</div>`).join('')}</div>`;
+    for (const d of side.querySelectorAll('[data-z]')) d.onclick = () => { const s = state.spawns.spawns[+d.dataset.z]; MS.zoneSel = s; MS.vp.x = s.x; MS.vp.y = s.y; msSide(); };
+    return;
+  }
+  const cat = MS_CATALOG();
+  side.innerHTML = `
+    <h3>Save</h3>
+    <div class="ms-row"><button class="act" id="ms-save" style="flex:1">💾 Save ${msPendingCount() ? `(${msPendingCount()} edits)` : ''}</button>
+    <button class="act" id="ms-discard" title="discard pending">↩</button></div>
+    <h3>Levels</h3>
+    <div class="ms-row"><select id="ms-level"><option value="">overworld</option>${Object.keys(levels).map(id => `<option ${MS.level === id ? 'selected' : ''}>${id}</option>`).join('')}</select>
+    <button class="act" id="ms-newlevel" title="new dungeon/cave level">＋</button></div>
+    <div style="font-size:10.5px;color:var(--dim)">Enter in-game via terminal: <b>level &lt;player&gt; &lt;id&gt;</b></div>
+    <h3>Terrain brush</h3>
+    <div class="ms-cat">${TILE_META.map(([t, n, c]) => `<div class="ms-cell ${MS.terrain === t ? 'on' : ''}" data-terr="${t}" title="${n}"><div class="ms-swatch" style="background:${c}"></div><div>${n}</div></div>`).join('')}</div>
+    <div class="ms-row">brush <input id="ms-brush" type="range" min="1" max="6" value="${MS.brush}" style="flex:1"> ${MS.brush}×${MS.brush}</div>
+    <h3>Elevation</h3>
+    <div class="ms-row"><button class="act ${MS.elevDelta === 1 ? 'on' : ''}" data-ed="1" style="flex:1">raise +1</button>
+    <button class="act ${MS.elevDelta === -1 ? 'on' : ''}" data-ed="-1" style="flex:1">lower −1</button>
+    <button class="act ${MS.elevDelta === 0 ? 'on' : ''}" data-ed="0" style="flex:1">flatten 0</button></div>
+    ${Object.entries(cat).map(([name, list]) => `<h3>${name}</h3><div class="ms-cat">${list.map(k => `<div class="ms-cell ${MS.node === k ? 'on' : ''}" draggable="true" data-node="${k}" title="${NODES[k]?.name || k}"></div>`).join('')}</div>`).join('')}`;
+  $('#ms-save').onclick = msSave;
+  $('#ms-discard').onclick = () => { MS.pending = { tiles: {}, elev: {}, nodes: {}, levels: {} }; MS.base = null; MS.baseRows = 0; renderMapStudio(); };
+  $('#ms-level').onchange = (e) => { MS.level = e.target.value || null; renderMapStudio(); };
+  $('#ms-newlevel').onclick = () => {
+    const id = prompt('Level id (letters/numbers/_):', 'cave_1'); if (!id) return;
+    const size = Math.min(160, Math.max(16, parseInt(prompt('Size (tiles, 16–160):', '64')) || 64));
+    const fill = confirm('OK = cave floor, Cancel = stone floor') ? TILE.CAVE : TILE.FLOOR_STONE;
+    MS.pending.levels[id.replace(/\W/g, '_')] = { name: id, size, fill, tiles: {} };
+    MS.level = id.replace(/\W/g, '_');
+    renderMapStudio();
+  };
+  for (const d of side.querySelectorAll('[data-terr]')) d.onclick = () => { MS.terrain = +d.dataset.terr; MS.tool = 'terrain'; renderMapStudio(); };
+  for (const b of side.querySelectorAll('[data-ed]')) b.onclick = () => { MS.elevDelta = +b.dataset.ed; MS.tool = 'elev'; renderMapStudio(); };
+  const brush = $('#ms-brush'); if (brush) brush.oninput = () => { MS.brush = +brush.value; };
+  ensureAssets().then(() => {
+    for (const d of side.querySelectorAll('[data-node]')) {
+      d.appendChild(msThumb(d.dataset.node));
+      const lbl = document.createElement('div'); lbl.textContent = NODES[d.dataset.node]?.name || d.dataset.node; d.appendChild(lbl);
+      d.onclick = () => { MS.node = d.dataset.node; MS.tool = 'node'; renderMapStudio(); };
+      d.ondragstart = (ev) => { ev.dataTransfer.setData('text/node', d.dataset.node); };
+    }
+  });
+}
+function msSave() {
+  if (!msPendingCount()) return;
+  send({ t: 'mapedit', set: MS.pending });
+  applyMapOverrides(MS.pending);               // local hot-apply (recomputes world)
+  MS.pending = { tiles: {}, elev: {}, nodes: {}, levels: {} };
+  msSide();
+}
+function msZoom(f) { MS.vp.z = Math.max(1, Math.min(40, MS.vp.z * f)); }
+function msScreenToTile(cv, mx, my) {
+  const z = MS.vp.z;
+  return [Math.floor(MS.vp.x + (mx - cv.width / 2) / z), Math.floor(MS.vp.y + (my - cv.height / 2) / z)];
+}
+function msApplyTool(cv, mx, my) {
+  const [tx, ty] = msScreenToTile(cv, mx, my);
+  const lv = MS.level && msLevels()[MS.level];
+  const B = MS.tool === 'terrain' || MS.tool === 'elev' ? MS.brush : 1;
+  for (let dy = 0; dy < B; dy++) for (let dx = 0; dx < B; dx++) {
+    const x = tx + dx - (B >> 1), y = ty + dy - (B >> 1);
+    if (lv) {   // painting inside a custom level
+      if (x < 1 || y < 1 || x >= lv.size - 1 || y >= lv.size - 1) continue;
+      if (MS.tool === 'terrain') {
+        const cur = MS.pending.levels[MS.level] || (MS.pending.levels[MS.level] = { ...lv, tiles: { ...lv.tiles } });
+        cur.tiles[msKey(x, y)] = MS.terrain;
+      }
+      continue;
+    }
+    if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H) continue;
+    const k = msKey(x, y);
+    if (MS.tool === 'terrain') { MS.pending.tiles[k] = MS.terrain; msPatchBase(x, y); }
+    else if (MS.tool === 'elev') {
+      MS.pending.elev[k] = MS.elevDelta === 0 ? 0 : Math.max(0, Math.min(8, msElevAt(x, y) + MS.elevDelta));
+      msPatchBase(x, y);
+    }
+    else if (MS.tool === 'node' && !MS.drag?.painted?.has(k)) { MS.pending.nodes[k] = MS.node; (MS.drag?.painted || new Set()).add?.(k); }
+    else if (MS.tool === 'erase') MS.pending.nodes[k] = null;
+  }
+}
+function msBindInput(cv) {
+  cv.onwheel = (e) => { e.preventDefault(); msZoom(e.deltaY < 0 ? 1.25 : 0.8); };
+  cv.onmousedown = (e) => {
+    const r = cv.getBoundingClientRect();
+    const mx = e.clientX - r.left, my = e.clientY - r.top;
+    if (MS.mobMode) {   // click selects the nearest spawn zone
+      const [tx, ty] = msScreenToTile(cv, mx, my);
+      let best = null, bd = 1e9;
+      for (const z of state.spawns?.spawns || []) { const d = Math.hypot(z.x - tx, z.y - ty); if (d < Math.max(6, z.r + 3) && d < bd) { bd = d; best = z; } }
+      MS.zoneSel = best; msSide(); return;
+    }
+    MS.drag = { mx, my, vx: MS.vp.x, vy: MS.vp.y, painted: new Set() };
+    if (MS.tool !== 'pan') msApplyTool(cv, mx, my);
+  };
+  cv.onmousemove = (e) => {
+    const r = cv.getBoundingClientRect();
+    const mx = e.clientX - r.left, my = e.clientY - r.top;
+    MS.mouse = [mx, my];
+    if (!MS.drag) return;
+    if (MS.tool === 'pan' || MS.mobMode) { MS.vp.x = MS.drag.vx - (mx - MS.drag.mx) / MS.vp.z; MS.vp.y = MS.drag.vy - (my - MS.drag.my) / MS.vp.z; }
+    else msApplyTool(cv, mx, my);
+  };
+  window.onmouseup = () => { if (MS.drag && MS.tool !== 'pan' && !MS.mobMode) msSide(); MS.drag = null; };
+  cv.ondragover = (e) => e.preventDefault();
+  cv.ondrop = (e) => {   // drag & drop a model from the catalog into the world
+    e.preventDefault();
+    const type = e.dataTransfer.getData('text/node');
+    if (!type) return;
+    const r = cv.getBoundingClientRect();
+    const [tx, ty] = msScreenToTile(cv, e.clientX - r.left, e.clientY - r.top);
+    MS.pending.nodes[msKey(tx, ty)] = type;
+    msSide();
+  };
+  window.onkeydown = (e) => {
+    if (view !== 'map' || /INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName)) return;
+    const step = 14 / MS.vp.z * 4;
+    if (e.key === 'w' || e.key === 'W') MS.vp.y -= step;
+    else if (e.key === 's' || e.key === 'S') MS.vp.y += step;
+    else if (e.key === 'a' || e.key === 'A') MS.vp.x -= step;
+    else if (e.key === 'd' || e.key === 'D') MS.vp.x += step;
+    else if (e.key === '+' || e.key === '=') msZoom(1.25);
+    else if (e.key === '-') msZoom(0.8);
+  };
+}
+function msLoop(cv) {
+  if (view !== 'map' || !document.body.contains(cv)) return;
+  const box = cv.parentElement.getBoundingClientRect();
+  if (cv.width !== (box.width | 0)) { cv.width = box.width | 0; }
+  if (cv.height !== ((box.height - 24) | 0)) { cv.height = Math.max(200, (box.height - 24) | 0); }
+  const g = cv.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  g.fillStyle = '#04070c'; g.fillRect(0, 0, cv.width, cv.height);
+  const lv = MS.level && msLevels()[MS.level];
+  if (lv) msDrawLevel(g, cv, lv);
+  else msDrawWorld(g, cv);
+  raf = requestAnimationFrame(() => msLoop(cv));
+}
+function msDrawWorld(g, cv) {
+  // lazily build the 1px/tile base image, a band of rows per frame
+  if (!MS.base) { MS.base = document.createElement('canvas'); MS.base.width = WORLD_W; MS.base.height = WORLD_H; MS.baseRows = 0; computeWorld(); }
+  if (MS.baseRows < WORLD_H) {
+    const bg = MS.base.getContext('2d');
+    const until = Math.min(WORLD_H, MS.baseRows + 48);
+    for (let y = MS.baseRows; y < until; y++) for (let x = 0; x < WORLD_W; x++) { bg.fillStyle = msPixel(x, y); bg.fillRect(x, y, 1, 1); }
+    MS.baseRows = until;
+  }
+  const z = MS.vp.z;
+  const sx = MS.vp.x - cv.width / 2 / z, sy = MS.vp.y - cv.height / 2 / z;
+  g.drawImage(MS.base, sx, sy, cv.width / z, cv.height / z, 0, 0, cv.width, cv.height);
+  const toScr = (tx, ty) => [(tx - sx) * z, (ty - sy) * z];
+  // nodes render as sprites once you're close enough to work with them
+  if (z >= 10) {
+    const { nodes } = computeWorld();
+    const x0 = Math.floor(sx), x1 = Math.ceil(sx + cv.width / z), y0 = Math.floor(sy), y1 = Math.ceil(sy + cv.height / z);
+    g.strokeStyle = 'rgba(255,255,255,0.05)';
+    for (let x = x0; x <= x1; x++) { const [px] = toScr(x, 0); g.beginPath(); g.moveTo(px, 0); g.lineTo(px, cv.height); g.stroke(); }
+    for (let y = y0; y <= y1; y++) { const [, py] = toScr(0, y); g.beginPath(); g.moveTo(0, py); g.lineTo(cv.width, py); g.stroke(); }
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const n = msNodeAt(x, y);
+      if (!n) continue;
+      const [px, py] = toScr(x, y);
+      const th = msThumb(n);
+      g.drawImage(th, px + z / 2 - z * 0.45, py + z / 2 - z * 0.7, z * 0.9, z * 0.9);
+    }
+  } else {
+    // far out: pending node edits ping as gold dots so nothing gets lost
+    for (const [k, v] of Object.entries(MS.pending.nodes)) {
+      const [x, y] = k.split(',').map(Number); const [px, py] = toScr(x, y);
+      g.fillStyle = v === null ? '#f8514988' : '#e3b341';
+      g.fillRect(px - 1, py - 1, 3, 3);
+    }
+  }
+  // town labels keep you oriented
+  g.font = '11px monospace'; g.textAlign = 'center';
+  for (const key in TOWNS) {
+    const t = TOWNS[key]; const [px, py] = toScr(t.cx, t.cy);
+    if (px < 0 || py < 0 || px > cv.width || py > cv.height) continue;
+    g.fillStyle = '#00000090'; g.fillRect(px - 34, py - 8, 68, 13);
+    g.fillStyle = '#e3b341'; g.fillText(t.name || key, px, py + 2);
+  }
+  if (MS.mobMode && state.spawns) msDrawZones(g, toScr);
+  // cursor tile + status readout
+  if (MS.mouse) {
+    const [tx, ty] = msScreenToTile(cv, MS.mouse[0], MS.mouse[1]);
+    const [px, py] = toScr(tx, ty);
+    g.strokeStyle = '#e3b341'; g.strokeRect(px, py, z, z);
+    const st = $('#ms-status');
+    if (st) {
+      const n = msNodeAt(tx, ty);
+      st.textContent = `${tx},${ty} — ${TILE_NAME[msTileAt(tx, ty)] || '?'} h${msElevAt(tx, ty)} · ${regionAt(tx, ty)}${n ? ' · ' + n : ''}` +
+        `  |  tool: ${MS.mobMode ? 'mob mode' : MS.tool}${MS.tool === 'node' ? ' (' + MS.node + ')' : ''}  |  zoom ${z.toFixed(1)}px/tile${msPendingCount() ? `  |  ✎ ${msPendingCount()} unsaved` : ''}`;
+    }
+  }
+}
+function msDrawZones(g, toScr) {
+  for (const zn of state.spawns.spawns || []) {
+    const [px, py] = toScr(zn.x, zn.y);
+    const r = Math.max(4, zn.r * MS.vp.z);
+    g.beginPath(); g.arc(px, py, r, 0, 7);
+    g.fillStyle = zn === MS.zoneSel ? 'rgba(227,179,65,0.25)' : 'rgba(248,81,73,0.12)';
+    g.fill();
+    g.strokeStyle = zn === MS.zoneSel ? '#e3b341' : '#f8514966'; g.stroke();
+    if (MS.vp.z >= 3) { g.fillStyle = '#ffb8b2'; g.font = '10px monospace'; g.textAlign = 'center'; g.fillText(`${zn.mob}×${zn.n}`, px, py - r - 3); }
+  }
+  for (const b of state.spawns.bosses || []) {
+    const [px, py] = toScr(b.x, b.y);
+    g.fillStyle = '#e3b341'; g.font = `${Math.max(10, MS.vp.z * 1.4)}px monospace`; g.textAlign = 'center';
+    g.fillText('★', px, py + 4);
+    if (MS.vp.z >= 3) { g.font = '10px monospace'; g.fillText(b.mob, px, py + 16); }
+  }
+}
+function msDrawLevel(g, cv, lv) {
+  const z = MS.vp.z;
+  const sx = MS.vp.x - cv.width / 2 / z, sy = MS.vp.y - cv.height / 2 / z;
+  const cur = MS.pending.levels[MS.level] || lv;
+  for (let y = 0; y < lv.size; y++) for (let x = 0; x < lv.size; x++) {
+    const border = x === 0 || y === 0 || x === lv.size - 1 || y === lv.size - 1;
+    const t = border ? TILE.WALL : (cur.tiles?.[msKey(x, y)] ?? lv.fill ?? TILE.CAVE);
+    const c = TILE_RGB[t] || [200, 0, 200];
+    g.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
+    g.fillRect((x - sx) * z, (y - sy) * z, z + 1, z + 1);
+  }
+  if (MS.mouse) {
+    const [tx, ty] = msScreenToTile(cv, MS.mouse[0], MS.mouse[1]);
+    g.strokeStyle = '#e3b341'; g.strokeRect((tx - sx) * z, (ty - sy) * z, z, z);
+    const st = $('#ms-status');
+    if (st) st.textContent = `level ${MS.level} — ${tx},${ty} · ${lv.size}×${lv.size} · terrain painting only${msPendingCount() ? `  |  ✎ ${msPendingCount()} unsaved` : ''}`;
+  }
+}
+
+// ============================================================================
+// COMPOSITOR — Creation menu: build new items by layering, transforming,
+// mirroring and tinting existing game art. Saved items register into ITEMS on
+// the server (usable via give/drops) and clients compose the icon on load.
+// ============================================================================
+const CC = { name: 'My relic', value: 100, layers: [], sel: -1, pick: false, q: '' };
+function ccCompose(g, size = 128) {
+  g.clearRect(0, 0, size, size);
+  const s = size / 32;
+  g.imageSmoothingEnabled = false;
+  for (const l of CC.layers) {
+    g.save();
+    g.translate((16 + (l.x || 0)) * s, (16 + (l.y || 0)) * s);
+    g.rotate((l.rot || 0) * Math.PI / 180);
+    g.scale((l.mx ? -1 : 1) * (l.scale || 1), (l.my ? -1 : 1) * (l.scale || 1));
+    g.globalAlpha = l.alpha ?? 1;
+    g.drawImage(itemIcon(l.id), -16 * s, -16 * s, 32 * s, 32 * s);
+    g.restore();
+  }
+}
+function renderCompCreate() {
+  const body = $('#comp-body');
+  const items = state.customItems || {};
+  body.innerHTML = `<div class="cc-wrap">
+    <div class="cc-left">
+      <canvas id="cc-preview" width="128" height="128"></canvas>
+      <div class="ms-row">name <input id="cc-name" value="${CC.name}"></div>
+      <div class="ms-row">value <input id="cc-value" type="number" value="${CC.value}" style="width:80px"></div>
+      <div class="ms-row"><button class="act" id="cc-save" style="flex:1">💾 Save item</button></div>
+      <h3 style="color:var(--gold);font-size:12px;margin-top:14px">Saved custom items</h3>
+      <div style="font-size:11.5px;max-width:220px">${Object.entries(items).map(([id, d]) => `<div style="display:flex;justify-content:space-between;padding:2px 0"><span>${d.name}</span><button class="act" data-rm="${id}" style="padding:0 6px">✕</button></div>`).join('') || '<i style="color:var(--dim)">none yet</i>'}</div>
+    </div>
+    <div class="cc-layers">
+      <div class="ms-row"><button class="act" id="cc-add">＋ add layer from game items</button></div>
+      <div id="cc-picker" style="display:${CC.pick ? 'block' : 'none'}">
+        <input id="cc-q" placeholder="filter items…" value="${CC.q}" style="width:100%;margin-bottom:6px">
+        <div class="grid" id="cc-grid" style="max-height:220px;overflow:auto"></div>
+      </div>
+      <div id="cc-list"></div>
+    </div>
+  </div>`;
+  const pv = $('#cc-preview').getContext('2d');
+  const redraw = () => ccCompose(pv);
+  redraw();
+  $('#cc-name').oninput = (e) => CC.name = e.target.value;
+  $('#cc-value').oninput = (e) => CC.value = +e.target.value || 1;
+  $('#cc-add').onclick = () => { CC.pick = !CC.pick; renderCompCreate(); };
+  $('#cc-save').onclick = () => {
+    if (!CC.layers.length) return alert('add at least one layer');
+    send({ t: 'customItems', create: { id: CC.name, name: CC.name, value: CC.value, layers: CC.layers } });
+  };
+  for (const b of body.querySelectorAll('[data-rm]')) b.onclick = () => send({ t: 'customItems', remove: b.dataset.rm });
+  if (CC.pick) {
+    const fill = () => {
+      const grid = $('#cc-grid'); grid.innerHTML = '';
+      for (const id of Object.keys(ITEMS)) {
+        if (CC.q && !id.includes(CC.q)) continue;
+        grid.appendChild(cellDiv(id, scaled(itemIcon(id), 34), () => { CC.layers.push({ id, x: 0, y: 0, scale: 1, rot: 0, mx: 0, my: 0, alpha: 1 }); CC.sel = CC.layers.length - 1; CC.pick = false; renderCompCreate(); }));
+        if (grid.children.length > 120) break;
+      }
+    };
+    $('#cc-q').oninput = (e) => { CC.q = e.target.value.toLowerCase(); fill(); };
+    fill();
+  }
+  const list = $('#cc-list');
+  list.innerHTML = CC.layers.map((l, i) => `<div class="cc-layer">
+    <b>${i + 1}. ${l.id}</b>
+    <button class="act" data-up="${i}" style="padding:0 6px">▲</button><button class="act" data-dn="${i}" style="padding:0 6px">▼</button>
+    <button class="act" data-del="${i}" style="padding:0 6px;float:right">✕</button>
+    <div class="ms-row">x <input data-f="x" data-i="${i}" type="range" min="-16" max="16" value="${l.x}"> y <input data-f="y" data-i="${i}" type="range" min="-16" max="16" value="${l.y}"></div>
+    <div class="ms-row">scale <input data-f="scale" data-i="${i}" type="range" min="0.2" max="3" step="0.05" value="${l.scale}"> rot <input data-f="rot" data-i="${i}" type="range" min="-180" max="180" value="${l.rot}"></div>
+    <div class="ms-row">alpha <input data-f="alpha" data-i="${i}" type="range" min="0.1" max="1" step="0.05" value="${l.alpha}">
+      <label><input data-f="mx" data-i="${i}" type="checkbox" ${l.mx ? 'checked' : ''}> mirror↔</label>
+      <label><input data-f="my" data-i="${i}" type="checkbox" ${l.my ? 'checked' : ''}> mirror↕</label></div>
+  </div>`).join('') || '<i style="color:var(--dim)">no layers — add one to begin compositing</i>';
+  for (const inp of list.querySelectorAll('input')) inp.oninput = () => {
+    const l = CC.layers[+inp.dataset.i];
+    l[inp.dataset.f] = inp.type === 'checkbox' ? (inp.checked ? 1 : 0) : +inp.value;
+    redraw();
+  };
+  for (const b of list.querySelectorAll('[data-del]')) b.onclick = () => { CC.layers.splice(+b.dataset.del, 1); renderCompCreate(); };
+  for (const b of list.querySelectorAll('[data-up]')) b.onclick = () => { const i = +b.dataset.up; if (i > 0) { [CC.layers[i - 1], CC.layers[i]] = [CC.layers[i], CC.layers[i - 1]]; renderCompCreate(); } };
+  for (const b of list.querySelectorAll('[data-dn]')) b.onclick = () => { const i = +b.dataset.dn; if (i < CC.layers.length - 1) { [CC.layers[i + 1], CC.layers[i]] = [CC.layers[i], CC.layers[i + 1]]; renderCompCreate(); } };
+  if (!state.customItems) send({ t: 'customItems' });
+}
+
+// ============================================================================
+// COMPOSITOR — Animations creator: scrub any creature animation frame by frame
+// and layer FX over it, positioning each layer per frame by clicking the stage.
+// A layer labelled 'projectile' smart-tracks: after its last frame it launches
+// out of the animation toward the target, exactly as the game renders it.
+// ============================================================================
+const CA = { base: '', anim: 'attack', frame: 0, play: false, layers: [], sel: -1, name: 'special_attack' };
+function caTotal(def, m) {
+  if (!def || !m) return 1;
+  return (def.kind === 'grid' && m.rows > 1 && !m.cols) ? m.frames : m.cols ? m.frames : m.frames * (m.rows > 1 ? m.rows : 1);
+}
+function renderCompAnims() {
+  const body = $('#comp-body');
+  const creatures = Object.keys(MEDIA.creatures || {}).sort();
+  if (!CA.base) CA.base = creatures.find(c => c.startsWith('dragon')) || creatures[0] || '';
+  const def = MEDIA.creatures?.[CA.base];
+  const anims = def ? Object.keys(def.anims) : [];
+  if (def && !def.anims[CA.anim]) CA.anim = anims[0];
+  const m = def?.anims[CA.anim];
+  const total = caTotal(def, m);
+  const savedA = state.customAnims || {};
+  body.innerHTML = `<div class="cc-wrap">
+    <div class="cc-left">
+      <canvas id="ca-canvas" width="300" height="260"></canvas>
+      <div class="ms-row">frame <input id="ca-frame" type="range" min="0" max="${total - 1}" value="${Math.min(CA.frame, total - 1)}" style="flex:1"> <span id="ca-fno">${CA.frame}/${total - 1}</span></div>
+      <div class="ms-row"><button class="act" id="ca-play">${CA.play ? '⏸ pause' : '▶ play'}</button>
+        <span style="font-size:10.5px;color:var(--dim)">click the stage to place the selected FX at this frame</span></div>
+      <div class="ms-row">id <input id="ca-name" value="${CA.name}"></div>
+      <div class="ms-row"><button class="act" id="ca-save" style="flex:1">💾 Save animation</button></div>
+      <h3 style="color:var(--gold);font-size:12px;margin-top:10px">Saved animations</h3>
+      <div style="font-size:11.5px">${Object.entries(savedA).map(([id, d]) => `<div style="display:flex;justify-content:space-between;padding:2px 0"><span>${id} <small style="color:var(--dim)">${d.base}:${d.anim}</small></span><button class="act" data-rma="${id}" style="padding:0 6px">✕</button></div>`).join('') || '<i style="color:var(--dim)">none yet</i>'}</div>
+    </div>
+    <div class="cc-layers">
+      <div class="ms-row">creature <select id="ca-base">${creatures.map(c => `<option ${c === CA.base ? 'selected' : ''}>${c}</option>`).join('')}</select>
+        anim <select id="ca-anim">${anims.map(a => `<option ${a === CA.anim ? 'selected' : ''}>${a}</option>`).join('')}</select></div>
+      <div class="ms-row"><select id="ca-fx">${Object.keys(MEDIA.fx || {}).sort().flatMap(k => Array.from({ length: MEDIA.fx[k].variants || 1 }, (_, v) => `<option>${k}:${v}</option>`)).join('')}</select>
+        <button class="act" id="ca-add">＋ layer this effect</button></div>
+      <div id="ca-list"></div>
+    </div>
+  </div>`;
+  const cv = $('#ca-canvas');
+  const g = cv.getContext('2d');
+  $('#ca-base').onchange = (e) => { CA.base = e.target.value; CA.layers = []; renderCompAnims(); };
+  $('#ca-anim').onchange = (e) => { CA.anim = e.target.value; CA.frame = 0; renderCompAnims(); };
+  $('#ca-frame').oninput = (e) => { CA.frame = +e.target.value; CA.play = false; $('#ca-fno').textContent = `${CA.frame}/${total - 1}`; };
+  $('#ca-play').onclick = () => { CA.play = !CA.play; $('#ca-play').textContent = CA.play ? '⏸ pause' : '▶ play'; };
+  $('#ca-name').oninput = (e) => CA.name = e.target.value;
+  $('#ca-add').onclick = () => {
+    const fx = $('#ca-fx').value; if (!fx) return;
+    CA.layers.push({ fx, from: 0, to: total - 1, size: 48, label: '', projectile: 0, offsets: { 0: [0, -30] } });
+    CA.sel = CA.layers.length - 1;
+    renderCompAnims();
+  };
+  $('#ca-save').onclick = () => {
+    if (!CA.layers.length) return alert('add at least one FX layer');
+    send({ t: 'customAnims', create: { id: CA.name, base: CA.base, anim: CA.anim, layers: CA.layers } });
+  };
+  for (const b of body.querySelectorAll('[data-rma]')) b.onclick = () => send({ t: 'customAnims', remove: b.dataset.rma });
+  cv.onclick = (e) => {   // position the selected layer's FX at the current frame
+    if (CA.sel < 0 || !CA.layers[CA.sel]) return;
+    const r = cv.getBoundingClientRect();
+    const dx = (e.clientX - r.left) - 150, dy = (e.clientY - r.top) - 210;
+    CA.layers[CA.sel].offsets[CA.frame] = [Math.round(dx), Math.round(dy)];
+    renderCaList();
+  };
+  const renderCaList = () => {
+    const list = $('#ca-list');
+    list.innerHTML = CA.layers.map((l, i) => `<div class="cc-layer" style="${i === CA.sel ? 'border-color:var(--gold)' : ''}">
+      <b data-sel="${i}" style="cursor:pointer">${i + 1}. ${l.fx}</b> <button class="act" data-dela="${i}" style="padding:0 6px;float:right">✕</button>
+      <div class="ms-row">from <input data-af="from" data-ai="${i}" type="number" min="0" max="${total - 1}" value="${l.from}" style="width:52px">
+        to <input data-af="to" data-ai="${i}" type="number" min="0" max="${total - 1}" value="${l.to}" style="width:52px">
+        size <input data-af="size" data-ai="${i}" type="number" min="8" max="200" value="${l.size}" style="width:56px"></div>
+      <div class="ms-row">label <input data-af="label" data-ai="${i}" value="${l.label}" placeholder="e.g. projectile" style="flex:1"></div>
+      <div style="font-size:10.5px;color:${l.projectile ? 'var(--green)' : 'var(--dim)'}">${l.projectile ? '⤿ smart tracking ON — launches as a projectile after its last frame' : 'keyed positions: ' + Object.keys(l.offsets).join(', ')}</div>
+    </div>`).join('') || '<i style="color:var(--dim)">no FX layers yet</i>';
+    for (const b of list.querySelectorAll('[data-sel]')) b.onclick = () => { CA.sel = +b.dataset.sel; renderCaList(); };
+    for (const b of list.querySelectorAll('[data-dela]')) b.onclick = () => { CA.layers.splice(+b.dataset.dela, 1); CA.sel = -1; renderCompAnims(); };
+    for (const inp of list.querySelectorAll('input')) inp.oninput = () => {
+      const l = CA.layers[+inp.dataset.ai];
+      const f = inp.dataset.af;
+      l[f] = f === 'label' ? inp.value : +inp.value;
+      if (f === 'label') l.projectile = /projectile/i.test(inp.value) ? 1 : 0;   // smart tracking
+      renderCaList();
+    };
+  };
+  renderCaList();
+  let lastAdv = 0;
+  const fake = { id: 7, dir: 2, hp: 1 };
+  const loop = (now) => {
+    if (view !== 'comp' || compMode !== 'anims' || !document.body.contains(cv)) return;
+    if (CA.play && now - lastAdv > 130) { CA.frame = (CA.frame + 1) % (total + (CA.layers.some(l => l.projectile) ? 6 : 0)); lastAdv = now; const s = $('#ca-frame'); if (s) { s.value = Math.min(CA.frame, total - 1); $('#ca-fno').textContent = `${Math.min(CA.frame, total - 1)}/${total - 1}`; } }
+    g.clearRect(0, 0, 300, 260);
+    g.fillStyle = '#23422a'; g.fillRect(0, 0, 300, 260);
+    g.strokeStyle = '#ffffff22'; g.strokeRect(150 - 40, 210 - 60, 80, 60);   // target dummy zone
+    if (def && m) {
+      const fi = Math.min(CA.frame, total - 1);
+      drawFrame(g, def, m, fake, CA.anim, now, 150, 210, 1.6, fi);
+      for (const l of CA.layers) {
+        if (CA.frame >= l.from && CA.frame <= l.to) {
+          const [dx, dy] = customLayerPos(l, CA.frame);
+          drawFxSprite(g, l.fx, (CA.frame - l.from) / Math.max(1, l.to - l.from), 150 + dx, 210 + dy, l.size);
+        } else if (l.projectile && CA.frame > l.to) {
+          const t = Math.min(1, (CA.frame - l.to) / 6);
+          const [dx, dy] = customLayerPos(l, l.to);
+          g.save(); g.globalAlpha = 1 - t * 0.5;
+          drawFxSprite(g, l.fx, t, 150 + dx + t * 130, 210 + dy - t * 12, l.size);
+          g.restore();
+        }
+      }
+    }
+    raf = requestAnimationFrame(loop);
+  };
+  raf = requestAnimationFrame(loop);
+  if (!state.customAnims) send({ t: 'customAnims' });
 }
 
 connect();

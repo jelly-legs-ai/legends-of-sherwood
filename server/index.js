@@ -7,6 +7,8 @@ import { WebSocketServer } from 'ws';
 import { World } from './game/world.js';
 import { handleMessage, onDisconnect, installHooks } from './game/handlers.js';
 import { handleAdminMessage } from './game/admin.js';
+import { applyMapOverrides } from '../shared/mapgen.js';
+import { registerCustomItems } from '../shared/data/items.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -66,6 +68,14 @@ const server = http.createServer((req, res) => {
     });
     return;
   }
+  // Live world data authored in the admin studio: map overrides + custom
+  // items/anims. Served to every game client so both sides share one world.
+  if (url === '/map-overrides.json' || url === '/custom-items.json' || url === '/custom-anims.json') {
+    return fs.readFile(path.join(DATA_DIR, url.slice(1)), (err, data) => {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' });
+      res.end(err ? '{}' : data);
+    });
+  }
   // Admin dev-studio (key-gated; the page itself holds no secrets)
   if (url === '/admin') {
     if (!adminOk(req.url)) { res.writeHead(403); return res.end('admin key required (?key=…)'); }
@@ -91,6 +101,14 @@ const server = http.createServer((req, res) => {
 const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, 'data');
 const world = new World(DATA_DIR);
 await world.init();          // load durable store (Postgres or hardened files) before serving
+// Map Studio overrides + custom content authored in the admin studio apply
+// before the world spawns so collision, nodes and levels agree everywhere.
+const loadJson = (f) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return null; } };
+world.mapOverrides = loadJson(path.join(DATA_DIR, 'map-overrides.json')) || { tiles: {}, elev: {}, nodes: {}, levels: {} };
+applyMapOverrides(world.mapOverrides);
+world.customItems = loadJson(path.join(DATA_DIR, 'custom-items.json')) || {};
+registerCustomItems(world.customItems);
+world.customAnims = loadJson(path.join(DATA_DIR, 'custom-anims.json')) || {};
 installHooks(world);
 world.start();
 
