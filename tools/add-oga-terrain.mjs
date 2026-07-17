@@ -130,20 +130,25 @@ function save(name, im, group = 'trees') {
   }
 }
 
-// ---- waterfalls: 4-frame body + plunge strips from wateranimate2 -------------
+// ---- waterfalls: 4-frame lip + tall scrolling body + plunge strips -----------
+// The client scrolls the 64px body band downward through the frame cycle so the
+// water genuinely pours; the lip band carries the bright over-the-edge streaks
+// and the base the plunge + splash ring.
 {
   const im = decode(fs.readFileSync(path.join(O, 'lpc-animated-water-and-waterfalls/wateranimate2.png')));
   const COLS = [17, 111, 209, 304];       // left edge of each 64px frame column
-  const mids = [], bases = [];
+  const tops = [], mids = [], bases = [];
   COLS.forEach((x0, f) => {
-    const mid = crop(im, x0, 56, 64, 32);   // mid-body slice (tileable fall)
+    const top = crop(im, x0, 6, 64, 34);    // the lip: bright streaks over the edge
+    const mid = crop(im, x0, 40, 64, 64);   // tall body band (scrolled by the client)
     const base = crop(im, x0, 112, 64, 52); // plunge + splash ring
+    fs.writeFileSync(path.join(ENV, `waterfall_top_${f}.png`), encode(top.w, top.h, top.data));
     fs.writeFileSync(path.join(ENV, `waterfall_mid_${f}.png`), encode(mid.w, mid.h, mid.data));
     fs.writeFileSync(path.join(ENV, `waterfall_base_${f}.png`), encode(base.w, base.h, base.data));
-    mids.push(`env/waterfall_mid_${f}.png`); bases.push(`env/waterfall_base_${f}.png`);
-    console.log(`waterfall frame ${f}`, 'mid 64x32 base 64x52');
+    tops.push(`env/waterfall_top_${f}.png`); mids.push(`env/waterfall_mid_${f}.png`); bases.push(`env/waterfall_base_${f}.png`);
+    console.log(`waterfall frame ${f}`, 'top 64x34 mid 64x64 base 64x52');
   });
-  media.sheets.waterfall = { mid: mids, base: bases };
+  media.sheets.waterfall = { top: tops, mid: mids, base: bases };
 }
 
 // ---- open-water sparkle: bright ripple pixels -> squashed diamond overlays ---

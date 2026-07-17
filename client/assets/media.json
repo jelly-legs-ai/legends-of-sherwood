@@ -4019,6 +4019,12 @@
    ]
   },
   "waterfall": {
+   "top": [
+    "env/waterfall_top_0.png",
+    "env/waterfall_top_1.png",
+    "env/waterfall_top_2.png",
+    "env/waterfall_top_3.png"
+   ],
    "mid": [
     "env/waterfall_mid_0.png",
     "env/waterfall_mid_1.png",

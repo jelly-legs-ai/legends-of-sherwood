@@ -438,31 +438,55 @@ function fallStatic(dark = 0) {
   _fallStatic.set(dark, c);
   return c;
 }
-const _fallAnim = new Map();       // 'mid' | 'base' -> [4 frames]
+const _fallAnim = new Map();       // 'top' | 'mid0' | 'mid1' | 'base' -> [8 frames]
 let _fallLPC = false;              // flips true (and rebuilds) once the LPC frames load
 function fallAnim(kind) {
   // upgrade to the LPC animated-waterfall frames once their images stream in
   const wf = MEDIA.sheets?.waterfall;
   if (wf && !_fallLPC) {
-    const imgs = [...wf.mid, ...wf.base].map(f => mimg(f));
+    const imgs = [...(wf.top || []), ...wf.mid, ...wf.base].map(f => mimg(f));
     if (imgs.every(im => im && im.complete && im.naturalWidth)) { _fallLPC = true; _fallAnim.clear(); }
   }
   let fr = _fallAnim.get(kind);
   if (fr) return fr;
   fr = [];
-  for (let f = 0; f < 4; f++) {
+  for (let f = 0; f < 8; f++) {
     const c = document.createElement('canvas'); c.width = 64; c.height = 64;
     const g = c.getContext('2d');
     g.save(); skirtPath(g); g.clip();
     if (_fallLPC) {
-      // LPC pixel water pouring down the cliff column
-      const im = mimg(kind === 'base' ? wf.base[f] : wf.mid[f]);
-      g.globalAlpha = 0.92;
-      if (kind === 'base') g.drawImage(im, 0, 12, 64, 52);
-      else { g.drawImage(im, 0, 16, 64, 32); g.drawImage(im, 0, 47, 64, 32); }
+      // The pour: the 64px body band slides DOWNWARD 8px per frame (a full
+      // wrap over the 8-frame cycle) while the pack's own ripple animates on
+      // top of it. Stacked cliff segments alternate mid0/mid1 so the band
+      // phase lines up across segment seams and the fall reads as one sheet.
+      const pf = f & 3;                                  // pack ripple frame
+      // odd cliff segments (the lip sits at k=1) shift the band half a wrap so
+      // the sheet is continuous across the 32px segment seams
+      const phase = (kind === 'mid1' || kind === 'top') ? 32 : 0;
+      const off = (f * 8 + phase) % 64;
+      const body = mimg(wf.mid[pf]);
+      g.globalAlpha = 0.95;
+      const yb = 16 - off;
+      g.drawImage(body, 0, yb - 64, 64, 64);
+      g.drawImage(body, 0, yb, 64, 64);
+      g.drawImage(body, 0, yb + 64, 64, 64);
+      if (kind === 'top' && wf.top) {
+        // the lip stays pinned at the edge while the water below it scrolls
+        g.drawImage(mimg(wf.top[pf]), 0, 12, 64, 34);
+      }
+      if (kind === 'base') {
+        // plunge pool: splash ring over the scrolled body, plus churn foam
+        g.drawImage(mimg(wf.base[pf]), 0, 12, 64, 52);
+        const rnd = mulberry(977 + f * 31);
+        for (let i = 0; i < 8; i++) {
+          const x = 4 + rnd() * 56, y = 46 + rnd() * 16;
+          g.fillStyle = `rgba(240,250,255,${0.2 + rnd() * 0.3})`;
+          g.beginPath(); g.arc(x, y, 1.5 + rnd() * 2.5, 0, 7); g.fill();
+        }
+      }
       g.globalAlpha = 1;
-      g.fillStyle = 'rgba(255,255,255,0.15)';  // mist at the lip
-      g.fillRect(0, 16, 64, 4);
+      g.fillStyle = 'rgba(255,255,255,0.16)';  // mist where the water breaks the lip
+      if (kind === 'top') g.fillRect(0, 14, 64, 4);
     } else {
       // falling streaks, phase-shifted downward each frame so the water pours
       for (let i = 0; i < 9; i++) {
@@ -987,9 +1011,11 @@ export class Renderer {
             for (let e = 0; e < 4; e++) if (w.em & (1 << e)) ctx.drawImage(foam[e][f2], sx, sy);
           }
           if (w.drop) {   // pouring waterfall down the cliff face
-            const ff = ((now / 130 + w.ph) | 0) & 3;
-            for (let k = 1; k <= w.drop; k++)
-              ctx.drawImage(fallAnim(k === w.drop ? 'base' : 'mid')[ff], sx, sy + k * ESTEP);
+            const ff = ((now / 90 + w.ph) | 0) & 7;
+            for (let k = 1; k <= w.drop; k++) {
+              const kind = k === w.drop ? 'base' : k === 1 ? 'top' : 'mid' + (k & 1);
+              ctx.drawImage(fallAnim(kind)[ff], sx, sy + k * ESTEP);
+            }
           }
         }
       }
