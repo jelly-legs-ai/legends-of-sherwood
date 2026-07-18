@@ -6,11 +6,54 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { MSG, SHILLING, MILESTONE_LEVELS, MILESTONE_SHILLINGS } from '../../shared/constants.js';
-import { ITEMS, registerCustomItems } from '../../shared/data/items.js';
+import { ITEMS, registerCustomItems, itemName } from '../../shared/data/items.js';
 import { MOBS, armCustomAnims } from '../../shared/data/mobs.js';
+import { RECIPES } from '../../shared/data/skills.js';
+import { QUESTS } from '../../shared/data/quests.js';
 import { XP_TABLE, PLANE } from '../../shared/constants.js';
 import { applyMapOverrides, MAP_OVERRIDES } from '../../shared/mapgen.js';
 import { SPAWNS, BOSS_SPAWNS } from '../../shared/data/world.js';
+
+// ---------------------------------------------------------------------------
+// Deployed-gear source wiring. A gear item's `sources` block declares where it
+// enters the world; these apply it to the live runtime tables (idempotent, so
+// re-deploying or booting never duplicates a drop / recipe).
+export function wireCustomSources(entry, id) {
+  const s = entry?.sources || {};
+  for (const d of s.drops || []) {
+    const m = MOBS[d.id]; if (!m) continue;
+    m.drops = (m.drops || []).filter((row) => row[0] !== id);   // drop any prior copy
+    m.drops.push([id, 1, Math.max(0.0001, Math.min(1, +d.rate || 0))]);
+  }
+  const r = s.craft;
+  const rid = `craft_custom_${id}`;
+  const idx = RECIPES.findIndex((x) => x.id === rid); if (idx >= 0) RECIPES.splice(idx, 1);
+  if (r && r.inputs && Object.keys(r.inputs).length) {
+    RECIPES.push({ id: rid, skill: r.skill || 'smithing', lvl: Math.max(1, r.lvl | 0) || 1,
+      xp: r.xp || (20 + (r.lvl | 0) * 4), station: r.station || 'anvil',
+      inputs: r.inputs, output: { [id]: 1 }, name: entry.name || id });
+  }
+}
+export function unwireCustomSources(id) {
+  for (const m of Object.values(MOBS)) if (m.drops) m.drops = m.drops.filter((row) => row[0] !== id);
+  const idx = RECIPES.findIndex((x) => x.id === `craft_custom_${id}`); if (idx >= 0) RECIPES.splice(idx, 1);
+}
+// Every place items enter the world, categorized for the admin drop-table browser
+// and the deploy form's source pickers.
+export function dropTableSummary() {
+  const mobRow = (id, m) => ({ id, name: m.name || id, lvl: m.lvl || 0,
+    drops: (m.drops || []).map(([item, qty, chance]) => ({ item, name: itemName(item), qty, chance })) });
+  const mobs = [], bosses = [];
+  for (const [id, m] of Object.entries(MOBS)) (m.boss ? bosses : mobs).push(mobRow(id, m));
+  mobs.sort((a, b) => a.lvl - b.lvl); bosses.sort((a, b) => a.lvl - b.lvl);
+  const quests = Object.entries(QUESTS).map(([id, q]) => ({ id, name: q.name || id,
+    items: Object.entries(q.rewards?.items || {}).map(([item, qty]) => ({ item, name: itemName(item), qty })),
+    coins: q.rewards?.coins || 0, shillings: q.rewards?.shillings || 0 }))
+    .filter((q) => q.items.length || q.coins || q.shillings);
+  const recipes = RECIPES.filter((r) => r.output).map((r) => ({ id: r.id, name: r.name, skill: r.skill, lvl: r.lvl,
+    station: r.station || null, output: Object.keys(r.output)[0], inputs: r.inputs }));
+  return { mobs, bosses, quests, recipes };
+}
 
 const HELP = [
   'players — list online players',
@@ -257,8 +300,16 @@ export function handleAdminMessage(world, ws, msg) {
         try { fs.writeFileSync(path.join(world.dataDir, 'custom-items.json'), JSON.stringify(world.customItems, null, 1)); } catch { }
         world.vault.alert('event', `admin created custom item '${id}'`);
       }
-      if (msg.remove) { delete world.customItems[msg.remove]; delete ITEMS[msg.remove]; try { fs.writeFileSync(path.join(world.dataDir, 'custom-items.json'), JSON.stringify(world.customItems, null, 1)); } catch { } }
+      if (msg.remove) {
+        const rid = msg.remove;
+        delete world.customItems[rid]; delete ITEMS[rid]; unwireCustomSources(rid);
+        try { fs.writeFileSync(path.join(world.dataDir, 'custom-items.json'), JSON.stringify(world.customItems, null, 1)); } catch { }
+      }
       return send({ t: 'customItems', items: world.customItems });
+    }
+    case 'dropTables': {
+      // every source that grants items, for the drop-table browser + deploy form
+      return send({ t: 'dropTables', ...dropTableSummary() });
     }
     case 'customAnims': {
       if (msg.create) {

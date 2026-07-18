@@ -9,7 +9,7 @@ import { MOBS } from '/shared/data/mobs.js';
 import { NPCS } from '/shared/data/npcs.js';
 import { SPELLS, NODES } from '/shared/data/skills.js';
 import { Net } from './net.js';
-import { loadManifest, composite, drawChar } from './sprites.js';
+import { loadManifest, composite, drawChar, registerCustomWeaponArt } from './sprites.js';
 import { loadMedia } from './media.js';
 import { Renderer, drawMinimap, MM_RANGE, flushChunkCache } from './renderer.js';
 import { Fx } from './fx.js';
@@ -42,6 +42,7 @@ async function boot() {
   const [mapOv, customItems, customAnims] = await Promise.all([j('/map-overrides.json'), j('/custom-items.json'), j('/custom-anims.json')]);
   applyMapOverrides(mapOv);
   registerCustomItems(customItems || {});
+  registerCustomWeaponArt(customItems || {});   // deployed gear-sheet weapons render in-world
   registerCustomAnims(customAnims || {});
   computeWorld(); // warm map cache before first frame
   // restore last look

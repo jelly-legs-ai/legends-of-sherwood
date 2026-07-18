@@ -3,7 +3,7 @@
 // creature (animated), FX and equipped weapon through the GAME'S OWN modules —
 // what you preview here is exactly what ships.
 
-import { ITEMS, registerCustomItems } from '/shared/data/items.js';
+import { ITEMS, registerCustomItems, gearGuideline } from '/shared/data/items.js';
 import { MOBS } from '/shared/data/mobs.js';
 import { PETS } from '/shared/data/pets.js';
 import { SPELLS, PRAYERS, NODES } from '/shared/data/skills.js';
@@ -11,7 +11,7 @@ import { TILE } from '/shared/constants.js';
 import { computeWorld, worldTile, heightAt, regionAt, applyMapOverrides, MAP_OVERRIDES, WORLD_W, WORLD_H, syncTile, syncNode } from '/shared/mapgen.js';
 import { SPAWNS, BOSS_SPAWNS, TOWNS } from '/shared/data/world.js';
 import { loadMedia, MEDIA, drawCreature, drawFrame, drawFxSprite, drawFxBand, customLayerPos } from './media.js';
-import { loadManifest, composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS, gearCatalog } from './sprites.js';
+import { loadManifest, composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS, gearCatalog, registerCustomWeaponArt } from './sprites.js';
 import { itemIcon } from './icons.js';
 import { Renderer, flushChunkCache, flushChunkAt } from './renderer.js';
 import { Fx } from './fx.js';
@@ -45,8 +45,9 @@ function onMsg(m) {
   else if (m.t === 'cmd') { state.term.push({ text: m.out, cls: '' }); termOut(m.out); }
   else if (m.t === 'mapedit') { state.mapedit = m.overrides; msOnServerOverrides(m.overrides); }
   else if (m.t === 'spawnzones') { state.spawns = m; if (view === 'map' && MS.mobMode) msSide(); }
-  else if (m.t === 'customItems') { state.customItems = m.items; registerCustomItems(m.items); if (view === 'comp' && compMode === 'create') renderComp(); }
+  else if (m.t === 'customItems') { state.customItems = m.items; registerCustomItems(m.items); registerCustomWeaponArt(m.items); if (view === 'comp' && (compMode === 'create' || compMode === 'gearsheet')) renderComp(); }
   else if (m.t === 'customAnims') { state.customAnims = m.anims; if (view === 'comp' && compMode === 'anims') renderComp(); }
+  else if (m.t === 'dropTables') { state.dropTables = m; if (view === 'drops') render(); if (view === 'comp' && compMode === 'gearsheet') gsFillSources(); }
 }
 
 // ---------------- nav ----------------
@@ -1565,7 +1566,11 @@ const GS = {
   img: null, imgName: '', body: null, gen: null, refs: {},
   x: 0, y: 0, scale: 1, rot: 0, trackRot: true, flipX: false, flipY: false,
   target: 'carry',   // which sheet we're compiling (see GS_TEMPLATES)
+  sheets: {},        // captured PNG dataURLs per target, for deploy
+  deploy: { open: false, kind: 'sword', level: 10, drops: [] },   // deployment-table state
 };
+// capture the current target's generated sheet as a PNG, ready to deploy
+function gsCapture() { if (GS.gen) GS.sheets[GS.target] = GS.gen.toDataURL(); }
 // The reference templates the maker traces. `fs` is the LPC frame size: 'carry'
 // is the weapon's base walk/idle sheet (64px — the game's bg/fg), the attack
 // targets are oversize overlays the game reads as perAnim.{slash,thrust}. For
@@ -1676,6 +1681,11 @@ function renderGearSheet() {
       <canvas id="gs-preview" width="220" height="240" style="background:#23422a;border:1px solid var(--trim);border-radius:6px"></canvas>
       <div style="font-size:11px;color:var(--dim);margin-top:6px">The grip template is the game's own weapon sheet for this animation — your art inherits its exact per-frame hand positions. Align once; the maker fits it to every frame and clips each stamp to its cell.</div>
       <div id="gs-status" style="font-size:11px;color:var(--dim);margin-top:8px"></div>
+      <div id="gs-caps" style="font-size:11px;color:var(--dim);margin-top:4px"></div>
+      <h3 style="color:var(--gold);font-size:12px;margin-top:12px">5 · Ship it</h3>
+      <div class="ms-row"><button class="act" id="gs-deploy-toggle" style="flex:1">🚀 Deploy to the game…</button></div>
+      <div style="font-size:11px;color:var(--dim)">Or use ⬇ PNG (step&nbsp;3) to save the sheet to your files.</div>
+      <div id="gs-deploy"></div>
     </div>
   </div>`;
   gsEnsureRef(GS.target, () => {
@@ -1689,15 +1699,115 @@ function renderGearSheet() {
   $('#gs-track').onchange = (e) => { GS.trackRot = e.target.checked; gsGenerate(); };
   $('#gs-flipx').onchange = (e) => { GS.flipX = e.target.checked; gsGenerate(); };
   $('#gs-flipy').onchange = (e) => { GS.flipY = e.target.checked; gsGenerate(); };
-  $('#gs-gen').onclick = () => { gsGenerate(); $('#gs-status').textContent = GS.gen ? 'sheet generated — see the preview' : 'import an image first'; };
-  $('#gs-dl').onclick = () => { if (!GS.gen) return; const a = document.createElement('a'); a.download = (GS.imgName || 'weapon') + '_' + GS.target + '_lpc.png'; a.href = GS.gen.toDataURL(); a.click(); };
-  for (const b of body.querySelectorAll('[data-gst]')) b.onclick = () => { GS.target = b.dataset.gst; renderGearSheet(); };
+  $('#gs-gen').onclick = () => { gsGenerate(); gsCapture(); gsCaps(); $('#gs-status').textContent = GS.gen ? 'sheet generated & captured — see the preview' : 'import an image first'; };
+  $('#gs-dl').onclick = () => { if (!GS.gen) return; gsCapture(); gsCaps(); const a = document.createElement('a'); a.download = (GS.imgName || 'weapon') + '_' + GS.target + '_lpc.png'; a.href = GS.gen.toDataURL(); a.click(); };
+  // switching targets captures the outgoing sheet first, so a multi-animation
+  // weapon (carry + slash, say) keeps every compiled sheet ready to deploy
+  for (const b of body.querySelectorAll('[data-gst]')) b.onclick = () => { gsCapture(); GS.target = b.dataset.gst; renderGearSheet(); };
+  $('#gs-deploy-toggle').onclick = () => { GS.deploy.open = !GS.deploy.open; renderDeploy(); };
+  if (!state.dropTables) send({ t: 'dropTables' });
+  gsCaps(); renderDeploy();
   // drag on the align canvas moves the base image
   const ac = $('#gs-align'); let drag = null;
   ac.onmousedown = (e) => { drag = { mx: e.offsetX, my: e.offsetY, x: GS.x, y: GS.y }; };
   window.addEventListener('mousemove', (e) => { if (!drag) return; const r = ac.getBoundingClientRect(); const z = 256 / gsTpl().fs; GS.x = drag.x + (e.clientX - r.left - drag.mx) / z; GS.y = drag.y + (e.clientY - r.top - drag.my) / z; $('#gs-x').value = GS.x; $('#gs-y').value = GS.y; gsGenerate(); });
   window.addEventListener('mouseup', () => drag = null);
   gsLoop();
+}
+// which compiled sheets are captured & ready to deploy
+function gsCaps() {
+  const el = $('#gs-caps'); if (!el) return;
+  const have = Object.keys(GS.sheets);
+  el.innerHTML = 'Compiled: ' + Object.keys(GS_TEMPLATES).map(k =>
+    `<span style="color:${have.includes(k) ? 'var(--good,#7ecb5a)' : 'var(--dim)'}">${GS_TEMPLATES[k].label}${have.includes(k) ? ' ✓' : ''}</span>`).join(' · ');
+}
+function gsFillSources() { if (GS.deploy.open) renderDeploy(); }
+// The deployment table — item level → auto-balanced stats (per the shared gear
+// guideline), editable requirements, and the source wiring (drop tables with
+// rate%, a crafting recipe, a quest note). Deploy POSTs the compiled sheet(s) +
+// spec to the server, which saves the art and registers a live equippable item.
+function renderDeploy() {
+  const host = $('#gs-deploy'); if (!host) return;
+  const d = GS.deploy;
+  if (!d.open) { host.innerHTML = ''; return; }
+  if (d.name == null) d.name = (GS.imgName || '').replace(/_/g, ' ').trim() || 'Custom weapon';
+  const gl = gearGuideline(d.kind, d.level);
+  if (!d.value) d.value = gl.value;
+  if (!d.req) d.req = { ...gl.req };
+  const dt = state.dropTables;
+  const mobOpts = (list) => (list || []).map(m => `<option value="${m.id}">${m.name} (lv ${m.lvl})</option>`).join('');
+  const srcSelect = dt
+    ? `<select class="dp-mob" style="flex:1;font-size:11px"><option value="">— pick a source —</option><optgroup label="Bosses">${mobOpts(dt.bosses)}</optgroup><optgroup label="Mobs">${mobOpts(dt.mobs)}</optgroup></select>`
+    : `<span style="font-size:11px;color:var(--dim)">loading sources…</span>`;
+  const kinds = ['sword', 'dagger', 'spear', 'mace', 'waraxe', 'greatsword'];
+  const bonusStr = Object.entries(gl.bonus).map(([k, v]) => `${k} ${v}`).join(', ');
+  const dropRows = d.drops.map((r, i) => `<div class="ms-row" style="gap:4px" data-drow="${i}">
+      <span style="flex:1;font-size:11px;color:var(--fg)">${r.id || '(none)'}</span>
+      <input type="number" class="dp-rate" data-i="${i}" value="${r.rate ?? 2}" min="0" max="100" step="0.1" style="width:56px" title="drop rate %"><span style="font-size:11px">%</span>
+      <button class="act" data-drrm="${i}" style="padding:1px 6px">✕</button></div>`).join('');
+  host.innerHTML = `<div style="margin-top:8px;border:1px solid var(--trim);border-radius:6px;padding:9px;background:#1a2a1c">
+    <div class="ms-row">name <input id="dp-name" value="${d.name.replace(/"/g, '&quot;')}" style="flex:1"></div>
+    <div class="ms-row">weapon <select id="dp-kind" style="flex:1">${kinds.map(k => `<option ${k === d.kind ? 'selected' : ''}>${k}</option>`).join('')}</select></div>
+    <div class="ms-row">item level <input id="dp-level" type="number" min="1" max="99" value="${d.level}" style="width:64px"></div>
+    <div style="font-size:11px;color:var(--dim);margin:2px 0 6px">Auto-balanced: <b style="color:var(--gold)">${bonusStr}</b> · speed ${gl.speed}ms${gl.twoHand ? ' · 2H' : ''} · style ${gl.style}/${gl.anim}</div>
+    <div class="ms-row">value <input id="dp-value" type="number" min="1" value="${d.value}" style="width:90px"> $LoS</div>
+    <div class="ms-row">req: att <input id="dp-req-attack" type="number" min="0" value="${d.req.attack || 0}" style="width:52px">
+      str <input id="dp-req-strength" type="number" min="0" value="${d.req.strength || 0}" style="width:52px">
+      def <input id="dp-req-defence" type="number" min="0" value="${d.req.defence || 0}" style="width:52px"></div>
+    <h4 style="color:var(--gold);font-size:11.5px;margin:8px 0 3px">Drop sources</h4>
+    <div id="dp-droplist">${dropRows || '<div style="font-size:11px;color:var(--dim)">no drop sources — add one below</div>'}</div>
+    <div class="ms-row" style="gap:4px">${srcSelect}<button class="act" id="dp-addrop" style="padding:2px 7px">+ add</button></div>
+    <h4 style="color:var(--gold);font-size:11.5px;margin:8px 0 3px">Crafting recipe <label style="font-weight:normal;font-size:10.5px"><input type="checkbox" id="dp-craft-on" ${d.craftOn ? 'checked' : ''}> enable</label></h4>
+    <div id="dp-craftbox" style="${d.craftOn ? '' : 'display:none'}">
+      <div class="ms-row">skill <select id="dp-craft-skill" style="flex:1">${['smithing', 'crafting', 'fletching'].map(s => `<option ${s === (d.craftSkill || 'smithing') ? 'selected' : ''}>${s}</option>`).join('')}</select>
+        lvl <input id="dp-craft-lvl" type="number" min="1" max="99" value="${d.craftLvl || d.level}" style="width:52px"></div>
+      <div class="ms-row">station <select id="dp-craft-station" style="flex:1">${['anvil', 'furnace', 'none'].map(s => `<option ${s === (d.craftStation || 'anvil') ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
+      <div class="ms-row">materials <input id="dp-craft-mats" value="${d.craftMats || ''}" placeholder="iron_bar:3, coal:2" style="flex:1"></div>
+    </div>
+    <h4 style="color:var(--gold);font-size:11.5px;margin:8px 0 3px">Quest reward (note)</h4>
+    <div class="ms-row"><input id="dp-quest" value="${(d.quest || '').replace(/"/g, '&quot;')}" placeholder="e.g. reward for 'The Sheriff's Bane'" style="flex:1"></div>
+    <div class="ms-row" style="margin-top:8px"><button class="act on" id="dp-deploy" style="flex:1">🚀 Deploy to the game</button></div>
+    <div id="dp-status" style="font-size:11px;color:var(--dim);margin-top:6px"></div>
+  </div>`;
+  $('#dp-name').onchange = (e) => d.name = e.target.value;
+  $('#dp-kind').onchange = (e) => { d.kind = e.target.value; d.value = 0; d.req = null; renderDeploy(); };
+  $('#dp-level').onchange = (e) => { d.level = Math.max(1, Math.min(99, +e.target.value | 0)); d.value = 0; d.req = null; renderDeploy(); };
+  $('#dp-value').onchange = (e) => d.value = Math.max(1, +e.target.value | 0);
+  for (const k of ['attack', 'strength', 'defence']) $(`#dp-req-${k}`).onchange = (e) => { d.req = d.req || {}; d.req[k] = Math.max(0, +e.target.value | 0); };
+  $('#dp-addrop').onclick = () => { const sel = host.querySelector('.dp-mob'); const id = sel && sel.value; if (id && !d.drops.some(x => x.id === id)) d.drops.push({ id, rate: 2 }); renderDeploy(); };
+  for (const b of host.querySelectorAll('[data-drrm]')) b.onclick = () => { d.drops.splice(+b.dataset.drrm, 1); renderDeploy(); };
+  for (const e of host.querySelectorAll('.dp-rate')) e.onchange = () => { d.drops[+e.dataset.i].rate = Math.max(0, Math.min(100, +e.value)); };
+  $('#dp-craft-on').onchange = (e) => { d.craftOn = e.target.checked; renderDeploy(); };
+  for (const [id, k] of [['#dp-craft-skill', 'craftSkill'], ['#dp-craft-lvl', 'craftLvl'], ['#dp-craft-station', 'craftStation'], ['#dp-craft-mats', 'craftMats']]) { const e = $(id); if (e) e.onchange = () => d[k] = e.value; }
+  $('#dp-quest').onchange = (e) => d.quest = e.target.value;
+  $('#dp-deploy').onclick = () => gsDeploy();
+}
+async function gsDeploy() {
+  const d = GS.deploy, st = $('#dp-status');
+  gsCapture();
+  if (!GS.sheets.carry) { st.textContent = '⚠ compile the Walk/carry sheet first (it is the held look).'; return; }
+  const gl = gearGuideline(d.kind, d.level);
+  const req = {}; for (const k of ['attack', 'strength', 'defence']) if (d.req?.[k] > 0) req[k] = d.req[k];
+  const bossIds = new Set((state.dropTables?.bosses || []).map(b => b.id));
+  const craftMats = {};
+  if (d.craftOn && d.craftMats) for (const part of d.craftMats.split(',')) { const [it, q] = part.split(':').map(s => s.trim()); if (it) craftMats[it] = Math.max(1, +q || 1); }
+  const spec = {
+    id: d.name, name: d.name, value: d.value || gl.value,
+    gear: { kind: d.kind, style: gl.style, anim: gl.anim, twoHand: gl.twoHand, speed: gl.speed, color: 'steel', level: d.level, bonus: gl.bonus, req },
+    sources: {
+      drops: d.drops.filter(r => r.id).map(r => ({ src: bossIds.has(r.id) ? 'boss' : 'mob', id: r.id, rate: Math.max(0, +r.rate || 0) / 100 })),
+      craft: d.craftOn && Object.keys(craftMats).length ? { skill: d.craftSkill || 'smithing', lvl: +d.craftLvl || d.level, station: (d.craftStation === 'none' ? null : d.craftStation || 'anvil'), inputs: craftMats } : null,
+      quest: d.quest || null,
+    },
+  };
+  st.textContent = 'deploying…';
+  try {
+    const r = await fetch(`/admin/deploy-gear?key=${encodeURIComponent(key)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ spec, sheets: GS.sheets }) });
+    const txt = await r.text();
+    if (!r.ok) { st.textContent = '✗ ' + txt; return; }
+    const res = JSON.parse(txt);
+    st.innerHTML = `<span style="color:var(--good,#7ecb5a)">✓ deployed as <b>${res.id}</b> — live in the game now.</span>`;
+  } catch (e) { st.textContent = '✗ ' + e.message; }
 }
 function gsLoop() {
   if (view !== 'comp' || compMode !== 'gearsheet') return;

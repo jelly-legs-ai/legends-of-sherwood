@@ -709,12 +709,47 @@ def('elder_heartwood', { name: 'Elder heartwood', value: 12000, material: true, 
 
 export function itemName(id) { return ITEMS[id] ? ITEMS[id].name : id; }
 
+// Deployed-gear balance guideline: the same tier maths the smithed ladders use
+// (stat scale 4+level, per-kind accuracy/strength weighting, value fitted to the
+// copper→sylvan curve) so a studio-made weapon at a given item level sits in
+// line with the rest of the game. The gear sheet maker's deployment table reads
+// this for its auto-balanced stats, and the server re-derives it on deploy.
+export function gearGuideline(kind, level) {
+  const lv = Math.max(1, Math.min(99, level | 0));
+  const s = 4 + lv;                                   // generic tier stat scale (matches T)
+  const baseVal = Math.round(8 * Math.pow(2000, (lv - 1) / 79));   // copper lvl1 ≈ 8 → sylvan lvl80 ≈ 16000
+  const K = {
+    dagger:     { style: 'melee', anim: 'thrust', speed: 800,  bonus: { acc: s * 0.55 | 0, str: s * 0.3 | 0, pen: 0.35 }, req: { attack: lv }, valMult: 1 },
+    sword:      { style: 'melee', anim: 'slash',  speed: 2400, bonus: { acc: s, str: s * 0.9 | 0 },                       req: { attack: lv }, valMult: 2 },
+    mace:       { style: 'melee', anim: 'slash',  speed: 2600, bonus: { acc: s * 0.8 | 0, str: s * 1.1 | 0 },             req: { attack: lv }, valMult: 2 },
+    spear:      { style: 'melee', anim: 'thrust', speed: 3000, twoHand: true, bonus: { acc: s * 1.1 | 0, str: s * 1.25 | 0 }, req: { attack: lv, strength: Math.max(1, lv - 2) }, valMult: 2.4 },
+    waraxe:     { style: 'melee', anim: 'slash',  speed: 3200, twoHand: true, bonus: { acc: s * 0.9 | 0, str: s * 1.4 | 0 },  req: { attack: lv, strength: lv }, valMult: 2.6 },
+    greatsword: { style: 'melee', anim: 'slash',  speed: 3400, twoHand: true, bonus: { acc: s * 1.15 | 0, str: s * 1.3 | 0 }, req: { attack: lv }, valMult: 3 },
+  };
+  const g = K[kind] || K.sword;
+  return { kind, level: lv, style: g.style, anim: g.anim, speed: g.speed, twoHand: !!g.twoHand,
+    bonus: g.bonus, req: g.req, value: Math.max(1, Math.round(baseVal * g.valMult)) };
+}
+
 // ---- Map Studio / Compositor custom items ----------------------------------
-// Items authored in the admin studio's Creation menu. The def carries the
-// layer recipe so the client can compose the icon from existing game art.
+// Items authored in the admin studio. A plain entry carries a `layers` recipe so
+// the client composes its icon from existing art; a `gear` entry (deployed from
+// the gear sheet maker) is a fully-statted, equippable weapon whose in-world art
+// is the compiled LPC sheet (registered into the sprite manifest client-side).
 export function registerCustomItems(defs) {
   for (const [id, d] of Object.entries(defs || {})) {
     if (!d || ITEMS[id]?.custom === false) continue;
-    def(id, { name: d.name || id, value: Math.max(1, d.value | 0), custom: true, layers: d.layers || [] });
+    if (d.gear) {
+      const g = d.gear;
+      def(id, {
+        name: d.name || id, value: Math.max(1, d.value | 0), custom: true, deployed: true,
+        slot: g.slot || 'weapon', kind: g.kind || 'sword', style: g.style || 'melee',
+        anim: g.anim || 'slash', twoHand: !!g.twoHand, speed: g.speed || 2400,
+        req: g.req || {}, bonus: g.bonus || {}, level: g.level | 0,
+        vis: { layer: 'weapon', type: id, color: g.color || 'steel' },
+      });
+    } else {
+      def(id, { name: d.name || id, value: Math.max(1, d.value | 0), custom: true, layers: d.layers || [] });
+    }
   }
 }

@@ -25,6 +25,29 @@ export async function loadManifest() {
   manifest = await (await fetch('assets/lpc/manifest.json')).json();
   return manifest;
 }
+// Deployed gear-sheet weapons: register their compiled LPC sheets into the
+// weapon manifest so a custom weapon (vis.type = its item id) renders in-world
+// exactly like a built-in one — carry sheet as the held/walk art, and the
+// slash/thrust overlays as its perAnim attack frames.
+export function registerCustomWeaponArt(defs) {
+  if (!manifest) return;
+  manifest.weapons = manifest.weapons || {};
+  let changed = false;
+  for (const [id, d] of Object.entries(defs || {})) {
+    const g = d?.gear;
+    if (!g || (g.slot && g.slot !== 'weapon') || !g.sheets?.carry) continue;
+    const color = g.color || 'steel';
+    const w = { grid: 64, fg: { [color]: g.sheets.carry } };
+    const per = {};
+    if (g.sheets.slash) per.slash = { bg: { [color]: g.sheets.slash }, fg: {} };
+    if (g.sheets.thrust) per.thrust = { bg: { [color]: g.sheets.thrust }, fg: {} };
+    if (Object.keys(per).length) w.perAnim = per;
+    manifest.weapons[id] = w;
+    changed = true;
+  }
+  if (changed) composites.clear();   // re-bake looks so the new weapon art shows
+  return changed;
+}
 // The LPC wardrobe, for the compositor's Gear browser: every equipment slot/type
 // with its available dye colours. { 'torso/plate': ['copper','iron',…], … }
 export function gearCatalog() {

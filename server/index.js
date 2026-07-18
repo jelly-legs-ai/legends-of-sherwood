@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { World } from './game/world.js';
 import { handleMessage, onDisconnect, installHooks } from './game/handlers.js';
-import { handleAdminMessage } from './game/admin.js';
+import { handleAdminMessage, wireCustomSources, unwireCustomSources } from './game/admin.js';
 import { applyMapOverrides } from '../shared/mapgen.js';
 import { registerCustomItems } from '../shared/data/items.js';
 import { armCustomAnims } from '../shared/data/mobs.js';
@@ -54,6 +54,52 @@ const server = http.createServer((req, res) => {
         fs.mkdirSync(path.dirname(dest), { recursive: true });
         fs.writeFileSync(dest, Buffer.from(dataUrl.replace(/^data:\w+\/\w+;base64,/, ''), 'base64'));
         res.writeHead(200); res.end('ok');
+      } catch (e) { res.writeHead(400); res.end(String(e.message)); }
+    });
+    return;
+  }
+  // Deploy a gear-sheet weapon straight into the live game: save its compiled
+  // LPC sheet(s), register the statted equippable item, and wire its drop / craft
+  // sources. Key-gated (works in production, not just --dev). HTTP (not the WS)
+  // because the sheet PNGs exceed the admin socket's payload cap.
+  if (req.method === 'POST' && url === '/admin/deploy-gear') {
+    if (!adminOk(req.url)) { res.writeHead(403); return res.end('admin key required (?key=…)'); }
+    let body = '';
+    req.on('data', (c) => { body += c; if (body.length > 40e6) req.destroy(); });
+    req.on('end', () => {
+      try {
+        const { spec, sheets } = JSON.parse(body);
+        const id = String(spec.id || spec.name || 'gear').toLowerCase().replace(/\W+/g, '_').slice(0, 40);
+        if (!id) { res.writeHead(400); return res.end('bad id'); }
+        const saved = {};
+        for (const [tgt, dataUrl] of Object.entries(sheets || {})) {
+          if (typeof dataUrl !== 'string' || !/^data:image\/png;base64,/.test(dataUrl)) continue;
+          const file = `custom/${id}_${String(tgt).replace(/\W+/g, '')}.png`;
+          const dest = path.join(ROOT, 'client', 'assets', 'lpc', file);
+          fs.mkdirSync(path.dirname(dest), { recursive: true });
+          fs.writeFileSync(dest, Buffer.from(dataUrl.replace(/^data:\w+\/\w+;base64,/, ''), 'base64'));
+          saved[tgt] = file;
+        }
+        if (!saved.carry) { res.writeHead(400); return res.end('a Walk/carry sheet is required'); }
+        const g = spec.gear || {};
+        const entry = {
+          name: String(spec.name || id).slice(0, 60), value: Math.max(1, spec.value | 0),
+          gear: { slot: 'weapon', kind: g.kind || 'sword', style: g.style || 'melee', anim: g.anim || 'slash',
+            twoHand: !!g.twoHand, speed: g.speed || 2400, color: g.color || 'steel', level: g.level | 0,
+            bonus: g.bonus || {}, req: g.req || {}, sheets: saved },
+          sources: {
+            drops: Array.isArray(spec.sources?.drops) ? spec.sources.drops.slice(0, 24) : [],
+            craft: spec.sources?.craft || null,
+            quest: spec.sources?.quest || null,
+          },
+        };
+        world.customItems[id] = entry;
+        registerCustomItems({ [id]: entry });
+        unwireCustomSources(id); wireCustomSources(entry, id);
+        fs.writeFileSync(path.join(DATA_DIR, 'custom-items.json'), JSON.stringify(world.customItems, null, 1));
+        for (const ws of world.adminSockets) { try { ws.send(JSON.stringify({ t: 'customItems', items: world.customItems })); } catch { } }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, id, sheets: saved }));
       } catch (e) { res.writeHead(400); res.end(String(e.message)); }
     });
     return;
@@ -110,6 +156,8 @@ world.mapOverrides.spawns = world.mapOverrides.spawns || {};
 applyMapOverrides(world.mapOverrides);
 world.customItems = loadJson(path.join(DATA_DIR, 'custom-items.json')) || {};
 registerCustomItems(world.customItems);
+// deployed-gear items enter the world's drop / craft tables (idempotent)
+for (const [id, e] of Object.entries(world.customItems)) if (e && e.gear) wireCustomSources(e, id);
 world.customAnims = loadJson(path.join(DATA_DIR, 'custom-anims.json')) || {};
 armCustomAnims(world.customAnims);   // studio projectiles fight for real
 await world.init();          // load durable store (Postgres or hardened files) before serving

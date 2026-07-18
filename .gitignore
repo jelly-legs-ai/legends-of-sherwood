@@ -9,3 +9,7 @@ node_modules/
 # Raw asset source packs (100k+ files) — the game ships only what tools copy into client/assets
 /model assets/
 /Animated Chests/
+
+# Studio-deployed gear sheets — runtime output written by /admin/deploy-gear,
+# persisted alongside data/custom-items.json (not source, like data/)
+client/assets/lpc/custom/
