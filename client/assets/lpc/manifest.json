@@ -1726,6 +1726,40 @@
     "white": "cape_tattered_white.png",
     "yellow": "cape_tattered_yellow.png"
    }
+  },
+  "behind/pack": {
+   "male": {
+    "ore_iron": "pack_ore_iron_behind_male.png",
+    "wood": "pack_wood_behind_male.png",
+    "ore_silver": "pack_ore_silver_behind_male.png"
+   },
+   "female": {
+    "ore_iron": "pack_ore_iron_behind_female.png",
+    "wood": "pack_wood_behind_female.png",
+    "ore_silver": "pack_ore_silver_behind_female.png"
+   }
+  },
+  "packfront/pack": {
+   "male": {
+    "leather": "pack_leather_front_male.png",
+    "walnut": "pack_walnut_front_male.png",
+    "purple": "pack_purple_front_male.png",
+    "teal": "pack_teal_front_male.png",
+    "forest": "pack_forest_front_male.png",
+    "ore_iron": "pack_ore_iron_front_male.png",
+    "wood": "pack_wood_front_male.png",
+    "ore_silver": "pack_ore_silver_front_male.png"
+   },
+   "female": {
+    "leather": "pack_leather_front_female.png",
+    "walnut": "pack_walnut_front_female.png",
+    "purple": "pack_purple_front_female.png",
+    "teal": "pack_teal_front_female.png",
+    "forest": "pack_forest_front_female.png",
+    "ore_iron": "pack_ore_iron_front_female.png",
+    "wood": "pack_wood_front_female.png",
+    "ore_silver": "pack_ore_silver_front_female.png"
+   }
   }
  },
  "weapons": {

@@ -239,6 +239,7 @@ export class Player {
     };
     map('torso', 'torso'); map('legs', 'legs'); map('feet', 'feet'); map('hands', 'hands');
     map('head', 'head'); map('weapon', 'weapon'); map('shield', 'shield'); map('cape', 'behind');
+    map('back', 'pack');   // worn backpack: pack behind body + straps over torso
     return v;
   }
 

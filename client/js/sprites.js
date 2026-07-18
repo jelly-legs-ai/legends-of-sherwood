@@ -126,6 +126,14 @@ function compositeInto(c, vis) {
     layers.push(gearFile('behind/' + bh[0], sex, bh[1] || 'brown'));
     if (String(bh[0]).startsWith('wings_')) wingFront = gearFile('wingfront/' + bh[0], sex, bh[1] || 'white');
   }
+  // worn backpack: the pack/basket rides behind the body; its straps + basket rim
+  // are a FRONT layer (drawn over the torso). vis.pack[0] is the pack key. Only
+  // colours actually present in each layer are drawn (no neutral fallback — a
+  // coloured pack has no behind sheet, and must not borrow a basket's).
+  const packKey = vis.pack && (Array.isArray(vis.pack) ? vis.pack[0] : vis.pack);
+  const packHas = (cat) => packKey && pick(manifest.gear, cat, sex)?.[packKey];
+  const packFront = packHas('packfront/pack') ? gearFile('packfront/pack', sex, packKey) : null;
+  if (packHas('behind/pack')) layers.push(gearFile('behind/pack', sex, packKey));
   layers.push(pick(manifest.bodies, sex, vis.skin || 'light') || pick(manifest.bodies, sex, 'light'));
   if (vis.monster) { // beast-folk: goblin/orc/minotaur/lizard/wolf heads
     const mh = manifest.monsters?.[vis.monster];
@@ -150,6 +158,7 @@ function compositeInto(c, vis) {
   if (vis.shoulders) layers.push(gearL('shoulders/' + vis.shoulders[0], vis.shoulders));
   if (vis.head) layers.push(gearL('head/' + vis.head[0], vis.head));
   if (wingFront) layers.push(wingFront);   // near wing wraps over the body
+  if (packFront) layers.push(packFront);   // backpack straps / basket rim over the torso
   // LPC kite shield: a real baked off-hand layer (walk/slash/thrust rows), dyed
   // to the metal tier via FORCE_DYE. Sits over the body, under the weapon.
   if (vis.shield) layers.push(gearL('shield/' + (vis.shield[0] || 'kite'), vis.shield));

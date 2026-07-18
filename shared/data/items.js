@@ -669,18 +669,18 @@ for (const [id, name, speed, fly, sheet, val, tint] of MOUNTS)
 // unlocked by a mid-high gathering level and carry a big haul of ore/wood/etc.
 // invBonus = extra inventory slots the worn pack grants (see player.retileInv).
 export const BACKPACKS = [
-  // id, name, +slots, value, req, tint
-  ['traveller_pack', "Traveller's pack", 4, 3500, {}, '#8a6a3c'],
-  ['adventurer_pack', "Adventurer's pack", 8, 22000, {}, '#6e522f'],
-  ['abyssal_pack', 'Abyssal packmaw', 12, 90000, {}, '#8a5cff'],   // super-rare, high-level content
-  ['miners_satchel', "Miner's satchel", 8, 9000, { mining: 45 }, '#7d7a70'],
-  ['foresters_pack', "Forester's pack", 8, 9000, { woodcutting: 45 }, '#4f7d33'],
-  ['anglers_creel', "Angler's creel", 8, 9000, { fishing: 45 }, '#2e5f8a'],
-  ['herbalists_satchel', "Herbalist's satchel", 8, 9000, { herblore: 45 }, '#6fc04a'],
-  ['prospectors_rucksack', "Prospector's rucksack", 12, 34000, { mining: 75 }, '#cfd4dc'],
+  // id, name, +slots, value, req, tint, worn-pack key (see tools/add-backpacks.mjs)
+  ['traveller_pack', "Traveller's pack", 4, 3500, {}, '#8a6a3c', 'leather'],
+  ['adventurer_pack', "Adventurer's pack", 8, 22000, {}, '#6e522f', 'walnut'],
+  ['abyssal_pack', 'Abyssal packmaw', 12, 90000, {}, '#8a5cff', 'purple'],   // super-rare, high-level content
+  ['miners_satchel', "Miner's satchel", 8, 9000, { mining: 45 }, '#7d7a70', 'ore_iron'],
+  ['foresters_pack', "Forester's pack", 8, 9000, { woodcutting: 45 }, '#4f7d33', 'wood'],
+  ['anglers_creel', "Angler's creel", 8, 9000, { fishing: 45 }, '#2e5f8a', 'teal'],
+  ['herbalists_satchel', "Herbalist's satchel", 8, 9000, { herblore: 45 }, '#6fc04a', 'forest'],
+  ['prospectors_rucksack', "Prospector's rucksack", 12, 34000, { mining: 75 }, '#cfd4dc', 'ore_silver'],
 ];
-for (const [id, name, invBonus, value, req, tint] of BACKPACKS)
-  def(id, { name, slot: 'back', invBonus, value, req, tint, backpack: true });
+for (const [id, name, invBonus, value, req, tint, pack] of BACKPACKS)
+  def(id, { name, slot: 'back', invBonus, value, req, tint, backpack: true, vis: { layer: 'pack', sheet: pack } });
 
 // Capes (slot 'cape', worn on the 'behind' layer): cosmetic LPC capes in every
 // colour, in pristine and battle-tattered cuts. Unisex — the same sheet drapes
