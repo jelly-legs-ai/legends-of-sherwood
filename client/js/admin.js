@@ -1562,47 +1562,86 @@ function renderCompAnims() {
 // the guideline on one frame; the maker propagates that fit across all frames.
 // ============================================================================
 const GS = {
-  img: null, imgName: '', ref: null, refCells: null, body: null, gen: null,
-  x: 0, y: 0, scale: 1, rot: 0, trackRot: true,
-  anim: 'walk', frame: 0, playing: true,
-  alignRow: 10, alignCol: 6,   // south-facing walk: the blade is held clearly at the side
+  img: null, imgName: '', body: null, gen: null, refs: {},
+  x: 0, y: 0, scale: 1, rot: 0, trackRot: true, flipX: false, flipY: false,
+  target: 'carry',   // which sheet we're compiling (see GS_TEMPLATES)
 };
-const GS_ROWS = { spellcast: [0, 7], thrust: [4, 8], walk: [8, 9], slash: [12, 6], shoot: [16, 13], idle: [22, 2] };
-function gsExtractCells(img) {
+// The reference templates the maker traces. `fs` is the LPC frame size: 'carry'
+// is the weapon's base walk/idle sheet (64px — the game's bg/fg), the attack
+// targets are oversize overlays the game reads as perAnim.{slash,thrust}. For
+// every reference cell we read the blade's centroid / principal angle / extent
+// and stamp YOUR art there, so one alignment propagates across the animation.
+// `bodyRow` is the body sheet's animation row the preview plays underneath.
+const GS_TEMPLATES = {
+  carry: { label: 'Walk / carry', bg: 'wep_sword_bg_iron.png', fg: 'wep_sword_fg_iron.png', fs: 64, over: false, align: { r: 10, c: 6 }, bodyRow: 8, frames: 9, ms: 120, deploy: 'base' },
+  slash: { label: '1H slash', bg: 'wep_sword_attack_slash_bg_iron.png', fg: 'wep_sword_attack_slash_fg_iron.png', fs: 128, over: true, align: { r: 2, c: 3 }, bodyRow: 12, frames: 6, ms: 90, deploy: 'slash' },
+  thrust: { label: 'Thrust / stab', bg: 'wep_spear_thrust_bg_iron.png', fg: 'wep_spear_thrust_fg_iron.png', fs: 192, over: true, align: { r: 2, c: 4 }, bodyRow: 4, frames: 8, ms: 90, deploy: 'thrust' },
+};
+function gsTpl() { return GS_TEMPLATES[GS.target] || GS_TEMPLATES.carry; }
+function gsRef() { return GS.refs[GS.target]; }
+function gsExtractCells(img, fs) {
   const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
   const g = c.getContext('2d'); g.drawImage(img, 0, 0);
-  const W = img.width, H = img.height, cols = W / 64 | 0, rows = H / 64 | 0;
+  const W = img.width, H = img.height, cols = W / fs | 0, rows = H / fs | 0;
   const data = g.getImageData(0, 0, W, H).data;
   const cells = [];
   for (let r = 0; r < rows; r++) for (let col = 0; col < cols; col++) {
-    const ox = col * 64, oy = r * 64; let n = 0, sx = 0, sy = 0; const pts = [];
-    for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) { const a = data[((oy + y) * W + (ox + x)) * 4 + 3]; if (a > 50) { n++; sx += x; sy += y; pts.push([x, y]); } }
+    const ox = col * fs, oy = r * fs; let n = 0, sx = 0, sy = 0; const pts = [];
+    for (let y = 0; y < fs; y++) for (let x = 0; x < fs; x++) { const a = data[((oy + y) * W + (ox + x)) * 4 + 3]; if (a > 50) { n++; sx += x; sy += y; pts.push([x, y]); } }
     if (n < 6) { cells.push(null); continue; }
-    const cx = sx / n, cy = sy / n; let mxx = 0, myy = 0, mxy = 0, mnx = 64, mxX = 0, mny = 64, mxY = 0;
+    const cx = sx / n, cy = sy / n; let mxx = 0, myy = 0, mxy = 0, mnx = fs, mxX = 0, mny = fs, mxY = 0;
     for (const [x, y] of pts) { const dx = x - cx, dy = y - cy; mxx += dx * dx; myy += dy * dy; mxy += dx * dy; if (x < mnx) mnx = x; if (x > mxX) mxX = x; if (y < mny) mny = y; if (y > mxY) mxY = y; }
     mxx /= n; myy /= n; mxy /= n;
     cells.push({ row: r, col, cx, cy, angle: 0.5 * Math.atan2(2 * mxy, mxx - myy), ext: Math.hypot(mxX - mnx, mxY - mny) });
   }
-  const rc = { cells, cols, rows, W, H };
+  const rc = { cells, cols, rows, W, H, fs };
   // unwrap the principal angle along each row so a swing arc reads as continuous
   for (let r = 0; r < rows; r++) { let prev = null; for (let col = 0; col < cols; col++) { const cell = cells[r * cols + col]; if (!cell) continue; if (prev !== null) { let a = cell.angle; while (a - prev > Math.PI / 2) a -= Math.PI; while (a - prev < -Math.PI / 2) a += Math.PI; cell.angle = a; } prev = cell.angle; } }
   return rc;
 }
-function gsAlignCell() { const rc = GS.refCells; return rc && (rc.cells[GS.alignRow * rc.cols + GS.alignCol] || rc.cells.find(c => c)); }
+function gsAlignCell() {
+  const ref = gsRef(); if (!ref) return null; const t = gsTpl();
+  const at = ref.cells[t.align.r * ref.cols + t.align.c];
+  if (at) return at;
+  // fall back to the most-extended blade in the same (south) row, else any cell
+  let best = null;
+  for (let col = 0; col < ref.cols; col++) { const cell = ref.cells[t.align.r * ref.cols + col]; if (cell && (!best || cell.ext > best.ext)) best = cell; }
+  return best || ref.cells.find(c => c);
+}
+// build (once, cached) the bg+fg composite reference for a target and trace its
+// cells — fg alone is just the sliver in front of the hand, so we need both
+function gsEnsureRef(target, cb) {
+  if (GS.refs[target]) { cb && cb(); return; }
+  const t = GS_TEMPLATES[target]; let bg = null, fg = null;
+  const build = () => {
+    if (!bg || !fg) return;
+    const c = document.createElement('canvas'); c.width = bg.width; c.height = bg.height;
+    const g = c.getContext('2d'); g.drawImage(bg, 0, 0); g.drawImage(fg, 0, 0);
+    const rc = gsExtractCells(c, t.fs); rc.canvas = c; GS.refs[target] = rc;
+    cb && cb();
+  };
+  const lb = new Image(); lb.onload = () => { bg = lb; build(); }; lb.src = 'assets/lpc/' + t.bg;
+  const lf = new Image(); lf.onload = () => { fg = lf; build(); }; lf.src = 'assets/lpc/' + t.fg;
+}
 function gsGenerate() {
-  const rc = GS.refCells; if (!rc || !GS.img) return;
+  const ref = gsRef(); if (!ref || !GS.img) return;
   const align = gsAlignCell(); if (!align) return;
-  const out = document.createElement('canvas'); out.width = rc.W; out.height = rc.H;
+  const fs = ref.fs;
+  const out = document.createElement('canvas'); out.width = ref.W; out.height = ref.H;
   const g = out.getContext('2d'); g.imageSmoothingEnabled = false;
   const iw = GS.img.width, ih = GS.img.height;
-  for (const cell of rc.cells) {
+  for (const cell of ref.cells) {
     if (!cell) continue;
     const dRot = GS.trackRot ? cell.angle - align.angle : 0;
     const dScale = cell.ext / (align.ext || 1);
     g.save();
-    g.translate(cell.col * 64 + cell.cx, cell.row * 64 + cell.cy);
+    // clip to THIS frame's cell so a stamp can never bleed its blade tip into a
+    // neighbouring animation frame (fixes the stray sword tips clipping across)
+    g.beginPath(); g.rect(cell.col * fs, cell.row * fs, fs, fs); g.clip();
+    g.translate(cell.col * fs + cell.cx, cell.row * fs + cell.cy);
     g.rotate(dRot); g.scale(dScale, dScale);
     g.translate(GS.x, GS.y); g.rotate(GS.rot * Math.PI / 180); g.scale(GS.scale, GS.scale);
+    g.scale(GS.flipX ? -1 : 1, GS.flipY ? -1 : 1);   // mirror the input art
     g.drawImage(GS.img, -iw / 2, -ih / 2);
     g.restore();
   }
@@ -1610,54 +1649,53 @@ function gsGenerate() {
 }
 function renderGearSheet() {
   const body = $('#comp-body');
+  const tgtBtns = Object.entries(GS_TEMPLATES).map(([k, t]) => `<button class="act ${GS.target === k ? 'on' : ''}" data-gst="${k}" style="padding:2px 7px;font-size:10px">${t.label}</button>`).join('');
   body.innerHTML = `<div style="display:flex;gap:16px;flex-wrap:wrap">
     <div style="min-width:270px">
       <h3 style="color:var(--gold);font-size:12px">1 · Import equipment art</h3>
       <div class="ms-row"><input type="file" id="gs-file" accept="image/*"></div>
       <div style="font-size:11px;color:var(--dim)">A single weapon image (PNG, transparent). Point the blade UP for best results.</div>
-      <h3 style="color:var(--gold);font-size:12px;margin-top:12px">2 · Align to the grip guideline</h3>
+      <h3 style="color:var(--gold);font-size:12px;margin-top:12px">2 · Choose the combat animation</h3>
+      <div class="ms-row" style="flex-wrap:wrap;gap:4px">${tgtBtns}</div>
+      <div style="font-size:11px;color:var(--dim)">Carry is the base walk/idle sheet; slash &amp; thrust are the attack overlays. Compile whichever your weapon needs.</div>
+      <h3 style="color:var(--gold);font-size:12px;margin-top:12px">3 · Align to the grip guideline</h3>
       <canvas id="gs-align" width="256" height="256" style="background:#20331f;border:1px solid var(--trim);border-radius:6px;cursor:move"></canvas>
       <div class="ms-row">X <input id="gs-x" type="range" min="-40" max="40" step="0.5" value="${GS.x}" style="flex:1"></div>
       <div class="ms-row">Y <input id="gs-y" type="range" min="-40" max="40" step="0.5" value="${GS.y}" style="flex:1"></div>
       <div class="ms-row">scale <input id="gs-scale" type="range" min="0.2" max="3" step="0.02" value="${GS.scale}" style="flex:1"></div>
       <div class="ms-row">rotate <input id="gs-rot" type="range" min="-180" max="180" step="1" value="${GS.rot}" style="flex:1"></div>
-      <div class="ms-row"><label style="font-size:11.5px"><input type="checkbox" id="gs-track" ${GS.trackRot ? 'checked' : ''}> track the swing rotation</label></div>
+      <div class="ms-row" style="gap:12px">
+        <label style="font-size:11.5px"><input type="checkbox" id="gs-flipx" ${GS.flipX ? 'checked' : ''}> mirror ↔</label>
+        <label style="font-size:11.5px"><input type="checkbox" id="gs-flipy" ${GS.flipY ? 'checked' : ''}> flip ↕</label>
+        <label style="font-size:11.5px"><input type="checkbox" id="gs-track" ${GS.trackRot ? 'checked' : ''}> track swing</label></div>
       <div class="ms-row"><button class="act" id="gs-gen" style="flex:1">⚙ Generate sheet</button>
         <button class="act" id="gs-dl">⬇ PNG</button></div>
     </div>
     <div style="min-width:270px">
-      <h3 style="color:var(--gold);font-size:12px">3 · Preview on the character</h3>
-      <canvas id="gs-preview" width="200" height="230" style="background:#23422a;border:1px solid var(--trim);border-radius:6px"></canvas>
-      <div class="ms-row">${['walk', 'slash', 'thrust', 'spellcast', 'shoot'].map(a => `<button class="act ${GS.anim === a ? 'on' : ''}" data-gsa="${a}" style="padding:2px 6px;font-size:10px">${a}</button>`).join('')}</div>
-      <div style="font-size:11px;color:var(--dim);margin-top:6px">The grip template is the game's own sword sheet — your art inherits its exact per-frame hand positions for the held / walk / idle poses. Align once on the guideline; the maker fits it to every frame.</div>
+      <h3 style="color:var(--gold);font-size:12px">4 · Preview on the character</h3>
+      <canvas id="gs-preview" width="220" height="240" style="background:#23422a;border:1px solid var(--trim);border-radius:6px"></canvas>
+      <div style="font-size:11px;color:var(--dim);margin-top:6px">The grip template is the game's own weapon sheet for this animation — your art inherits its exact per-frame hand positions. Align once; the maker fits it to every frame and clips each stamp to its cell.</div>
       <div id="gs-status" style="font-size:11px;color:var(--dim);margin-top:8px"></div>
     </div>
   </div>`;
-  // load the reference template once: bg + fg composited so every frame carries
-  // the WHOLE blade (the fg layer alone is just the sliver in front of the hand)
-  if (!GS.ref) {
-    let bg = null, fg = null;
-    const build = () => {
-      if (!bg || !fg) return;
-      const c = document.createElement('canvas'); c.width = fg.width; c.height = fg.height;
-      const g = c.getContext('2d'); g.drawImage(bg, 0, 0); g.drawImage(fg, 0, 0);
-      GS.ref = c; GS.refCells = gsExtractCells(c);
-      const s = $('#gs-status'); if (s) s.textContent = `template ready: ${GS.refCells.cols}×${GS.refCells.rows} frames`;
-    };
-    const lb = new Image(); lb.onload = () => { bg = lb; build(); }; lb.src = 'assets/lpc/wep_sword_bg_iron.png';
-    const lf = new Image(); lf.onload = () => { fg = lf; build(); }; lf.src = 'assets/lpc/wep_sword_fg_iron.png';
-  }
+  gsEnsureRef(GS.target, () => {
+    const ref = gsRef(); const s = $('#gs-status');
+    if (s && ref) s.textContent = `${gsTpl().label} template ready: ${ref.cols}×${ref.rows} frames @ ${ref.fs}px`;
+    if (GS.img) gsGenerate();
+  });
   if (!GS.body) { const b = new Image(); b.onload = () => { GS.body = b; }; b.src = 'assets/lpc/body_male_light.png'; }
   $('#gs-file').onchange = (e) => { const f = e.target.files[0]; if (!f) return; const im = new Image(); im.onload = () => { GS.img = im; GS.imgName = f.name.replace(/\.\w+$/, ''); gsGenerate(); }; im.src = URL.createObjectURL(f); };
   for (const k of ['x', 'y', 'scale', 'rot']) $(`#gs-${k}`).oninput = (e) => { GS[k] = +e.target.value; gsGenerate(); };
   $('#gs-track').onchange = (e) => { GS.trackRot = e.target.checked; gsGenerate(); };
+  $('#gs-flipx').onchange = (e) => { GS.flipX = e.target.checked; gsGenerate(); };
+  $('#gs-flipy').onchange = (e) => { GS.flipY = e.target.checked; gsGenerate(); };
   $('#gs-gen').onclick = () => { gsGenerate(); $('#gs-status').textContent = GS.gen ? 'sheet generated — see the preview' : 'import an image first'; };
-  $('#gs-dl').onclick = () => { if (!GS.gen) return; const a = document.createElement('a'); a.download = (GS.imgName || 'weapon') + '_lpc_sheet.png'; a.href = GS.gen.toDataURL(); a.click(); };
-  for (const b of body.querySelectorAll('[data-gsa]')) b.onclick = () => { GS.anim = b.dataset.gsa; renderGearSheet(); };
+  $('#gs-dl').onclick = () => { if (!GS.gen) return; const a = document.createElement('a'); a.download = (GS.imgName || 'weapon') + '_' + GS.target + '_lpc.png'; a.href = GS.gen.toDataURL(); a.click(); };
+  for (const b of body.querySelectorAll('[data-gst]')) b.onclick = () => { GS.target = b.dataset.gst; renderGearSheet(); };
   // drag on the align canvas moves the base image
   const ac = $('#gs-align'); let drag = null;
   ac.onmousedown = (e) => { drag = { mx: e.offsetX, my: e.offsetY, x: GS.x, y: GS.y }; };
-  window.addEventListener('mousemove', (e) => { if (!drag) return; const r = ac.getBoundingClientRect(); GS.x = drag.x + (e.clientX - r.left - drag.mx) / 4; GS.y = drag.y + (e.clientY - r.top - drag.my) / 4; $('#gs-x').value = GS.x; $('#gs-y').value = GS.y; gsGenerate(); });
+  window.addEventListener('mousemove', (e) => { if (!drag) return; const r = ac.getBoundingClientRect(); const z = 256 / gsTpl().fs; GS.x = drag.x + (e.clientX - r.left - drag.mx) / z; GS.y = drag.y + (e.clientY - r.top - drag.my) / z; $('#gs-x').value = GS.x; $('#gs-y').value = GS.y; gsGenerate(); });
   window.addEventListener('mouseup', () => drag = null);
   gsLoop();
 }
@@ -1666,28 +1704,31 @@ function gsLoop() {
   const ac = $('#gs-align'), pc = $('#gs-preview');
   if (!ac || !pc) return;
   const now = performance.now();
-  // --- alignment canvas: reference grip guideline (cyan) + your art (4x zoom) ---
+  const t = gsTpl(), ref = gsRef(), align = gsAlignCell();
+  // --- alignment canvas: reference grip guideline (cyan) + your art, zoomed ---
   const ag = ac.getContext('2d'); ag.imageSmoothingEnabled = false; ag.clearRect(0, 0, 256, 256);
-  const align = gsAlignCell();
-  if (GS.ref && align) {
+  if (ref && align) {
+    const z = 256 / ref.fs;
     ag.save(); ag.globalAlpha = 0.5; ag.filter = 'hue-rotate(160deg) saturate(3)';
-    ag.drawImage(GS.ref, align.col * 64, align.row * 64, 64, 64, 0, 0, 256, 256);
+    ag.drawImage(ref.canvas, align.col * ref.fs, align.row * ref.fs, ref.fs, ref.fs, 0, 0, 256, 256);
     ag.restore();
     if (GS.img) {
-      ag.save(); ag.translate((align.cx / 64) * 256, (align.cy / 64) * 256);
-      ag.translate(GS.x * 4, GS.y * 4); ag.rotate(GS.rot * Math.PI / 180); ag.scale(GS.scale * 4, GS.scale * 4);
+      ag.save(); ag.translate(align.cx * z, align.cy * z);
+      ag.translate(GS.x * z, GS.y * z); ag.rotate(GS.rot * Math.PI / 180); ag.scale(GS.scale * z, GS.scale * z);
+      ag.scale(GS.flipX ? -1 : 1, GS.flipY ? -1 : 1);
       ag.drawImage(GS.img, -GS.img.width / 2, -GS.img.height / 2);
       ag.restore();
     }
   }
-  // --- preview: body cell + generated weapon cell, animating ---
-  const pg = pc.getContext('2d'); pg.imageSmoothingEnabled = false; pg.clearRect(0, 0, 200, 230);
-  const [row0, nf] = GS_ROWS[GS.anim] || GS_ROWS.walk;
-  const dirRow = row0 + 2;   // south-facing
-  const fi = Math.floor(now / 130) % nf;
-  const drawCell = (img, r, col) => { if (img) pg.drawImage(img, col * 64, r * 64, 64, 64, 100 - 96, 220 - 192, 192, 192); };
-  drawCell(GS.body, dirRow, fi);
-  if (GS.gen) drawCell(GS.gen, dirRow, fi);
+  // --- preview: body performing the target animation + the generated weapon ---
+  const pg = pc.getContext('2d'); pg.imageSmoothingEnabled = false; pg.clearRect(0, 0, 220, 240);
+  const nf = t.frames, fi = Math.floor(now / t.ms) % nf, dir = 2;   // south-facing
+  const pk = 190 / t.fs, cx = 110, feet = 216;   // shared body+weapon scale (mimics in-game geometry)
+  if (GS.body) { const S = 64 * pk; pg.drawImage(GS.body, fi * 64, (t.bodyRow + dir) * 64, 64, 64, cx - S / 2, feet - S + 12 * pk, S, S); }
+  if (GS.gen) {
+    if (t.over) { const Sw = t.fs * pk; pg.drawImage(GS.gen, fi * t.fs, dir * t.fs, t.fs, t.fs, cx - Sw / 2, feet - (t.fs / 2 + 20) * pk, Sw, Sw); }
+    else { const S = 64 * pk; pg.drawImage(GS.gen, fi * 64, (t.bodyRow + dir) * 64, 64, 64, cx - S / 2, feet - S + 12 * pk, S, S); }
+  }
   raf = requestAnimationFrame(gsLoop);
 }
 
