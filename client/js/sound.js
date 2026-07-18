@@ -86,4 +86,20 @@ export const sfx = {
   teleport() { tone(200, 0.5, { type: 'sine', vol: 0.35, glide: 900 }); noise(0.5, { freq: 1500, q: 3, vol: 0.2, sweep: 2000 }); },
   gate() { noise(0.4, { freq: 300, q: 1.5, vol: 0.4, sweep: -180 }); tone(110, 0.35, { type: 'triangle', vol: 0.3, glide: -50 }); },
   milestone() { [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.3, { type: 'sine', vol: 0.5, delay: i * 0.11 })); },
+  // per-skill gathering gestures, fired from XP gains
+  skill(name) {
+    if (!gate('skill', 180)) return;
+    switch (name) {
+      case 'woodcutting': noise(0.09, { freq: 320, q: 1.4, vol: 0.5, sweep: -140 }); tone(110, 0.08, { type: 'triangle', vol: 0.3, glide: -30 }); break;   // axe thock
+      case 'mining': tone(1450 + Math.random() * 500, 0.09, { type: 'triangle', vol: 0.3, glide: -300 }); noise(0.05, { freq: 2600, q: 2, vol: 0.2 }); break;   // pick clink
+      case 'fishing': noise(0.22, { freq: 750, q: 1, vol: 0.35, sweep: -520 }); break;                                                                    // splash
+      case 'cooking': noise(0.3, { freq: 3400, q: 0.6, vol: 0.16 }); break;                                                                               // sizzle
+      case 'smithing': tone(820, 0.14, { type: 'square', vol: 0.22, glide: -200 }); noise(0.06, { freq: 1900, q: 2.5, vol: 0.2 }); break;                 // hammer clang
+      case 'crafting': case 'fletching': noise(0.05, { freq: 1300, q: 2, vol: 0.22, sweep: -400 }); break;                                                // work tap
+      case 'farming': case 'hunter': case 'herblore': noise(0.14, { freq: 900, q: 0.7, vol: 0.2, sweep: -300 }); break;                                   // rustle
+      case 'agility': noise(0.1, { freq: 1600, q: 0.7, vol: 0.18, sweep: 500 }); break;                                                                   // whoosh up
+      case 'prayer': tone(880, 0.35, { type: 'sine', vol: 0.2 }); tone(1108, 0.3, { type: 'sine', vol: 0.14, delay: 0.05 }); break;                       // soft chord
+      case 'magic': case 'runecrafting': this.spell(); break;
+    }
+  },
 };

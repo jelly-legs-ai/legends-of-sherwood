@@ -10,7 +10,7 @@ import { NPCS } from '../../shared/data/npcs.js';
 import { QUESTS, TASKS } from '../../shared/data/quests.js';
 import { CROPS } from '../../shared/data/items.js';
 import { SHORTCUTS, ANCHORS, ARENA, HOUSE } from '../../shared/data/world.js';
-import { computeWorld, isBlocked, dungeonFloor, tileAtPlane, levelEntry } from '../../shared/mapgen.js';
+import { computeWorld, isBlocked, dungeonFloor, tileAtPlane, levelEntry, customLevel } from '../../shared/mapgen.js';
 import { TILE } from '../../shared/constants.js';
 import { Player } from './player.js';
 
@@ -394,9 +394,15 @@ function onAction(world, p, msg) {
   if (msg.milk) return farmGather(world, p, msg.milk | 0, 'milk');
   if (msg.shear) return farmGather(world, p, msg.shear | 0, 'shear');
   const x = msg.x | 0, y = msg.y | 0;
-  // inside a studio level: any click just walks — stepping onto the exit
-  // pad (see world.tickPlayer) carries you back out through the gate
-  if (p.plane <= -10) return;
+  // inside a studio level: studio-placed nodes gather exactly like their
+  // overworld cousins; the exit pad works by walking (see world.tickPlayer)
+  if (p.plane <= -10) {
+    const lv = customLevel(-10 - p.plane);
+    const type = lv?.nodes?.[x + ',' + y];
+    const node = type && NODES[type];
+    if (!node) return;
+    return walkThen(world, p, x, y, () => doNode(world, p, type, node, x, y, msg));
+  }
   // dungeon exit ladder
   if (p.plane >= PLANE.DUNGEON_BASE) return dungeonAction(world, p, x, y, msg);
   if (p.plane >= PLANE.HOUSE_BASE) {

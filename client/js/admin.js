@@ -839,12 +839,13 @@ function msApplyTool(cv, mx, my) {
   const B = MS.tool === 'terrain' || MS.tool === 'elev' ? MS.brush : 1;
   for (let dy = 0; dy < B; dy++) for (let dx = 0; dx < B; dx++) {
     const x = tx + dx - (B >> 1), y = ty + dy - (B >> 1);
-    if (lv) {   // painting inside a custom level
+    if (lv) {   // painting inside a custom level: terrain, nodes and erasing
       if (x < 1 || y < 1 || x >= lv.size - 1 || y >= lv.size - 1) continue;
-      if (MS.tool === 'terrain') {
-        const cur = MS.pending.levels[MS.level] || (MS.pending.levels[MS.level] = { ...lv, tiles: { ...lv.tiles } });
-        cur.tiles[msKey(x, y)] = MS.terrain;
-      }
+      const cur = MS.pending.levels[MS.level] || (MS.pending.levels[MS.level] = { ...lv, tiles: { ...lv.tiles }, nodes: { ...(lv.nodes || {}) } });
+      cur.nodes = cur.nodes || { ...(lv.nodes || {}) };
+      if (MS.tool === 'terrain') cur.tiles[msKey(x, y)] = MS.terrain;
+      else if (MS.tool === 'node' && !MS.drag?.painted?.has(msKey(x, y))) { cur.nodes[msKey(x, y)] = MS.node; MS.drag?.painted?.add(msKey(x, y)); }
+      else if (MS.tool === 'erase') delete cur.nodes[msKey(x, y)];
       continue;
     }
     if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H) continue;
@@ -1085,6 +1086,16 @@ function msDrawLevel(g, cv, lv) {
     g.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
     g.fillRect((x - sx) * z, (y - sy) * z, z + 1, z + 1);
   }
+  // studio-placed nodes ride on top so caves read as furnished
+  for (const [k, t] of Object.entries(cur.nodes || {})) {
+    const [nx, ny] = k.split(',').map(Number);
+    if (z >= 8) g.drawImage(msThumb(t), (nx - sx) * z + z * 0.05, (ny - sy) * z - z * 0.3, z * 0.9, z * 0.9);
+    else { g.fillStyle = '#3fb950'; g.fillRect((nx - sx) * z, (ny - sy) * z, Math.max(2, z * 0.5), Math.max(2, z * 0.5)); }
+  }
+  // the exit pad marks itself so you never wall it in
+  { const en = { x: lv.size >> 1, y: lv.size - 3 };
+    g.strokeStyle = '#7cd6ff'; g.lineWidth = 2;
+    g.strokeRect((en.x - sx) * z, (en.y - sy) * z, z, z); }
   if (MS.mouse) {
     const [tx, ty] = msScreenToTile(cv, MS.mouse[0], MS.mouse[1]);
     g.strokeStyle = '#e3b341'; g.strokeRect((tx - sx) * z, (ty - sy) * z, z, z);

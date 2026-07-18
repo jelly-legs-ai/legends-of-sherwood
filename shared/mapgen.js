@@ -763,7 +763,14 @@ export function tileAtPlane(plane, x, y) {
 }
 export function isBlocked(plane, x, y) {
   if (plane === PLANE.OVERWORLD) return isBlockedOverworld(x, y);
-  return !TILE_WALKABLE.has(tileAtPlane(plane, x, y));
+  if (!TILE_WALKABLE.has(tileAtPlane(plane, x, y))) return true;
+  if (plane <= -10) {
+    // studio-placed cave nodes (ore veins, mushroom logs…) block like their
+    // overworld cousins; flat interactables stay walkable
+    const n = customLevel(-10 - plane)?.nodes?.[(x | 0) + ',' + (y | 0)];
+    if (n && !FLAT_NODES.has(n)) return true;
+  }
+  return false;
 }
 
 export { SHORTCUTS };

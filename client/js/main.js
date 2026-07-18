@@ -1,6 +1,6 @@
 // Legends of Sherwood — client entry: login, game state, input, main loop.
 import { MSG, PLANE, WILDERNESS_Y, REGIONS, TILE, FX } from '/shared/constants.js';
-import { computeWorld, regionAt, dungeonFloor, worldTile, applyMapOverrides } from '/shared/mapgen.js';
+import { computeWorld, regionAt, dungeonFloor, worldTile, applyMapOverrides, customLevel } from '/shared/mapgen.js';
 import { QUESTS } from '/shared/data/quests.js';
 import { HOUSE } from '/shared/data/world.js';
 import { ITEMS, registerCustomItems } from '/shared/data/items.js';
@@ -168,6 +168,7 @@ G.net.on(MSG.HIT, (m) => { fx.hit(m, G.entities); if (m.dmg > 0) sfx.hit(m.id ==
 G.net.on(MSG.LEVELUP, (m) => { sfx.levelup(); UI.toast(`⬆ ${m.skill} is now level ${m.level}!`); UI.renderAbilities(); if (G.tab === 'skills') UI.renderPanel(); });
 G.net.on('xp', (m) => {
   G.xp[m.skill] = m.xp;
+  sfx.skill(m.skill);
   if (G.me) fx.floatText(G.me.rx, G.me.ry, `+${m.gain} ${m.skill}`, '#8fd6ff');
   if (G.tab === 'skills') UI.renderPanel();
 });
@@ -360,6 +361,19 @@ function clickGround(e, menu) {
       }
       nodeType = type; nodeX = cx2; nodeY = cy2;
     }
+  } else if (plane <= -10) {
+    // studio cave: click its placed nodes (same canopy-cover forgiveness)
+    const lv = customLevel(-10 - plane);
+    for (let k = 0; k <= 2 && !nodeType && lv; k++) {
+      const cx2 = x + k, cy2 = y + k;
+      const type = lv.nodes?.[cx2 + ',' + cy2];
+      if (!type) continue;
+      if (k > 0) {
+        const [ex, ey] = R.screenOf(plane, cx2 + 0.5, cy2 + 0.5);
+        if (Math.abs(e.clientX - ex) > 40 || e.clientY < ey - 106 || e.clientY > ey + 14) continue;
+      }
+      nodeType = type; nodeX = cx2; nodeY = cy2;
+    }
   } else if (plane >= PLANE.DUNGEON_BASE) {
     const f = dungeonFloor(plane - PLANE.DUNGEON_BASE);
     if (Math.hypot(x - f.entrance.x, y - f.entrance.y) < 2 || Math.hypot(x - f.exit.x, y - f.exit.y) < 2) nodeType = 'dungeon_ladder';
@@ -537,6 +551,7 @@ let clickMarker = null;
 function zoneName() {
   if (!G.self) return '';
   const plane = G.self.plane;
+  if (plane <= -10) { const lv = customLevel(-10 - plane); return '🕳 ' + (lv?.name || 'a hidden cave'); }
   if (plane === PLANE.COLOSSEUM) return '🏟 The Colosseum';
   if (plane >= PLANE.DUNGEON_BASE) return `⚒ Abyssal Depths — Floor ${plane - PLANE.DUNGEON_BASE}`;
   if (plane >= PLANE.HOUSE_BASE) return '🏠 Your Hideout';

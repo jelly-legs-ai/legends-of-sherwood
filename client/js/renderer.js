@@ -1129,9 +1129,17 @@ export class Renderer {
           if (type) drawables.push({ d: tx + ty + 0.5, node: { type, x: tx, y: ty, off: depletedNodes.has(tx + ',' + ty) } });
         }
     } else if (plane <= -10) {
-      // studio level: the glowing exit pad by the south wall carries you out
+      // studio level: the glowing exit pad by the south wall carries you out,
+      // and every studio-placed node stands ready to gather
       const lv = customLevel(-10 - plane);
-      if (lv) { const en = levelEntry(lv); drawables.push({ d: en.x + en.y + 0.5, node: { type: 'cave_exit_pad', x: en.x, y: en.y } }); }
+      if (lv) {
+        const en = levelEntry(lv);
+        drawables.push({ d: en.x + en.y + 0.5, node: { type: 'cave_exit_pad', x: en.x, y: en.y } });
+        for (const [k, t] of Object.entries(lv.nodes || {})) {
+          const [nx, ny] = k.split(',').map(Number);
+          drawables.push({ d: nx + ny + 0.5, node: { type: t, x: nx, y: ny, off: depletedNodes.has(k) } });
+        }
+      }
     } else if (plane >= PLANE.DUNGEON_BASE) {
       const f = dungeonFloor(plane - PLANE.DUNGEON_BASE);
       drawables.push({ d: f.entrance.x + f.entrance.y + 0.5, node: { type: 'dungeon_entrance', x: f.entrance.x, y: f.entrance.y } });
@@ -1174,6 +1182,17 @@ export class Renderer {
       const grad = ctx.createRadialGradient(W / 2, H / 2, 220, W / 2, H / 2, Math.max(W, H) / 1.25);
       grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(1, 'rgba(0,0,0,0.5)');
       ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+    }
+    if (plane <= -10) { // studio caves: deep darkness, a guttering torch about you
+      const grad = ctx.createRadialGradient(W / 2, H / 2, 90, W / 2, H / 2, Math.max(W, H) / 1.6);
+      grad.addColorStop(0, 'rgba(4,3,10,0)'); grad.addColorStop(1, 'rgba(4,3,10,0.78)');
+      ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+      const fl = 0.05 + 0.025 * Math.sin(now / 87) + 0.015 * Math.sin(now / 41);
+      const warm = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, 130);
+      warm.addColorStop(0, `rgba(255,178,84,${fl.toFixed(3)})`); warm.addColorStop(1, 'rgba(255,178,84,0)');
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = warm; ctx.fillRect(0, 0, W, H);
+      ctx.restore();
     }
     return { minX, maxX, minY, maxY };
   }
