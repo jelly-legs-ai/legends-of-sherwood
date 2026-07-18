@@ -740,6 +740,7 @@ const MS_CATALOG = () => {
     'Abyssal dungeon tiles': grid('geo_tiles'),
     'Isometric tileset': grid('iso_tiles'),
     'Raou iso tileset': grid('raou_tiles'),
+    'Building materials': grid('megakit_materials'),
   };
   const rest = T.filter(k => !used.has(k) && !/(^|_)tree$/.test(k) && !NODES[k]);
   if (rest.length) cat['More props'] = rest;

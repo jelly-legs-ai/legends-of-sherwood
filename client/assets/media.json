@@ -4089,7 +4089,26 @@
    "env/water_sparkle_1.png",
    "env/water_sparkle_2.png",
    "env/water_sparkle_3.png"
-  ]
+  ],
+  "megakit_materials": {
+   "file": "env/megakit_materials.png",
+   "w": 512,
+   "h": 64,
+   "cellW": 64,
+   "cellH": 64,
+   "cols": 8,
+   "rows": 1,
+   "labels": [
+    "Brick",
+    "Red brick",
+    "Uneven brick",
+    "Plaster",
+    "Rock trim",
+    "Wood trim",
+    "Roof tiles",
+    "Metal ornament"
+   ]
+  }
  },
  "packed": {},
  "trees": {
