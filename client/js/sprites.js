@@ -48,6 +48,14 @@ export function registerCustomWeaponArt(defs) {
   if (changed) composites.clear();   // re-bake looks so the new weapon art shows
   return changed;
 }
+// Existing in-game weapons, for the gear sheet maker's "import" picker.
+export function weaponList() { return manifest ? Object.keys(manifest.weapons || {}).sort() : []; }
+// The fg (or bg) sheet file for a weapon type at a colour, with sensible fallback.
+export function weaponSheetFile(type, part = 'fg', color) {
+  const w = manifest?.weapons?.[type]; if (!w) return null;
+  const dict = w[part] || {};
+  return dict[color] || dict.iron || dict.steel || dict.medium || Object.values(dict).find((v) => typeof v === 'string') || null;
+}
 // The LPC wardrobe, for the compositor's Gear browser: every equipment slot/type
 // with its available dye colours. { 'torso/plate': ['copper','iron',…], … }
 export function gearCatalog() {

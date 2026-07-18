@@ -71,10 +71,12 @@ const server = http.createServer((req, res) => {
         const { spec, sheets } = JSON.parse(body);
         const id = String(spec.id || spec.name || 'gear').toLowerCase().replace(/\W+/g, '_').slice(0, 40);
         if (!id) { res.writeHead(400); return res.end('bad id'); }
+        // sheets land beside every other equipment sheet, in a TRACKED folder, so
+        // deployed gear is committed and ships like the built-in weapons
         const saved = {};
         for (const [tgt, dataUrl] of Object.entries(sheets || {})) {
           if (typeof dataUrl !== 'string' || !/^data:image\/png;base64,/.test(dataUrl)) continue;
-          const file = `custom/${id}_${String(tgt).replace(/\W+/g, '')}.png`;
+          const file = `deployed/${id}_${String(tgt).replace(/\W+/g, '')}.png`;
           const dest = path.join(ROOT, 'client', 'assets', 'lpc', file);
           fs.mkdirSync(path.dirname(dest), { recursive: true });
           fs.writeFileSync(dest, Buffer.from(dataUrl.replace(/^data:\w+\/\w+;base64,/, ''), 'base64'));
@@ -93,11 +95,13 @@ const server = http.createServer((req, res) => {
             quest: spec.sources?.quest || null,
           },
         };
-        world.customItems[id] = entry;
+        world.deployedGear[id] = entry;
         registerCustomItems({ [id]: entry });
         unwireCustomSources(id); wireCustomSources(entry, id);
-        fs.writeFileSync(path.join(DATA_DIR, 'custom-items.json'), JSON.stringify(world.customItems, null, 1));
-        for (const ws of world.adminSockets) { try { ws.send(JSON.stringify({ t: 'customItems', items: world.customItems })); } catch { } }
+        // the spec is written to a TRACKED source file (shared/data), so committing
+        // it ships the item the same way the rest of the equipment database does
+        fs.writeFileSync(DEPLOYED_GEAR, JSON.stringify(world.deployedGear, null, 1));
+        for (const ws of world.adminSockets) { try { ws.send(JSON.stringify({ t: 'deployedGear', gear: world.deployedGear })); } catch { } }
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true, id, sheets: saved }));
       } catch (e) { res.writeHead(400); res.end(String(e.message)); }
@@ -146,6 +150,7 @@ const server = http.createServer((req, res) => {
 });
 
 const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, 'data');
+const DEPLOYED_GEAR = path.join(ROOT, 'shared', 'data', 'deployed-gear.json');   // tracked source file
 const world = new World(DATA_DIR);
 // Map Studio overrides + custom content authored in the admin studio apply
 // BEFORE init() so collision, nodes, levels and authored spawn zones are all
@@ -156,8 +161,11 @@ world.mapOverrides.spawns = world.mapOverrides.spawns || {};
 applyMapOverrides(world.mapOverrides);
 world.customItems = loadJson(path.join(DATA_DIR, 'custom-items.json')) || {};
 registerCustomItems(world.customItems);
-// deployed-gear items enter the world's drop / craft tables (idempotent)
-for (const [id, e] of Object.entries(world.customItems)) if (e && e.gear) wireCustomSources(e, id);
+// Deployed gear-sheet weapons live in a TRACKED source file (committed + shipped
+// like the built-in equipment), separate from the runtime cosmetic customs.
+world.deployedGear = loadJson(DEPLOYED_GEAR) || {};
+registerCustomItems(world.deployedGear);
+for (const [id, e] of Object.entries(world.deployedGear)) if (e && e.gear) wireCustomSources(e, id);
 world.customAnims = loadJson(path.join(DATA_DIR, 'custom-anims.json')) || {};
 armCustomAnims(world.customAnims);   // studio projectiles fight for real
 await world.init();          // load durable store (Postgres or hardened files) before serving

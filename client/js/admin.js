@@ -11,7 +11,7 @@ import { TILE } from '/shared/constants.js';
 import { computeWorld, worldTile, heightAt, regionAt, applyMapOverrides, MAP_OVERRIDES, WORLD_W, WORLD_H, syncTile, syncNode } from '/shared/mapgen.js';
 import { SPAWNS, BOSS_SPAWNS, TOWNS } from '/shared/data/world.js';
 import { loadMedia, MEDIA, drawCreature, drawFrame, drawFxSprite, drawFxBand, customLayerPos } from './media.js';
-import { loadManifest, composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS, gearCatalog, registerCustomWeaponArt } from './sprites.js';
+import { loadManifest, composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS, gearCatalog, registerCustomWeaponArt, weaponList, weaponSheetFile } from './sprites.js';
 import { itemIcon } from './icons.js';
 import { Renderer, flushChunkCache, flushChunkAt } from './renderer.js';
 import { Fx } from './fx.js';
@@ -48,6 +48,7 @@ function onMsg(m) {
   else if (m.t === 'customItems') { state.customItems = m.items; registerCustomItems(m.items); registerCustomWeaponArt(m.items); if (view === 'comp' && (compMode === 'create' || compMode === 'gearsheet')) renderComp(); }
   else if (m.t === 'customAnims') { state.customAnims = m.anims; if (view === 'comp' && compMode === 'anims') renderComp(); }
   else if (m.t === 'dropTables') { state.dropTables = m; if (view === 'drops') render(); if (view === 'comp' && compMode === 'gearsheet') gsFillSources(); }
+  else if (m.t === 'deployedGear') { state.deployedGear = m.gear; registerCustomItems(m.gear); registerCustomWeaponArt(m.gear); }
 }
 
 // ---------------- nav ----------------
@@ -1619,12 +1620,44 @@ function renderCompAnims() {
 const GS = {
   img: null, imgName: '', body: null, gen: null, refs: {},
   x: 0, y: 0, scale: 1, rot: 0, trackRot: true, flipX: false, flipY: false,
+  sizeLock: true,    // keep the weapon a constant size across all frames/directions
   target: 'carry',   // which sheet we're compiling (see GS_TEMPLATES)
   sheets: {},        // captured PNG dataURLs per target, for deploy
   deploy: { open: false, kind: 'sword', level: 10, drops: [] },   // deployment-table state
 };
 // capture the current target's generated sheet as a PNG, ready to deploy
 function gsCapture() { if (GS.gen) GS.sheets[GS.target] = GS.gen.toDataURL(); }
+// import an existing in-game weapon: lift the clearest single frame of its own
+// sheet as the input art, so you can re-position / resize / re-deploy it
+function gsImportWeapon(type) {
+  const file = weaponSheetFile(type, 'fg') || weaponSheetFile(type, 'bg');
+  if (!file) return;
+  const im = new Image();
+  im.onload = () => {
+    const W = im.naturalWidth, H = im.naturalHeight, fs = 64;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const g = cv.getContext('2d'); g.drawImage(im, 0, 0);
+    const data = g.getImageData(0, 0, W, H).data;
+    const opaque = (x, y) => data[(y * W + x) * 4 + 3] > 60;
+    // pick the 64px cell holding the most of the weapon (its clearest view)
+    let best = null, bestN = 0;
+    for (let r = 0; r < H / fs | 0; r++) for (let c = 0; c < W / fs | 0; c++) {
+      let n = 0; for (let y = 0; y < fs; y++) for (let x = 0; x < fs; x++) if (opaque(c * fs + x, r * fs + y)) n++;
+      if (n > bestN) { bestN = n; best = [c * fs, r * fs]; }
+    }
+    if (!best) return;
+    const [ox, oy] = best; let mnx = fs, mny = fs, mxx = 0, mxy = 0;
+    for (let y = 0; y < fs; y++) for (let x = 0; x < fs; x++) if (opaque(ox + x, oy + y)) { if (x < mnx) mnx = x; if (x > mxx) mxx = x; if (y < mny) mny = y; if (y > mxy) mxy = y; }
+    const w = mxx - mnx + 1, h = mxy - mny + 1, pad = 2;
+    const crop = document.createElement('canvas'); crop.width = w + pad * 2; crop.height = h + pad * 2;
+    crop.getContext('2d').drawImage(cv, ox + mnx, oy + mny, w, h, pad, pad, w, h);
+    GS.img = crop; GS.imgName = type;
+    GS.x = 0; GS.y = 0; GS.scale = 1; GS.rot = 0; GS.flipX = false; GS.flipY = false;
+    for (const k of ['x', 'y', 'scale', 'rot']) { const e = $(`#gs-${k}`); if (e) e.value = GS[k]; }
+    gsGenerate(); gsCapture(); gsCaps();
+  };
+  im.src = 'assets/lpc/' + file;
+}
 // The reference templates the maker traces. `fs` is the LPC frame size: 'carry'
 // is the weapon's base walk/idle sheet (64px — the game's bg/fg), the attack
 // targets are oversize overlays the game reads as perAnim.{slash,thrust}. For
@@ -1644,18 +1677,26 @@ function gsExtractCells(img, fs) {
   const W = img.width, H = img.height, cols = W / fs | 0, rows = H / fs | 0;
   const data = g.getImageData(0, 0, W, H).data;
   const cells = [];
+  const bcx = fs / 2, bcy = fs * 0.5;   // approx. character centre within the cell
   for (let r = 0; r < rows; r++) for (let col = 0; col < cols; col++) {
     const ox = col * fs, oy = r * fs; let n = 0, sx = 0, sy = 0; const pts = [];
     for (let y = 0; y < fs; y++) for (let x = 0; x < fs; x++) { const a = data[((oy + y) * W + (ox + x)) * 4 + 3]; if (a > 50) { n++; sx += x; sy += y; pts.push([x, y]); } }
     if (n < 6) { cells.push(null); continue; }
-    const cx = sx / n, cy = sy / n; let mxx = 0, myy = 0, mxy = 0, mnx = fs, mxX = 0, mny = fs, mxY = 0;
-    for (const [x, y] of pts) { const dx = x - cx, dy = y - cy; mxx += dx * dx; myy += dy * dy; mxy += dx * dy; if (x < mnx) mnx = x; if (x > mxX) mxX = x; if (y < mny) mny = y; if (y > mxY) mxY = y; }
+    const cx = sx / n, cy = sy / n; let mxx = 0, myy = 0, mxy = 0;
+    for (const [x, y] of pts) { const dx = x - cx, dy = y - cy; mxx += dx * dx; myy += dy * dy; mxy += dx * dy; }
     mxx /= n; myy /= n; mxy /= n;
-    cells.push({ row: r, col, cx, cy, angle: 0.5 * Math.atan2(2 * mxy, mxx - myy), ext: Math.hypot(mxX - mnx, mxY - mny) });
+    // principal axis, then resolve the blade's *tip direction* (the 180°-ambiguous
+    // axis is why non-south frames used to flip): project onto the axis, take the
+    // two ends, and call the end nearer the body the grip and the far end the tip.
+    const ang = 0.5 * Math.atan2(2 * mxy, mxx - myy), ux = Math.cos(ang), uy = Math.sin(ang);
+    let pmin = Infinity, pmax = -Infinity, gpMin = pts[0], gpMax = pts[0];
+    for (const [x, y] of pts) { const p = (x - cx) * ux + (y - cy) * uy; if (p < pmin) { pmin = p; gpMin = [x, y]; } if (p > pmax) { pmax = p; gpMax = [x, y]; } }
+    const dMin = Math.hypot(gpMin[0] - bcx, gpMin[1] - bcy), dMax = Math.hypot(gpMax[0] - bcx, gpMax[1] - bcy);
+    const grip = dMin <= dMax ? gpMin : gpMax, tip = dMin <= dMax ? gpMax : gpMin;
+    const bladeDir = Math.atan2(tip[1] - grip[1], tip[0] - grip[0]);
+    cells.push({ row: r, col, cx, cy, gx: grip[0], gy: grip[1], angle: bladeDir, ext: Math.hypot(tip[0] - grip[0], tip[1] - grip[1]) });
   }
   const rc = { cells, cols, rows, W, H, fs };
-  // unwrap the principal angle along each row so a swing arc reads as continuous
-  for (let r = 0; r < rows; r++) { let prev = null; for (let col = 0; col < cols; col++) { const cell = cells[r * cols + col]; if (!cell) continue; if (prev !== null) { let a = cell.angle; while (a - prev > Math.PI / 2) a -= Math.PI; while (a - prev < -Math.PI / 2) a += Math.PI; cell.angle = a; } prev = cell.angle; } }
   return rc;
 }
 function gsAlignCell() {
@@ -1692,7 +1733,9 @@ function gsGenerate() {
   for (const cell of ref.cells) {
     if (!cell) continue;
     const dRot = GS.trackRot ? cell.angle - align.angle : 0;
-    const dScale = cell.ext / (align.ext || 1);
+    // size-lock keeps the weapon the size you set in the walk/idle step across
+    // every frame; unlocked, it tracks the reference blade's per-frame length
+    const dScale = GS.sizeLock ? 1 : cell.ext / (align.ext || 1);
     g.save();
     // clip to THIS frame's cell so a stamp can never bleed its blade tip into a
     // neighbouring animation frame (fixes the stray sword tips clipping across)
@@ -1714,6 +1757,8 @@ function renderGearSheet() {
       <h3 style="color:var(--gold);font-size:12px">1 · Import equipment art</h3>
       <div class="ms-row"><input type="file" id="gs-file" accept="image/*"></div>
       <div style="font-size:11px;color:var(--dim)">A single weapon image (PNG, transparent). Point the blade UP for best results.</div>
+      <div class="ms-row" style="gap:4px;margin-top:5px">…or edit an existing weapon:
+        <select id="gs-import" style="flex:1"><option value="">— pick a weapon —</option>${weaponList().map((w) => `<option value="${w}">${w}</option>`).join('')}</select></div>
       <h3 style="color:var(--gold);font-size:12px;margin-top:12px">2 · Choose the combat animation</h3>
       <div class="ms-row" style="flex-wrap:wrap;gap:4px">${tgtBtns}</div>
       <div style="font-size:11px;color:var(--dim)">Carry is the base walk/idle sheet; slash &amp; thrust are the attack overlays. Compile whichever your weapon needs.</div>
@@ -1723,10 +1768,11 @@ function renderGearSheet() {
       <div class="ms-row">Y <input id="gs-y" type="range" min="-40" max="40" step="0.5" value="${GS.y}" style="flex:1"></div>
       <div class="ms-row">scale <input id="gs-scale" type="range" min="0.2" max="3" step="0.02" value="${GS.scale}" style="flex:1"></div>
       <div class="ms-row">rotate <input id="gs-rot" type="range" min="-180" max="180" step="1" value="${GS.rot}" style="flex:1"></div>
-      <div class="ms-row" style="gap:12px">
+      <div class="ms-row" style="gap:12px;flex-wrap:wrap">
         <label style="font-size:11.5px"><input type="checkbox" id="gs-flipx" ${GS.flipX ? 'checked' : ''}> mirror ↔</label>
         <label style="font-size:11.5px"><input type="checkbox" id="gs-flipy" ${GS.flipY ? 'checked' : ''}> flip ↕</label>
-        <label style="font-size:11.5px"><input type="checkbox" id="gs-track" ${GS.trackRot ? 'checked' : ''}> track swing</label></div>
+        <label style="font-size:11.5px"><input type="checkbox" id="gs-track" ${GS.trackRot ? 'checked' : ''}> track swing</label>
+        <label style="font-size:11.5px" title="keep the weapon the same size in every frame &amp; direction"><input type="checkbox" id="gs-lock" ${GS.sizeLock ? 'checked' : ''}> 🔒 size lock</label></div>
       <div class="ms-row"><button class="act" id="gs-gen" style="flex:1">⚙ Generate sheet</button>
         <button class="act" id="gs-dl">⬇ PNG</button></div>
     </div>
@@ -1749,8 +1795,10 @@ function renderGearSheet() {
   });
   if (!GS.body) { const b = new Image(); b.onload = () => { GS.body = b; }; b.src = 'assets/lpc/body_male_light.png'; }
   $('#gs-file').onchange = (e) => { const f = e.target.files[0]; if (!f) return; const im = new Image(); im.onload = () => { GS.img = im; GS.imgName = f.name.replace(/\.\w+$/, ''); gsGenerate(); }; im.src = URL.createObjectURL(f); };
+  $('#gs-import').onchange = (e) => { if (e.target.value) gsImportWeapon(e.target.value); };
   for (const k of ['x', 'y', 'scale', 'rot']) $(`#gs-${k}`).oninput = (e) => { GS[k] = +e.target.value; gsGenerate(); };
   $('#gs-track').onchange = (e) => { GS.trackRot = e.target.checked; gsGenerate(); };
+  $('#gs-lock').onchange = (e) => { GS.sizeLock = e.target.checked; gsGenerate(); };
   $('#gs-flipx').onchange = (e) => { GS.flipX = e.target.checked; gsGenerate(); };
   $('#gs-flipy').onchange = (e) => { GS.flipY = e.target.checked; gsGenerate(); };
   $('#gs-gen').onclick = () => { gsGenerate(); gsCapture(); gsCaps(); $('#gs-status').textContent = GS.gen ? 'sheet generated & captured — see the preview' : 'import an image first'; };
@@ -1836,9 +1884,28 @@ function renderDeploy() {
   $('#dp-quest').onchange = (e) => d.quest = e.target.value;
   $('#dp-deploy').onclick = () => gsDeploy();
 }
+// compile EVERY animation (carry + slash + thrust) from the current alignment so
+// a deployed weapon animates in combat, not just when walking. The same align
+// offsets + size-lock apply to each target's own grip template.
+function gsCompileAll() {
+  return new Promise((resolve) => {
+    const targets = Object.keys(GS_TEMPLATES);
+    let pending = targets.length;
+    const done = () => {
+      const save = GS.target;
+      for (const t of targets) { GS.target = t; gsGenerate(); if (GS.gen) GS.sheets[t] = GS.gen.toDataURL(); }
+      GS.target = save; gsGenerate();
+      resolve();
+    };
+    targets.forEach((t) => gsEnsureRef(t, () => { if (--pending === 0) done(); }));
+  });
+}
 async function gsDeploy() {
   const d = GS.deploy, st = $('#dp-status');
-  gsCapture();
+  if (!GS.img) { st.textContent = '⚠ import a weapon image first.'; return; }
+  st.textContent = 'compiling walk + slash + thrust…';
+  await gsCompileAll();   // ship all animations so combat is wired, not just walk
+  gsCaps();
   if (!GS.sheets.carry) { st.textContent = '⚠ compile the Walk/carry sheet first (it is the held look).'; return; }
   const gl = gearGuideline(d.kind, d.level);
   const req = {}; for (const k of ['attack', 'strength', 'defence']) if (d.req?.[k] > 0) req[k] = d.req[k];

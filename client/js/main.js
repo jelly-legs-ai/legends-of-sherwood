@@ -39,10 +39,12 @@ async function boot() {
   await Promise.all([loadManifest(), loadMedia()]);
   // admin-authored world edits + custom content, shared with the server
   const j = (u) => fetch(u).then(r => r.json()).catch(() => null);
-  const [mapOv, customItems, customAnims] = await Promise.all([j('/map-overrides.json'), j('/custom-items.json'), j('/custom-anims.json')]);
+  const [mapOv, customItems, customAnims, deployedGear] = await Promise.all([j('/map-overrides.json'), j('/custom-items.json'), j('/custom-anims.json'), j('/shared/data/deployed-gear.json')]);
   applyMapOverrides(mapOv);
   registerCustomItems(customItems || {});
-  registerCustomWeaponArt(customItems || {});   // deployed gear-sheet weapons render in-world
+  registerCustomWeaponArt(customItems || {});
+  registerCustomItems(deployedGear || {});        // deployed gear-sheet weapons (tracked, ship like built-ins)
+  registerCustomWeaponArt(deployedGear || {});    // …and their in-world sheets
   registerCustomAnims(customAnims || {});
   computeWorld(); // warm map cache before first frame
   // restore last look
