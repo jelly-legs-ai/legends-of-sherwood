@@ -835,16 +835,19 @@ function chunkCanvas(plane, cx, cy) {
       // the full tile. Only the castle curtain wall above stays massive.
       const P = (u, v, dz = 0) => [lx + (u - v) * TW / 2, ly - TH / 2 + (u + v) * TH / 2 - dz];
       const wl = (dx2, dy2) => WALLS.has(tileAtPlane(plane, x + dx2, y + dy2));
-      const runX = wl(1, 0) || wl(-1, 0), runY = wl(0, 1) || wl(0, -1);
+      const wlE = wl(1, 0), wlW = wl(-1, 0), wlN = wl(0, -1), wlS = wl(0, 1);
       const th3 = 1 / 3, a3 = 0.5 - th3 / 2, b3 = 0.5 + th3 / 2;
       const slabs = [];
-      // A corner draws a SOLID full-tile post: two centred bands would only cross
-      // in the middle and leave the building's outer corner (u<a3, v<a3) as an
-      // open notch, so the perpendicular walls never quite met. The post closes it.
-      if (runX && runY) slabs.push([0, 1, 0, 1]);
-      else if (runX) slabs.push([0, 1, a3, b3]);
-      else if (runY) slabs.push([a3, b3, 0, 1]);
-      else slabs.push([a3, b3, a3, b3]);
+      // Each tile grows a thin arm from the centre out to ONLY the sides that
+      // actually have a wall neighbour: a straight run is one band, a corner is
+      // a clean L at the same slab thickness (no fat full-tile block, and no stub
+      // poking into the exterior), so every joint lines up.
+      const horiz = wlE || wlW, vert = wlN || wlS;
+      const uLo = wlW ? 0 : a3, uHi = wlE ? 1 : b3;
+      const vLo = wlN ? 0 : a3, vHi = wlS ? 1 : b3;
+      if (horiz) slabs.push([uLo, uHi, a3, b3]);
+      if (vert) slabs.push([a3, b3, vLo, vHi]);
+      if (!horiz && !vert) slabs.push([a3, b3, a3, b3]);
       const quad = (pts) => { g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (let q = 1; q < pts.length; q++) g.lineTo(pts[q][0], pts[q][1]); g.closePath(); };
       const adobe = !stone && regionAt(x, y) === 'DESERT';
       for (const [u0, u1, v0, v1] of slabs) {
