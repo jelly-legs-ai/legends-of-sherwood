@@ -796,7 +796,7 @@ function chunkCanvas(plane, cx, cy) {
       // buildings inside those walls build in rounded cobblestone
       const wallStyle = stone ? wallStyleAt(x, y) : null;
       if (wallStyle === 'castle') {
-        const cwh = 64;   // taller curtain wall
+        const cwh = regionAt(x, y) === 'NOTTINGHAM' ? 96 : 64;   // Nottingham's rampart stands a tile taller
         const cFaceL = () => { g.beginPath(); g.moveTo(lx - TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - cwh); g.lineTo(lx - TW / 2, ly - cwh); g.closePath(); };
         const cFaceR = () => { g.beginPath(); g.moveTo(lx + TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - cwh); g.lineTo(lx + TW / 2, ly - cwh); g.closePath(); };
         g.fillStyle = tint('#7c8387', wear); cFaceL(); g.fill();
@@ -838,7 +838,10 @@ function chunkCanvas(plane, cx, cy) {
       const runX = wl(1, 0) || wl(-1, 0), runY = wl(0, 1) || wl(0, -1);
       const th3 = 1 / 3, a3 = 0.5 - th3 / 2, b3 = 0.5 + th3 / 2;
       const slabs = [];
-      if (runX && runY) slabs.push([0, 1, a3, b3], [a3, b3, 0, 1]);
+      // A corner draws a SOLID full-tile post: two centred bands would only cross
+      // in the middle and leave the building's outer corner (u<a3, v<a3) as an
+      // open notch, so the perpendicular walls never quite met. The post closes it.
+      if (runX && runY) slabs.push([0, 1, 0, 1]);
       else if (runX) slabs.push([0, 1, a3, b3]);
       else if (runY) slabs.push([a3, b3, 0, 1]);
       else slabs.push([a3, b3, a3, b3]);
