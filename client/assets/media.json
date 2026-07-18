@@ -3763,7 +3763,11 @@
   "raou_tiles": {
    "file": "dungeon/raou_tiles.png",
    "w": 576,
-   "h": 816
+   "h": 816,
+   "cellW": 48,
+   "cellH": 48,
+   "cols": 12,
+   "rows": 17
   },
   "undeadDecor": [
    {
@@ -3813,6 +3817,48 @@
     "w": 64,
     "h": 64,
     "tag": "rock"
+   },
+   {
+    "file": "dungeon/undead/crystal.png",
+    "w": 64,
+    "h": 64,
+    "tag": "crystal"
+   },
+   {
+    "file": "dungeon/undead/lich.png",
+    "w": 256,
+    "h": 256,
+    "tag": "lich"
+   },
+   {
+    "file": "dungeon/undead/skull_pile.png",
+    "w": 128,
+    "h": 128,
+    "tag": "skull_pile"
+   },
+   {
+    "file": "dungeon/undead/skull_door.png",
+    "w": 64,
+    "h": 64,
+    "tag": "skull_door"
+   },
+   {
+    "file": "dungeon/undead/thorn_plant.png",
+    "w": 128,
+    "h": 128,
+    "tag": "thorn_plant"
+   },
+   {
+    "file": "dungeon/undead/rubble_rock.png",
+    "w": 64,
+    "h": 64,
+    "tag": "rubble_rock"
+   },
+   {
+    "file": "dungeon/undead/cave_plant.png",
+    "w": 128,
+    "h": 128,
+    "tag": "cave_plant"
    }
   ],
   "geo_objects": {

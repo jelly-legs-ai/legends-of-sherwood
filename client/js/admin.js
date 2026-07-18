@@ -716,7 +716,10 @@ const MS_CATALOG = () => {
   const grid = (pack) => {
     const sh = MEDIA.sheets?.[pack];
     if (!sh) return [];
-    const n = Array.isArray(sh) ? sh.length : (sh.cols && sh.rows ? sh.cols * sh.rows : 0);
+    let n;
+    if (Array.isArray(sh)) n = sh.length;
+    else if (sh.cols && sh.rows) n = sh.cols * sh.rows;
+    else { const cw = sh.cellW || sh.cell || 32, ch = sh.cellH || sh.cell || 32; n = Math.floor(sh.w / cw) * Math.floor(sh.h / ch); }
     return Array.from({ length: n }, (_, i) => `prop:${pack}:${i}`);
   };
   const cat = {
@@ -733,6 +736,9 @@ const MS_CATALOG = () => {
     'Jungle & ruins': pick(/jungle|^ruin_|pitcher|heliconia|potted_palm/),
     'Desert & adobe': pick(/adobe|sun_rug/),
     'Cave & dungeon decor': [...grid('undeadDecor'), ...grid('geo_objects'), ...grid('geo_rocks')],
+    'Abyssal dungeon tiles': grid('geo_tiles'),
+    'Isometric tileset': grid('iso_tiles'),
+    'Raou iso tileset': grid('raou_tiles'),
   };
   const rest = T.filter(k => !used.has(k) && !/(^|_)tree$/.test(k) && !NODES[k]);
   if (rest.length) cat['More props'] = rest;
