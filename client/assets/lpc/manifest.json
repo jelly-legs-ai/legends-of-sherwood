@@ -1770,6 +1770,70 @@
     "whiteblue": "cape_bluetrim.png",
     "default": "cape_bluetrim.png"
    }
+  },
+  "capefront/cape_normal": {
+   "male": {
+    "black": "cape_normal_black_front.png",
+    "blue": "cape_normal_blue_front.png",
+    "brown": "cape_normal_brown_front.png",
+    "gray": "cape_normal_gray_front.png",
+    "green": "cape_normal_green_front.png",
+    "lavender": "cape_normal_lavender_front.png",
+    "maroon": "cape_normal_maroon_front.png",
+    "pink": "cape_normal_pink_front.png",
+    "red": "cape_normal_red_front.png",
+    "white": "cape_normal_white_front.png",
+    "yellow": "cape_normal_yellow_front.png"
+   },
+   "female": {
+    "black": "cape_normal_black_front.png",
+    "blue": "cape_normal_blue_front.png",
+    "brown": "cape_normal_brown_front.png",
+    "gray": "cape_normal_gray_front.png",
+    "green": "cape_normal_green_front.png",
+    "lavender": "cape_normal_lavender_front.png",
+    "maroon": "cape_normal_maroon_front.png",
+    "pink": "cape_normal_pink_front.png",
+    "red": "cape_normal_red_front.png",
+    "white": "cape_normal_white_front.png",
+    "yellow": "cape_normal_yellow_front.png"
+   }
+  },
+  "capefront/cape_tattered": {
+   "male": {
+    "black": "cape_tattered_black_front.png",
+    "blue": "cape_tattered_blue_front.png",
+    "brown": "cape_tattered_brown_front.png",
+    "gray": "cape_tattered_gray_front.png",
+    "green": "cape_tattered_green_front.png",
+    "lavender": "cape_tattered_lavender_front.png",
+    "maroon": "cape_tattered_maroon_front.png",
+    "pink": "cape_tattered_pink_front.png",
+    "red": "cape_tattered_red_front.png",
+    "white": "cape_tattered_white_front.png",
+    "yellow": "cape_tattered_yellow_front.png"
+   },
+   "female": {
+    "black": "cape_tattered_black_front.png",
+    "blue": "cape_tattered_blue_front.png",
+    "brown": "cape_tattered_brown_front.png",
+    "gray": "cape_tattered_gray_front.png",
+    "green": "cape_tattered_green_front.png",
+    "lavender": "cape_tattered_lavender_front.png",
+    "maroon": "cape_tattered_maroon_front.png",
+    "pink": "cape_tattered_pink_front.png",
+    "red": "cape_tattered_red_front.png",
+    "white": "cape_tattered_white_front.png",
+    "yellow": "cape_tattered_yellow_front.png"
+   }
+  },
+  "capefront/cape_bluetrim": {
+   "male": {
+    "whiteblue": "cape_bluetrim.png"
+   },
+   "female": {
+    "whiteblue": "cape_bluetrim.png"
+   }
   }
  },
  "weapons": {

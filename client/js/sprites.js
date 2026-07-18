@@ -120,11 +120,14 @@ function compositeInto(c, vis) {
   // wings and tails ride here, drawn behind the body like the weapon bg. Wings
   // also get a FRONT layer (drawn after the body) so the near wing wraps over
   // the shoulder correctly.
-  let wingFront = null;
+  let wingFront = null, capeFront = null;
   if (vis.behind) {
     const bh = Array.isArray(vis.behind) ? vis.behind : ['quiver', 'brown'];
     layers.push(gearFile('behind/' + bh[0], sex, bh[1] || 'brown'));
     if (String(bh[0]).startsWith('wings_')) wingFront = gearFile('wingfront/' + bh[0], sex, bh[1] || 'white');
+    // capes get a FRONT companion: the away-facing cape + a collar over the chest
+    // (the behind sheet alone vanishes facing north and hides the necktie)
+    if (String(bh[0]).startsWith('cape')) capeFront = gearFile('capefront/' + bh[0], sex, bh[1] || 'brown');
   }
   // worn backpack: the pack/basket rides behind the body; its straps + basket rim
   // are a FRONT layer (drawn over the torso). vis.pack[0] is the pack key. Only
@@ -157,6 +160,7 @@ function compositeInto(c, vis) {
   if (vis.hands) layers.push(gearL('hands/gloves', vis.hands));
   if (vis.shoulders) layers.push(gearL('shoulders/' + vis.shoulders[0], vis.shoulders));
   if (vis.head) layers.push(gearL('head/' + vis.head[0], vis.head));
+  if (capeFront) layers.push(capeFront);   // away-facing cape + collar, over the body
   if (wingFront) layers.push(wingFront);   // near wing wraps over the body
   if (packFront) layers.push(packFront);   // backpack straps / basket rim over the torso
   // LPC kite shield: a real baked off-hand layer (walk/slash/thrust rows), dyed
