@@ -1760,6 +1760,16 @@
     "wood": "pack_wood_front_female.png",
     "ore_silver": "pack_ore_silver_front_female.png"
    }
+  },
+  "behind/cape_bluetrim": {
+   "male": {
+    "whiteblue": "cape_bluetrim.png",
+    "default": "cape_bluetrim.png"
+   },
+   "female": {
+    "whiteblue": "cape_bluetrim.png",
+    "default": "cape_bluetrim.png"
+   }
   }
  },
  "weapons": {

@@ -694,6 +694,9 @@ for (const c of CAPE_COLORS) {
   def(`tattered_cape_${c}`, { name: `Tattered ${c} cape`, slot: 'cape', value: 250, req: {}, tint: CAPE_ICON[c],
     vis: { layer: 'behind', sheet: 'cape_tattered', color: c } });
 }
+// A finer cape: white with a blue trim (Jaidyn Reiman, OGA-BY/GPL/CC-BY-SA).
+def('cape_bluetrim', { name: 'White cape with blue trim', slot: 'cape', value: 1600, req: {}, tint: '#e6ecff',
+  vis: { layer: 'behind', sheet: 'cape_bluetrim', color: 'whiteblue' } });
 
 // Unique boss drops
 def('sheriffs_blade', { name: "The Sheriff's blade", slot: 'weapon', kind: 'sword', style: 'melee', anim: 'slash',
