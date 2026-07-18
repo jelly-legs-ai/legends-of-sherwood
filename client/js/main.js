@@ -14,7 +14,7 @@ import { loadMedia } from './media.js';
 import { Renderer, drawMinimap, MM_RANGE, flushChunkCache } from './renderer.js';
 import { Fx } from './fx.js';
 import * as UI from './ui.js';
-import { initSound, sfx } from './sound.js';
+import { initSound, sfx, ambientTick } from './sound.js';
 
 const $ = (s) => document.querySelector(s);
 
@@ -586,6 +586,13 @@ function loop() {
     }
     $('#zone-name').textContent = zoneName();
     if (now - (G._mm || 0) > 400) { drawMinimap($('#minimap'), Object.assign(G.me, { plane: G.self.plane }), G.entities); G._mm = now; }
+    // ambient bed follows where you're standing: wind + birds under open sky,
+    // rumble + drips anywhere underground
+    if (now - (G._amb || 0) > 500) {
+      const pl = G.self.plane;
+      ambientTick(pl <= -10 || pl >= PLANE.DUNGEON_BASE ? 'cave' : pl === PLANE.OVERWORLD ? 'overworld' : null);
+      G._amb = now;
+    }
     UI.tickCooldowns();
   }
 }

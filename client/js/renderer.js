@@ -1767,10 +1767,14 @@ export function drawMinimap(canvas, me, entities) {
     }
   }
   // scenery: trees as canopy dots with trunks, rocks as grey chips with ore tint
-  if (plane === 0) {
+  // — overworld reads the authored node map, caves read their studio level
+  const mmLv = plane <= -10 ? customLevel(-10 - plane) : null;
+  const mmNode = plane === 0 ? (x, y) => nodes.get(x + ',' + y)
+    : mmLv ? (x, y) => mmLv.nodes?.[x + ',' + y] : null;
+  if (mmNode) {
     for (let dy = -MM_RANGE; dy <= MM_RANGE; dy++) {
       for (let dx = -MM_RANGE; dx <= MM_RANGE; dx++) {
-        const type = nodes.get((cx + dx) + ',' + (cy + dy));
+        const type = mmNode(cx + dx, cy + dy);
         if (!type) continue;
         const px2 = (dx + MM_RANGE) * sc, py2 = (dy + MM_RANGE) * sc;
         if (type.includes('tree')) {
@@ -1793,6 +1797,17 @@ export function drawMinimap(canvas, me, entities) {
           g.fillRect(px2, py2, sc, sc);
         }
       }
+    }
+  }
+  // the cave exit pad glows cyan so the way out always reads
+  if (mmLv) {
+    const en = levelEntry(mmLv);
+    const dx = en.x - cx, dy = en.y - cy;
+    if (Math.abs(dx) <= MM_RANGE && Math.abs(dy) <= MM_RANGE) {
+      const px2 = (dx + MM_RANGE + 0.5) * sc, py2 = (dy + MM_RANGE + 0.5) * sc;
+      g.fillStyle = '#7cd6ff';
+      g.beginPath(); g.arc(px2, py2, Math.max(2.5, sc * 0.7), 0, 7); g.fill();
+      g.strokeStyle = '#ffffffaa'; g.lineWidth = 1; g.stroke();
     }
   }
   // living entities

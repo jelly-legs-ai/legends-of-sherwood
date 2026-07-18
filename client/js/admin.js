@@ -758,7 +758,14 @@ function msSide() {
       <h3>World zones</h3>
       <div style="font-size:11px;max-height:230px;overflow:auto">${(state.spawns?.spawns || []).map((s, i) => `<div style="cursor:pointer;padding:1px 0" data-z="${i}">${s.mob} ×${s.n} @ ${s.x},${s.y}</div>`).join('')}</div>`;
     for (const d of side.querySelectorAll('[data-z]')) d.onclick = () => { const s = state.spawns.spawns[+d.dataset.z]; MS.zoneSel = s; MS.vp.x = s.x; MS.vp.y = s.y; msSide(); };
-    for (const d of side.querySelectorAll('[data-cz]')) d.onclick = () => { const s = custom[d.dataset.cz]; MS.zoneSel = s; if (!s.plane) { MS.vp.x = s.x; MS.vp.y = s.y; } msSide(); };
+    for (const d of side.querySelectorAll('[data-cz]')) d.onclick = () => {
+      const s = custom[d.dataset.cz]; MS.zoneSel = s;
+      // jump the viewport when the zone lives on the plane we're looking at
+      const lvv = MS.level && msLevels()[MS.level];
+      const cp = lvv?.slot !== undefined ? -10 - lvv.slot : 0;
+      if ((s.plane | 0) === cp) { MS.vp.x = s.x; MS.vp.y = s.y; }
+      msSide();
+    };
     for (const b of side.querySelectorAll('[data-czrm]')) b.onclick = () => { MS.pending.spawns[b.dataset.czrm] = null; msSide(); };
     const mobSel = $('#ms-spawn-mob');
     mobSel.onchange = () => MS.spawnMob = mobSel.value;
@@ -789,7 +796,13 @@ function msSide() {
     ${Object.entries(cat).map(([name, list]) => `<h3>${name}</h3><div class="ms-cat">${list.map(k => `<div class="ms-cell ${MS.node === k ? 'on' : ''}" draggable="true" data-node="${k}" title="${NODES[k]?.name || k}"></div>`).join('')}</div>`).join('')}`;
   $('#ms-save').onclick = msSave;
   $('#ms-discard').onclick = () => { MS.pending = { tiles: {}, elev: {}, nodes: {}, levels: {}, spawns: {} }; MS.base = null; MS.baseRows = 0; renderMapStudio(); };
-  $('#ms-level').onchange = (e) => { MS.level = e.target.value || null; MS.gateArm = false; renderMapStudio(); };
+  $('#ms-level').onchange = (e) => {
+    MS.level = e.target.value || null; MS.gateArm = false;
+    // snap the viewport onto the picked level so it never opens off-screen
+    const lv = MS.level && msLevels()[MS.level];
+    if (lv?.size) { MS.vp.x = lv.size / 2; MS.vp.y = lv.size / 2; MS.vp.z = Math.max(4, Math.min(14, 560 / lv.size)); }
+    renderMapStudio();
+  };
   const gateBtn = $('#ms-gate');
   if (gateBtn) gateBtn.onclick = () => { MS.gateArm = !MS.gateArm; msSide(); };
   $('#ms-newlevel').onclick = () => {
@@ -873,7 +886,10 @@ function msBindInput(cv) {
         msSide(); return;
       }
       let best = null, bd = 1e9;
-      const cands = [...(state.spawns?.spawns || []), ...Object.values({ ...(state.spawns?.custom || {}), ...MS.pending.spawns }).filter(z => z && !z.plane)];
+      // selection matches whichever plane the studio is looking at
+      const lvSel = MS.level && msLevels()[MS.level];
+      const curPlane = lvSel?.slot !== undefined ? -10 - lvSel.slot : 0;
+      const cands = [...(curPlane === 0 ? state.spawns?.spawns || [] : []), ...Object.values({ ...(state.spawns?.custom || {}), ...MS.pending.spawns }).filter(z => z && (z.plane | 0) === curPlane)];
       for (const z of cands) { const d = Math.hypot(z.x - tx, z.y - ty); if (d < Math.max(6, z.r + 3) && d < bd) { bd = d; best = z; } }
       MS.zoneSel = best; msSide(); return;
     }
@@ -1096,11 +1112,26 @@ function msDrawLevel(g, cv, lv) {
   { const en = { x: lv.size >> 1, y: lv.size - 3 };
     g.strokeStyle = '#7cd6ff'; g.lineWidth = 2;
     g.strokeRect((en.x - sx) * z, (en.y - sy) * z, z, z); }
+  // mob mode: spawn zones living on THIS level ring gold (pending dashed)
+  if (MS.mobMode && state.spawns && lv.slot !== undefined) {
+    const plane = -10 - lv.slot;
+    for (const [id, zn] of Object.entries({ ...(state.spawns.custom || {}), ...MS.pending.spawns })) {
+      if (!zn || (zn.plane | 0) !== plane) continue;
+      const px = (zn.x - sx) * z, py = (zn.y - sy) * z;
+      const r = Math.max(4, zn.r * z);
+      g.setLineDash(MS.pending.spawns[id] ? [5, 4] : []);
+      g.strokeStyle = zn === MS.zoneSel ? '#ffe27a' : '#e3b341'; g.lineWidth = 1.5;
+      g.beginPath(); g.arc(px, py, r, 0, 7); g.stroke();
+      g.setLineDash([]);
+      g.fillStyle = 'rgba(227,179,65,0.10)'; g.fill();
+      if (z >= 3) { g.fillStyle = '#ffe27a'; g.font = '10px monospace'; g.textAlign = 'center'; g.fillText(`${zn.mob}×${zn.n}`, px, py - r - 3); }
+    }
+  }
   if (MS.mouse) {
     const [tx, ty] = msScreenToTile(cv, MS.mouse[0], MS.mouse[1]);
     g.strokeStyle = '#e3b341'; g.strokeRect((tx - sx) * z, (ty - sy) * z, z, z);
     const st = $('#ms-status');
-    if (st) st.textContent = `level ${MS.level} — ${tx},${ty} · ${lv.size}×${lv.size} · terrain painting only${msPendingCount() ? `  |  ✎ ${msPendingCount()} unsaved` : ''}`;
+    if (st) st.textContent = `level ${MS.level} — ${tx},${ty} · ${lv.size}×${lv.size} · terrain + nodes${msPendingCount() ? `  |  ✎ ${msPendingCount()} unsaved` : ''}`;
   }
 }
 

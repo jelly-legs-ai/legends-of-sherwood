@@ -103,3 +103,94 @@ export const sfx = {
     }
   },
 };
+
+// ---- ambient beds -----------------------------------------------------------
+// Two location-aware background layers, both synthesized: a looped noise bed
+// (wind outdoors, tectonic rumble underground) plus sparse scheduled one-shots
+// (birdsong / water drips). ambientTick(mode) crossfades whenever the player's
+// surroundings change; mode null (or mute) fades everything out.
+let amb = null;
+
+function makeLoopNoise(freq, q) {
+  const buf = ctx.createBuffer(1, (2 * ctx.sampleRate) | 0, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource();
+  src.buffer = buf; src.loop = true;
+  const f = ctx.createBiquadFilter();
+  f.type = 'lowpass'; f.frequency.value = freq; f.Q.value = q;
+  src.connect(f);
+  src.start();
+  return { src, f };
+}
+
+function startAmbient(mode) {
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(1, ctx.currentTime + 1.6);
+  g.connect(master);
+  const a = { mode, g, stops: [], timer: 0 };
+  const loop = (fn, min, max) => {   // sparse one-shots on a drifting clock
+    const tick = () => { if (amb !== a) return; fn(); a.timer = setTimeout(tick, min + Math.random() * (max - min)); };
+    a.timer = setTimeout(tick, min + Math.random() * (max - min));
+  };
+  if (mode === 'overworld') {
+    const wind = makeLoopNoise(340, 0.6);
+    const wg = ctx.createGain(); wg.gain.value = 0.055;
+    wind.f.connect(wg); wg.connect(g);
+    // slow gusting: an LFO breathes the filter open and closed
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07;
+    const lg = ctx.createGain(); lg.gain.value = 140;
+    lfo.connect(lg); lg.connect(wind.f.frequency); lfo.start();
+    a.stops.push(() => { wind.src.stop(); lfo.stop(); });
+    loop(() => {   // birdsong: a few quick sweet chirps
+      const n = 2 + (Math.random() * 3 | 0), base = 1900 + Math.random() * 1300;
+      for (let i = 0; i < n; i++) {
+        const t0 = ctx.currentTime + i * (0.09 + Math.random() * 0.06);
+        const o = ctx.createOscillator(), og = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(base + Math.random() * 300, t0);
+        o.frequency.exponentialRampToValueAtTime(base * (Math.random() < 0.5 ? 1.35 : 0.75), t0 + 0.07);
+        og.gain.setValueAtTime(0.0001, t0);
+        og.gain.exponentialRampToValueAtTime(0.05, t0 + 0.015);
+        og.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.09);
+        o.connect(og); og.connect(g); o.start(t0); o.stop(t0 + 0.12);
+      }
+    }, 2500, 9000);
+  } else if (mode === 'cave') {
+    const rumble = makeLoopNoise(110, 0.8);
+    const rg = ctx.createGain(); rg.gain.value = 0.10;
+    rumble.f.connect(rg); rg.connect(g);
+    a.stops.push(() => rumble.src.stop());
+    loop(() => {   // a drip falls, then its echo answers
+      const plink = (t0, vol) => {
+        const o = ctx.createOscillator(), og = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(820 + Math.random() * 500, t0);
+        o.frequency.exponentialRampToValueAtTime(240, t0 + 0.11);
+        og.gain.setValueAtTime(0.0001, t0);
+        og.gain.exponentialRampToValueAtTime(vol, t0 + 0.006);
+        og.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16);
+        o.connect(og); og.connect(g); o.start(t0); o.stop(t0 + 0.2);
+      };
+      plink(ctx.currentTime, 0.12);
+      plink(ctx.currentTime + 0.16, 0.045);
+    }, 1800, 6500);
+  }
+  return a;
+}
+
+export function ambientTick(mode) {
+  if (!ctx) return;                                  // audio wakes on the first gesture
+  const want = (muted() || ctx.state !== 'running') ? null : mode;
+  if ((amb?.mode ?? null) === want) return;
+  if (amb) {                                         // let the old bed breathe out
+    const old = amb;
+    old.g.gain.cancelScheduledValues(ctx.currentTime);
+    old.g.gain.setValueAtTime(Math.max(0.0001, old.g.gain.value), ctx.currentTime);
+    old.g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.2);
+    clearTimeout(old.timer);
+    setTimeout(() => { for (const s of old.stops) try { s(); } catch {} old.g.disconnect(); }, 1400);
+  }
+  amb = want ? startAmbient(want) : null;
+}
