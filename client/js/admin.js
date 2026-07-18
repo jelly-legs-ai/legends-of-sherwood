@@ -802,6 +802,7 @@ const MS = {
   previewBackup: { tiles: {}, elev: {}, nodes: {} },   // pre-edit override values, for Discard
   base: null, baseRows: 0, drag: null, mouse: null, thumbs: new Map(), inited: false,
   view: '2d', isoR: null, isoFx: null, isoEnts: new Map(), isoDep: new Set(), sel: null, hover: null,
+  isoZoom: 1, isoBuf: null,   // rendered-view zoom (offscreen buffer sized canvas/zoom)
 };
 // Live rendered preview: as the brush paints (terrain, elevation, models), poke
 // the edit straight into the override layer + cached world and re-bake only the
@@ -850,7 +851,7 @@ function msAssetAt(x, y) {
 }
 // Screen-space centre of a tile in whichever view is active (iso or flat).
 function msTileToScreen(cv, tx, ty) {
-  if (MS.view === 'iso' && (!MS.level || MS.gateArm) && MS.isoR) return MS.isoR.screenOf(0, tx + 0.5, ty + 0.5);
+  if (MS.view === 'iso' && (!MS.level || MS.gateArm) && MS.isoR) { const [px, py] = MS.isoR.screenOf(0, tx + 0.5, ty + 0.5); return [px * MS.isoZoom, py * MS.isoZoom]; }
   const z = MS.vp.z, sx = MS.vp.x - cv.width / 2 / z, sy = MS.vp.y - cv.height / 2 / z;
   return [(tx + 0.5 - sx) * z, (ty + 0.5 - sy) * z];
 }
@@ -1093,13 +1094,18 @@ function msSave() {
   setTimeout(() => send({ t: 'spawnzones' }), 300);   // refresh zone list + census
   msSide();
 }
-function msZoom(f) { MS.vp.z = Math.max(1, Math.min(40, MS.vp.z * f)); }
+function msZoom(f) {
+  if (MS.view === 'iso' && (!MS.level || MS.gateArm)) MS.isoZoom = Math.max(0.4, Math.min(3, MS.isoZoom * f));
+  else MS.vp.z = Math.max(1, Math.min(40, MS.vp.z * f));
+}
 function msScreenToTile(cv, mx, my) {
   if (MS.view === 'iso' && (!MS.level || MS.gateArm) && MS.isoR) {
     // invert the game's iso projection about the studio camera (elevation
-    // lift is ignored — clicks on tall ground land a whisker south)
+    // lift is ignored — clicks on tall ground land a whisker south). the render
+    // is drawn zoomed, so undo the zoom about the canvas centre first.
+    const z = MS.isoZoom;
     const camWx = (MS.isoR.cam.x - MS.isoR.cam.y) * 32, camWy = (MS.isoR.cam.x + MS.isoR.cam.y) * 16;
-    const wx = mx - cv.width / 2 + camWx, wy = my - cv.height / 2 + camWy;
+    const wx = (mx - cv.width / 2) / z + camWx, wy = (my - cv.height / 2) / z + camWy;
     return [Math.floor(wx / 64 + wy / 32), Math.floor(wy / 32 - wx / 64)];
   }
   const z = MS.vp.z;
@@ -1176,7 +1182,7 @@ function msBindInput(cv) {
     if (!MS.drag) return;
     if (MS.tool === 'pan' || MS.mobMode) {
       const dmx = mx - MS.drag.mx, dmy = my - MS.drag.my;
-      if (MS.view === 'iso' && (!MS.level || MS.gateArm)) { MS.vp.x = MS.drag.vx - (dmx / 64 + dmy / 32); MS.vp.y = MS.drag.vy - (dmy / 32 - dmx / 64); }
+      if (MS.view === 'iso' && (!MS.level || MS.gateArm)) { const zx = dmx / MS.isoZoom, zy = dmy / MS.isoZoom; MS.vp.x = MS.drag.vx - (zx / 64 + zy / 32); MS.vp.y = MS.drag.vy - (zy / 32 - zx / 64); }
       else { MS.vp.x = MS.drag.vx - dmx / MS.vp.z; MS.vp.y = MS.drag.vy - dmy / MS.vp.z; }
     }
     else msApplyTool(cv, mx, my);
@@ -1224,11 +1230,20 @@ function msLoop(cv) {
 // bake, live water, falls, nodes, elevation), with every studio tool live on
 // top. Pending edits glow as diamonds; Save rebakes so the render catches up.
 function msDrawIso(cv) {
-  if (!MS.isoR || MS.isoR.canvas !== cv) {
-    MS.isoR = new Renderer(cv);
+  // Zoom: render the world at native scale into an offscreen buffer sized
+  // canvas/zoom, then blit it scaled to fit — zooming in shows less world bigger,
+  // out shows more world smaller. Overlays draw in buffer space under a matching
+  // scale transform, so the existing overlay code needs no changes.
+  const z = MS.isoZoom;
+  if (!MS.isoBuf) MS.isoBuf = document.createElement('canvas');
+  const buf = MS.isoBuf;
+  const bw = Math.max(64, Math.round(cv.width / z)), bh = Math.max(64, Math.round(cv.height / z));
+  if (buf.width !== bw || buf.height !== bh) { buf.width = bw; buf.height = bh; MS.isoR = null; }
+  if (!MS.isoR || MS.isoR.canvas !== buf) {
+    MS.isoR = new Renderer(buf);
     MS.isoR.resize = () => {};        // the studio sizes its own canvas
     MS.isoR._elevOn = true;
-    MS.isoFx = new Fx();
+    MS.isoFx = MS.isoFx || new Fx();
   }
   const R = MS.isoR;
   R.draw({
@@ -1236,6 +1251,11 @@ function msDrawIso(cv) {
     me: { id: -1, rx: MS.vp.x, ry: MS.vp.y, x: MS.vp.x, y: MS.vp.y, plane: 0, hp: 1 },
   });
   const ctx = cv.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = '#0b0f0a'; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.drawImage(buf, 0, 0, bw, bh, 0, 0, cv.width, cv.height);
+  ctx.save();
+  ctx.setTransform(z, 0, 0, z, 0, 0);   // overlays are in buffer space; the zoom maps them onto the render
   const mark = (k, col) => {
     const [tx, ty] = k.split(',').map(Number);
     const [px, py] = R.screenOf(0, tx + 0.5, ty + 0.5);
@@ -1268,9 +1288,10 @@ function msDrawIso(cv) {
     if (st) {
       const n = msNodeAt(tx, ty);
       st.textContent = `RENDERED VIEW — ${tx},${ty} · ${TILE_NAME[msTileAt(tx, ty)] || '?'} h${msElevAt(tx, ty)} · ${regionAt(tx, ty)}${n ? ' · ' + n : ''}` +
-        `  |  tool: ${MS.mobMode ? 'mob mode' : MS.tool}${MS.tool === 'node' ? ' (' + MS.node + ')' : ''}  |  pending edits glow — Save to bake them into the render${msPendingCount() ? `  |  ✎ ${msPendingCount()} unsaved` : ''}`;
+        `  |  tool: ${MS.mobMode ? 'mob mode' : MS.tool}${MS.tool === 'node' ? ' (' + MS.node + ')' : ''}  |  zoom ${MS.isoZoom.toFixed(2)}×  |  pending edits glow — Save to bake them into the render${msPendingCount() ? `  |  ✎ ${msPendingCount()} unsaved` : ''}`;
     }
   }
+  ctx.restore();   // end the zoom transform used for the overlays
 }
 function msDrawWorld(g, cv) {
   // lazily build the 1px/tile base image, a band of rows per frame
