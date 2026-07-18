@@ -86,6 +86,12 @@ export const sfx = {
   teleport() { tone(200, 0.5, { type: 'sine', vol: 0.35, glide: 900 }); noise(0.5, { freq: 1500, q: 3, vol: 0.2, sweep: 2000 }); },
   gate() { noise(0.4, { freq: 300, q: 1.5, vol: 0.4, sweep: -180 }); tone(110, 0.35, { type: 'triangle', vol: 0.3, glide: -50 }); },
   milestone() { [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.3, { type: 'sine', vol: 0.5, delay: i * 0.11 })); },
+  thunder() {         // a rolling boom trailing the lightning
+    if (!gate('thunder', 2500)) return;
+    noise(1.3, { freq: 140, q: 0.5, vol: 0.55, sweep: -90 });
+    tone(52, 1.1, { type: 'sine', vol: 0.3, glide: -18 });
+    noise(0.8, { freq: 90, q: 0.7, vol: 0.3, delay: 0.5, sweep: -40 });
+  },
   // per-skill gathering gestures, fired from XP gains
   skill(name) {
     if (!gate('skill', 180)) return;
@@ -111,52 +117,73 @@ export const sfx = {
 // surroundings change; mode null (or mute) fades everything out.
 let amb = null;
 
-function makeLoopNoise(freq, q) {
+function makeLoopNoise(freq, q, type = 'lowpass') {
   const buf = ctx.createBuffer(1, (2 * ctx.sampleRate) | 0, ctx.sampleRate);
   const d = buf.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   const src = ctx.createBufferSource();
   src.buffer = buf; src.loop = true;
   const f = ctx.createBiquadFilter();
-  f.type = 'lowpass'; f.frequency.value = freq; f.Q.value = q;
+  f.type = type; f.frequency.value = freq; f.Q.value = q;
   src.connect(f);
   src.start();
   return { src, f };
 }
 
-function startAmbient(mode) {
+// key = 'mode|weather', e.g. 'overworld|rain', 'overworld_night|clear', 'cave|clear'
+function startAmbient(key) {
+  const [mode, wx] = key.split('|');
   const g = ctx.createGain();
   g.gain.setValueAtTime(0.0001, ctx.currentTime);
   g.gain.exponentialRampToValueAtTime(1, ctx.currentTime + 1.6);
   g.connect(master);
-  const a = { mode, g, stops: [], timer: 0 };
+  const a = { mode: key, g, stops: [], timer: 0 };
   const loop = (fn, min, max) => {   // sparse one-shots on a drifting clock
     const tick = () => { if (amb !== a) return; fn(); a.timer = setTimeout(tick, min + Math.random() * (max - min)); };
     a.timer = setTimeout(tick, min + Math.random() * (max - min));
   };
-  if (mode === 'overworld') {
+  const chirp = (t0, base, vol, dur = 0.09) => {
+    const o = ctx.createOscillator(), og = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(base, t0);
+    o.frequency.exponentialRampToValueAtTime(base * (Math.random() < 0.5 ? 1.35 : 0.75), t0 + dur * 0.8);
+    og.gain.setValueAtTime(0.0001, t0);
+    og.gain.exponentialRampToValueAtTime(vol, t0 + 0.015);
+    og.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(og); og.connect(g); o.start(t0); o.stop(t0 + dur + 0.03);
+  };
+  if (mode === 'overworld' || mode === 'overworld_night') {
+    const night = mode === 'overworld_night';
     const wind = makeLoopNoise(340, 0.6);
-    const wg = ctx.createGain(); wg.gain.value = 0.055;
+    const wg = ctx.createGain(); wg.gain.value = night ? 0.035 : 0.055;
     wind.f.connect(wg); wg.connect(g);
     // slow gusting: an LFO breathes the filter open and closed
     const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07;
     const lg = ctx.createGain(); lg.gain.value = 140;
     lfo.connect(lg); lg.connect(wind.f.frequency); lfo.start();
     a.stops.push(() => { wind.src.stop(); lfo.stop(); });
-    loop(() => {   // birdsong: a few quick sweet chirps
-      const n = 2 + (Math.random() * 3 | 0), base = 1900 + Math.random() * 1300;
-      for (let i = 0; i < n; i++) {
-        const t0 = ctx.currentTime + i * (0.09 + Math.random() * 0.06);
-        const o = ctx.createOscillator(), og = ctx.createGain();
-        o.type = 'sine';
-        o.frequency.setValueAtTime(base + Math.random() * 300, t0);
-        o.frequency.exponentialRampToValueAtTime(base * (Math.random() < 0.5 ? 1.35 : 0.75), t0 + 0.07);
-        og.gain.setValueAtTime(0.0001, t0);
-        og.gain.exponentialRampToValueAtTime(0.05, t0 + 0.015);
-        og.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.09);
-        o.connect(og); og.connect(g); o.start(t0); o.stop(t0 + 0.12);
-      }
-    }, 2500, 9000);
+    if (wx === 'rain' || wx === 'storm') {
+      // rain patter: bright broadband hiss laid over the wind
+      const rain = makeLoopNoise(2600, 0.4, 'bandpass');
+      const rg = ctx.createGain(); rg.gain.value = wx === 'storm' ? 0.16 : 0.10;
+      rain.f.connect(rg); rg.connect(g);
+      a.stops.push(() => rain.src.stop());
+    }
+    if (night) {
+      loop(() => {   // crickets: a rapid pulse of tiny high chirps
+        const n = 3 + (Math.random() * 3 | 0), base = 4100 + Math.random() * 500;
+        for (let i = 0; i < n; i++) chirp(ctx.currentTime + i * 0.055, base, 0.03, 0.035);
+      }, 900, 2400);
+      loop(() => {   // an owl calls, twice, softly
+        chirp(ctx.currentTime, 350, 0.09, 0.4);
+        chirp(ctx.currentTime + 0.55, 320, 0.07, 0.45);
+      }, 9000, 22000);
+    } else if (wx === 'clear') {
+      loop(() => {   // birdsong: a few quick sweet chirps (they shelter from rain)
+        const n = 2 + (Math.random() * 3 | 0), base = 1900 + Math.random() * 1300;
+        for (let i = 0; i < n; i++) chirp(ctx.currentTime + i * (0.09 + Math.random() * 0.06), base + Math.random() * 300, 0.05);
+      }, 2500, 9000);
+    }
   } else if (mode === 'cave') {
     const rumble = makeLoopNoise(110, 0.8);
     const rg = ctx.createGain(); rg.gain.value = 0.10;
@@ -180,9 +207,10 @@ function startAmbient(mode) {
   return a;
 }
 
-export function ambientTick(mode) {
+export function ambientTick(mode, wx = 'clear') {
   if (!ctx) return;                                  // audio wakes on the first gesture
-  const want = (muted() || ctx.state !== 'running') ? null : mode;
+  const key = mode ? mode + '|' + (mode === 'cave' ? 'clear' : wx) : null;
+  const want = (muted() || ctx.state !== 'running') ? null : key;
   if ((amb?.mode ?? null) === want) return;
   if (amb) {                                         // let the old bed breathe out
     const old = amb;

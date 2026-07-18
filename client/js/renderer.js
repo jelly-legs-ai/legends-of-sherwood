@@ -3,6 +3,7 @@
 
 import { WORLD, TILE, PLANE, WILDERNESS_Y } from '/shared/constants.js';
 import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV, SHORTCUTS, wallStyleAt, customLevel, levelEntry } from '/shared/mapgen.js';
+import { dayPhase, weatherAt } from '/shared/daycycle.js';
 import { REGIONS } from '/shared/constants.js';
 import { HOUSE, TOWNS } from '/shared/data/world.js';
 import { composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS, itemIcon, proc } from './sprites.js';
@@ -1170,13 +1171,42 @@ export class Renderer {
     // ---- fx layer ----
     fx.draw(ctx, this, now);
 
-    // ---- ambient: day-night (overworld only) + region weather ----
+    // ---- ambient: the shared environmental clock — every client renders the
+    // same sky from wall time alone (R.envOverride = {dark, weather} to force) ----
     if (plane === PLANE.OVERWORLD) {
-      const dayT = (now / 600000) % 1; // 10-minute day
-      const dark = Math.max(0, Math.sin(dayT * Math.PI * 2 - Math.PI / 2)) * 0.3;
-      if (dark > 0.01) { ctx.fillStyle = `rgba(10,14,40,${dark})`; ctx.fillRect(0, 0, W, H); }
+      const ov = this.envOverride || {};
+      const wall = Date.now();
+      const dark = ov.dark ?? dayPhase(wall).dark;
       const reg = regionAt(me.rx | 0, me.ry | 0);
-      if (reg === 'WILDLANDS' || reg === 'NORTHMOOR' || reg === 'FROSTHOLLOW') this.drawSnow(ctx, W, H, now);
+      const snowy = reg === 'WILDLANDS' || reg === 'NORTHMOOR' || reg === 'FROSTHOLLOW';
+      const wx = ov.weather ?? weatherAt((me.rx | 0) >> 6, (me.ry | 0) >> 6, wall);
+      // night falls deep blue; cloud cover steals some light even at noon
+      const gloom = Math.min(0.62, dark * 0.52 + (wx === 'storm' ? 0.22 : wx === 'rain' ? 0.12 : 0));
+      if (gloom > 0.01) { ctx.fillStyle = `rgba(9,13,42,${gloom.toFixed(3)})`; ctx.fillRect(0, 0, W, H); }
+      // dusk and dawn blush warm at the heart of the transition
+      const warm = Math.sin(Math.min(1, Math.max(0, dark)) * Math.PI) * 0.12;
+      if (warm > 0.01 && wx === 'clear') {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = `rgba(255,120,40,${warm.toFixed(3)})`; ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+      }
+      // precipitation: the frozen north always snows softly; elsewhere the
+      // weather fronts decide, and cold regions turn their rain to snow
+      if (snowy) this.drawSnow(ctx, W, H, now);
+      else if (wx !== 'clear') this.drawRain(ctx, W, H, now, wx === 'storm');
+      // storm lightning: rare deterministic flashes, thunder rolls behind them
+      if (wx === 'storm') {
+        const cell = Math.floor(wall / 3400);
+        let h = (cell * 2654435761) >>> 0; h = ((h ^ (h >>> 13)) * 1274126177) >>> 0;
+        if ((h & 7) === 3) {
+          const tIn = wall % 3400;
+          if (tIn < 160) {
+            ctx.fillStyle = `rgba(235,240,255,${(0.28 * (1 - tIn / 160)).toFixed(3)})`;
+            ctx.fillRect(0, 0, W, H);
+            if (this.onThunder && this._thunderCell !== cell) { this._thunderCell = cell; this.onThunder(); }
+          }
+        }
+      }
     }
     if (plane >= PLANE.DUNGEON_BASE) { // gentle cave gloom, torch-lit near the player
       const grad = ctx.createRadialGradient(W / 2, H / 2, 220, W / 2, H / 2, Math.max(W, H) / 1.25);
@@ -1195,6 +1225,26 @@ export class Renderer {
       ctx.restore();
     }
     return { minX, maxX, minY, maxY };
+  }
+
+  drawRain(ctx, W, H, now, storm) {
+    if (!this.rainP) {
+      this.rainP = [];
+      for (let i = 0; i < 260; i++) this.rainP.push({ x: Math.random() * (W + 80), y: Math.random() * H, v: 520 + Math.random() * 260, l: 9 + Math.random() * 7 });
+    }
+    const n = storm ? this.rainP.length : (this.rainP.length * 0.55) | 0;
+    ctx.save();
+    ctx.strokeStyle = storm ? 'rgba(190,205,255,0.42)' : 'rgba(175,195,235,0.30)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const p = this.rainP[i];
+      const y = (p.y + now / 1000 * p.v) % (H + 30) - 15;
+      const x = (p.x - y * 0.18 + W * 3) % (W + 80) - 40;
+      ctx.moveTo(x, y); ctx.lineTo(x - p.l * 0.18, y + p.l);
+    }
+    ctx.stroke();
+    ctx.restore();
   }
 
   drawSnow(ctx, W, H, now) {

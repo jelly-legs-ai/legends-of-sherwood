@@ -15,6 +15,7 @@ import { Renderer, drawMinimap, MM_RANGE, flushChunkCache } from './renderer.js'
 import { Fx } from './fx.js';
 import * as UI from './ui.js';
 import { initSound, sfx, ambientTick } from './sound.js';
+import { dayPhase, weatherAt } from '/shared/daycycle.js';
 
 const $ = (s) => document.querySelector(s);
 
@@ -586,11 +587,21 @@ function loop() {
     }
     $('#zone-name').textContent = zoneName();
     if (now - (G._mm || 0) > 400) { drawMinimap($('#minimap'), Object.assign(G.me, { plane: G.self.plane }), G.entities); G._mm = now; }
-    // ambient bed follows where you're standing: wind + birds under open sky,
+    // ambient bed follows where you're standing AND the environmental clock:
+    // birds by day, crickets and owls by night, rain patter under a front,
     // rumble + drips anywhere underground
     if (now - (G._amb || 0) > 500) {
+      if (!R.onThunder) R.onThunder = () => sfx.thunder();
       const pl = G.self.plane;
-      ambientTick(pl <= -10 || pl >= PLANE.DUNGEON_BASE ? 'cave' : pl === PLANE.OVERWORLD ? 'overworld' : null);
+      const ov = R.envOverride || {};
+      let mode = null, wx = 'clear';
+      if (pl <= -10 || pl >= PLANE.DUNGEON_BASE) mode = 'cave';
+      else if (pl === PLANE.OVERWORLD) {
+        const dark = ov.dark ?? dayPhase(Date.now()).dark;
+        mode = dark > 0.5 ? 'overworld_night' : 'overworld';
+        wx = ov.weather ?? weatherAt((G.self.x | 0) >> 6, (G.self.y | 0) >> 6, Date.now());
+      }
+      ambientTick(mode, wx);
       G._amb = now;
     }
     UI.tickCooldowns();
