@@ -682,6 +682,19 @@ export const BACKPACKS = [
 for (const [id, name, invBonus, value, req, tint] of BACKPACKS)
   def(id, { name, slot: 'back', invBonus, value, req, tint, backpack: true });
 
+// Capes (slot 'cape', worn on the 'behind' layer): cosmetic LPC capes in every
+// colour, in pristine and battle-tattered cuts. Unisex — the same sheet drapes
+// on any body. Cheap to trade; a splash of colour for your outlaw.
+export const CAPE_COLORS = ['black', 'blue', 'brown', 'gray', 'green', 'lavender', 'maroon', 'pink', 'red', 'white', 'yellow'];
+const CAPE_ICON = { black: '#3a3a42', blue: '#3a6ea8', brown: '#7a5636', gray: '#8a8a92', green: '#4a8a44', lavender: '#b09fe0', maroon: '#7a2a3a', pink: '#e08ab0', red: '#b03030', white: '#e6e6ea', yellow: '#e0c040' };
+for (const c of CAPE_COLORS) {
+  const cap = c[0].toUpperCase() + c.slice(1);
+  def(`cape_${c}`, { name: `${cap} cape`, slot: 'cape', value: 400, req: {}, tint: CAPE_ICON[c],
+    vis: { layer: 'behind', sheet: 'cape_normal', color: c } });
+  def(`tattered_cape_${c}`, { name: `Tattered ${c} cape`, slot: 'cape', value: 250, req: {}, tint: CAPE_ICON[c],
+    vis: { layer: 'behind', sheet: 'cape_tattered', color: c } });
+}
+
 // Unique boss drops
 def('sheriffs_blade', { name: "The Sheriff's blade", slot: 'weapon', kind: 'sword', style: 'melee', anim: 'slash',
   speed: 2200, req: { attack: 70 }, bonus: { acc: 92, str: 88 }, value: 45000, unique: true,

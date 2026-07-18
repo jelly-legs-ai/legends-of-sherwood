@@ -824,6 +824,18 @@ export function itemIcon(id) {
       g.beginPath(); g.moveTo(22, 12); g.quadraticCurveTo(29, 4, 30, 10); g.quadraticCurveTo(27.5, 11, 27, 14); g.quadraticCurveTo(24.5, 13, 22, 15); g.closePath(); g.fill();
       g.strokeStyle = INK; g.stroke();
     }
+  } else if (def.slot === 'cape') {
+    // a draped cape: clasp at the shoulders, flowing to a torn or clean hem
+    const col = def.tint || '#7a2a3a';
+    const tattered = /tattered/.test(name);
+    g.fillStyle = col;
+    g.beginPath(); g.moveTo(11, 8); g.quadraticCurveTo(16, 6, 21, 8); g.lineTo(24, 24);
+    if (tattered) { g.lineTo(21, 22); g.lineTo(19, 26); g.lineTo(16, 22); g.lineTo(13, 27); g.lineTo(11, 23); g.lineTo(8, 24); }
+    else { g.quadraticCurveTo(16, 27, 8, 24); }
+    g.closePath(); g.fill();
+    g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
+    g.strokeStyle = shadeHex(col, 0.6); g.beginPath(); g.moveTo(16, 8); g.lineTo(16, tattered ? 22 : 25); g.stroke();  // centre fold
+    g.fillStyle = '#c8a038'; g.beginPath(); g.arc(11.5, 9, 1.6, 0, 7); g.fill(); g.beginPath(); g.arc(20.5, 9, 1.6, 0, 7); g.fill();  // clasps
   } else if (def.backpack) {
     // a rounded rucksack: body + buckled flap + side straps, tinted per pack
     const col = def.tint || '#6e522f';

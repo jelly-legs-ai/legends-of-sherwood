@@ -792,7 +792,29 @@
   "hair_buzzcut_female_copper": "hair_buzzcut_female_copper.png",
   "hair_curly_long_male_copper": "hair_curly_long_male_copper.png",
   "hair_curly_long_female_copper": "hair_curly_long_female_copper.png",
-  "beard_copper": "beard_copper.png"
+  "beard_copper": "beard_copper.png",
+  "cape_normal_black": "cape_normal_black.png",
+  "cape_normal_blue": "cape_normal_blue.png",
+  "cape_normal_brown": "cape_normal_brown.png",
+  "cape_normal_gray": "cape_normal_gray.png",
+  "cape_normal_green": "cape_normal_green.png",
+  "cape_normal_lavender": "cape_normal_lavender.png",
+  "cape_normal_maroon": "cape_normal_maroon.png",
+  "cape_normal_pink": "cape_normal_pink.png",
+  "cape_normal_red": "cape_normal_red.png",
+  "cape_normal_white": "cape_normal_white.png",
+  "cape_normal_yellow": "cape_normal_yellow.png",
+  "cape_tattered_black": "cape_tattered_black.png",
+  "cape_tattered_blue": "cape_tattered_blue.png",
+  "cape_tattered_brown": "cape_tattered_brown.png",
+  "cape_tattered_gray": "cape_tattered_gray.png",
+  "cape_tattered_green": "cape_tattered_green.png",
+  "cape_tattered_lavender": "cape_tattered_lavender.png",
+  "cape_tattered_maroon": "cape_tattered_maroon.png",
+  "cape_tattered_pink": "cape_tattered_pink.png",
+  "cape_tattered_red": "cape_tattered_red.png",
+  "cape_tattered_white": "cape_tattered_white.png",
+  "cape_tattered_yellow": "cape_tattered_yellow.png"
  },
  "gear": {
   "torso/plate": {
@@ -1647,6 +1669,62 @@
     "iron": "gear_head_crown_male_iron.png",
     "fire": "gear_head_crown_male_fire.png",
     "water": "gear_head_crown_male_water.png"
+   }
+  },
+  "behind/cape_normal": {
+   "male": {
+    "black": "cape_normal_black.png",
+    "blue": "cape_normal_blue.png",
+    "brown": "cape_normal_brown.png",
+    "gray": "cape_normal_gray.png",
+    "green": "cape_normal_green.png",
+    "lavender": "cape_normal_lavender.png",
+    "maroon": "cape_normal_maroon.png",
+    "pink": "cape_normal_pink.png",
+    "red": "cape_normal_red.png",
+    "white": "cape_normal_white.png",
+    "yellow": "cape_normal_yellow.png"
+   },
+   "female": {
+    "black": "cape_normal_black.png",
+    "blue": "cape_normal_blue.png",
+    "brown": "cape_normal_brown.png",
+    "gray": "cape_normal_gray.png",
+    "green": "cape_normal_green.png",
+    "lavender": "cape_normal_lavender.png",
+    "maroon": "cape_normal_maroon.png",
+    "pink": "cape_normal_pink.png",
+    "red": "cape_normal_red.png",
+    "white": "cape_normal_white.png",
+    "yellow": "cape_normal_yellow.png"
+   }
+  },
+  "behind/cape_tattered": {
+   "male": {
+    "black": "cape_tattered_black.png",
+    "blue": "cape_tattered_blue.png",
+    "brown": "cape_tattered_brown.png",
+    "gray": "cape_tattered_gray.png",
+    "green": "cape_tattered_green.png",
+    "lavender": "cape_tattered_lavender.png",
+    "maroon": "cape_tattered_maroon.png",
+    "pink": "cape_tattered_pink.png",
+    "red": "cape_tattered_red.png",
+    "white": "cape_tattered_white.png",
+    "yellow": "cape_tattered_yellow.png"
+   },
+   "female": {
+    "black": "cape_tattered_black.png",
+    "blue": "cape_tattered_blue.png",
+    "brown": "cape_tattered_brown.png",
+    "gray": "cape_tattered_gray.png",
+    "green": "cape_tattered_green.png",
+    "lavender": "cape_tattered_lavender.png",
+    "maroon": "cape_tattered_maroon.png",
+    "pink": "cape_tattered_pink.png",
+    "red": "cape_tattered_red.png",
+    "white": "cape_tattered_white.png",
+    "yellow": "cape_tattered_yellow.png"
    }
   }
  },
