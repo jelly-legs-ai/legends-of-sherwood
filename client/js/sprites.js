@@ -83,7 +83,7 @@ export function composite(vis) {
 function compositeInto(c, vis) {
   const sex = vis.sex || 'male';
   const layers = []; // [file, isWeaponBg]
-  const wep = vis.weapon ? weaponFiles(vis.weapon[0], vis.weapon[1], sex) : null;
+  const wep = vis.weapon ? weaponFiles(vis.weapon[0], vis.weapon[1], sex, vis.weapon[3]) : null;
 
   if (wep?.bg) layers.push(wep.bg);
   // behind-the-body layer: quiver (legacy truthy flag) or [sheet, color] —
@@ -140,7 +140,8 @@ function compositeInto(c, vis) {
       const im = img(f);
       if (!im.complete || !im.naturalWidth) continue;
       const h = Math.min(H, im.naturalHeight);
-      let src = spec.tint ? tinted(im, spec.tint) : spec.mul ? tintedMul(im, spec.mul) : im;
+      let src = spec.metalTint ? dualTinted(im, spec.tint, spec.metalTint)
+        : spec.tint ? tinted(im, spec.tint) : spec.mul ? tintedMul(im, spec.mul) : im;
       if (spec.fx) src = decorated(src, spec.fx);
       if (spec.rows === 'shoot') {
         // patch only the shoot rows (16-19) — used to lend firing art to bows
@@ -197,6 +198,42 @@ function tinted(im, tint) {
   g.fillStyle = tint; g.fillRect(0, 0, c.width, c.height);
   g.globalCompositeOperation = 'destination-in';
   g.drawImage(im, 0, 0);
+  tintCache.set(key, c);
+  return c;
+}
+// Two-material dye for the crossbow family: the art's SATURATED pixels (the
+// wooden stock) tint to the stock wood, its grey low-saturation pixels (the
+// bow limbs, trigger, plate) tint to the limb metal — so every wood x metal
+// variant shows both materials honestly.
+function dualTinted(im, woodTint, metalTint) {
+  const key = im.src + '|dual|' + woodTint + '|' + metalTint;
+  let c = tintCache.get(key);
+  if (c) return c;
+  const woodC = woodTint ? tinted(im, woodTint) : im;
+  const metalC = tinted(im, metalTint);
+  c = document.createElement('canvas');
+  c.width = im.naturalWidth; c.height = im.naturalHeight;
+  const g = c.getContext('2d');
+  g.drawImage(woodC, 0, 0);
+  const out = g.getImageData(0, 0, c.width, c.height);
+  const mg = document.createElement('canvas');
+  mg.width = c.width; mg.height = c.height;
+  const mctx = mg.getContext('2d');
+  mctx.drawImage(metalC, 0, 0);
+  const met = mctx.getImageData(0, 0, c.width, c.height);
+  const srcCv = document.createElement('canvas');
+  srcCv.width = c.width; srcCv.height = c.height;
+  const sctx = srcCv.getContext('2d');
+  sctx.drawImage(im, 0, 0);
+  const orig = sctx.getImageData(0, 0, c.width, c.height);
+  for (let p = 0; p < orig.data.length; p += 4) {
+    if (orig.data[p + 3] < 10) continue;
+    const r = orig.data[p], gg2 = orig.data[p + 1], b = orig.data[p + 2];
+    const mx = Math.max(r, gg2, b);
+    const sat = mx ? (mx - Math.min(r, gg2, b)) / mx : 0;
+    if (sat < 0.18) { out.data[p] = met.data[p]; out.data[p + 1] = met.data[p + 1]; out.data[p + 2] = met.data[p + 2]; out.data[p + 3] = met.data[p + 3]; }
+  }
+  g.putImageData(out, 0, 0);
   tintCache.set(key, c);
   return c;
 }
@@ -273,9 +310,10 @@ const WEAPON_ALIAS = {
 };
 // blades that cut INWARD across the body: their slash rows play in reverse
 const SLASH_REVERSE = new Set(['sword', 'longsword', 'longsword_alt', 'scimitar', 'saber', 'katana', 'rapier', 'glowsword', 'greatsword']);
-function weaponFiles(type, color, sex = 'male') {
+function weaponFiles(type, color, sex = 'male', metal = null) {
   const alias = WEAPON_ALIAS[type];
-  const w = manifest.weapons[alias ? alias.base : type];
+  const base = alias ? alias.base : type;
+  const w = manifest.weapons[base];
   if (!w) return null;
   const out = { perAnim: w.perAnim || null, color, scl: alias?.scl };
   // waraxes swing with the two-handed overhead cleave (the big tool arc),
@@ -304,6 +342,13 @@ function weaponFiles(type, color, sex = 'male') {
     const exBg = w.bg?.[color];
     const fbBg = neutral(w.bg);
     out.bg = exBg || (fbBg && METAL_TINT[color] ? { f: fbBg, tint: METAL_TINT[color] } : fbBg);
+  }
+  // crossbow family: the stock tints to its wood, but the LIMBS (the grey
+  // low-saturation pixels of the art) tint to the frame's limb METAL — so an
+  // arbalest's bow visually matches the crossbow limbs it was built from
+  if (base === 'crossbow' && metal && METAL_TINT[metal]) {
+    const dual = (spec) => spec && { ...(typeof spec === 'string' ? { f: spec } : spec), metalTint: METAL_TINT[metal] };
+    out.fg = dual(out.fg); out.bg = dual(out.bg);
   }
   // flag the composite layers so the baker re-scales them about the grip
   if (out.scl) { out.fg = tagScale(out.fg, out.scl); out.bg = tagScale(out.bg, out.scl); }

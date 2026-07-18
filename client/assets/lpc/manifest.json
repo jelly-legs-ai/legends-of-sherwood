@@ -1634,6 +1634,20 @@
     "red": "gear_legs_ranger_male_red.png",
     "aethereal": "gear_legs_ranger_male_aethereal.png"
    }
+  },
+  "head/crown": {
+   "male": {
+    "gold": "gear_head_crown_male_gold.png",
+    "iron": "gear_head_crown_male_iron.png",
+    "fire": "gear_head_crown_male_fire.png",
+    "water": "gear_head_crown_male_water.png"
+   },
+   "female": {
+    "gold": "gear_head_crown_male_gold.png",
+    "iron": "gear_head_crown_male_iron.png",
+    "fire": "gear_head_crown_male_fire.png",
+    "water": "gear_head_crown_male_water.png"
+   }
   }
  },
  "weapons": {

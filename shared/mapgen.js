@@ -202,14 +202,21 @@ function shoreDist(x, y) {
 }
 
 // ---- regions -------------------------------------------------------------------
-export function regionAt(x, y) {
+export function regionAt(x0, y0) {
+  // Towns pin their own region exactly — no warp may push a street into
+  // another biome's terrain rules.
+  if (dist(x0, y0, TOWNS.frosthollow.cx, TOWNS.frosthollow.cy) < TOWNS.frosthollow.r + 2) return 'FROSTHOLLOW';
+  if (dist(x0, y0, TOWNS.nottingham.cx, TOWNS.nottingham.cy) < TOWNS.nottingham.r + 2) return 'NOTTINGHAM';
+  if (dist(x0, y0, TOWNS.loxley.cx, TOWNS.loxley.cy) < TOWNS.loxley.r + 2) return 'LOXLEY';
+  if (dist(x0, y0, TOWNS.bay.cx, TOWNS.bay.cy) < TOWNS.bay.r + 2) return 'BAY';
+  // Organic biome frontiers: the authored layout is queried through a two-
+  // octave domain warp, so every border wanders in its own natural shape
+  // instead of tracing the old rectangles.
+  const x = x0 + (vnoise(x0, y0, 52, 901) - 0.5) * S(20) + (vnoise(x0, y0, 13, 903) - 0.5) * S(6);
+  const y = y0 + (vnoise(x0, y0, 52, 907) - 0.5) * S(20) + (vnoise(x0, y0, 13, 909) - 0.5) * S(6);
   if (x > S(460) && y < S(112)) return 'ALPINE';   // the high peaks of the far north-east
   if (y < S(96)) return 'WILDLANDS';
-  if (dist(x, y, TOWNS.frosthollow.cx, TOWNS.frosthollow.cy) < TOWNS.frosthollow.r + 2) return 'FROSTHOLLOW';
   if (y < S(200)) return 'NORTHMOOR';
-  if (dist(x, y, TOWNS.nottingham.cx, TOWNS.nottingham.cy) < TOWNS.nottingham.r + 2) return 'NOTTINGHAM';
-  if (dist(x, y, TOWNS.loxley.cx, TOWNS.loxley.cy) < TOWNS.loxley.r + 2) return 'LOXLEY';
-  if (dist(x, y, TOWNS.bay.cx, TOWNS.bay.cy) < TOWNS.bay.r + 2) return 'BAY';
   if (x > S(430) && y > S(140) && y < S(390)) return 'PEAKS';
   if (x > S(370) && y > S(395)) return 'FENWOLD';
   if (y > S(440) && x > S(170) && x <= S(370)) return 'ELDERGLADE';
@@ -407,7 +414,11 @@ function townTile(x, y) {
           return TILE.WALL;
         }
       }
-      return townPath(x, y) ? TILE.PATH : (t.snowy ? TILE.SNOW : TILE.DIRT);
+      // settlement grounds are living grass threaded by paths, worn down to
+      // bare dirt only in occasional patches (no more dirt floors)
+      if (townPath(x, y)) return TILE.PATH;
+      if (t.snowy) return TILE.SNOW;
+      return vnoise(x, y, 7, 83) > 0.74 ? TILE.DIRT : TILE.GRASS;
     }
   }
   return -1;

@@ -13,6 +13,8 @@ import { SPAWNS, BOSS_SPAWNS, TOWNS } from '/shared/data/world.js';
 import { loadMedia, MEDIA, drawCreature, drawFrame, drawFxSprite, drawFxBand, customLayerPos } from './media.js';
 import { loadManifest, composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS } from './sprites.js';
 import { itemIcon } from './icons.js';
+import { Renderer, flushChunkCache } from './renderer.js';
+import { Fx } from './fx.js';
 
 const $ = (s) => document.querySelector(s);
 const key = new URLSearchParams(location.search).get('key') || '';
@@ -662,6 +664,7 @@ const MS = {
   node: 'tree', brush: 1, level: null, mobMode: false, zoneSel: null,
   pending: { tiles: {}, elev: {}, nodes: {}, levels: {} }, dirty: 0,
   base: null, baseRows: 0, drag: null, mouse: null, thumbs: new Map(), inited: false,
+  view: '2d', isoR: null, isoFx: null, isoEnts: new Map(), isoDep: new Set(),
 };
 function msPendingCount() { return Object.keys(MS.pending.tiles).length + Object.keys(MS.pending.elev).length + Object.keys(MS.pending.nodes).length + Object.keys(MS.pending.levels).length; }
 function msOnServerOverrides(ov) {
@@ -703,7 +706,7 @@ function renderMapStudio() {
     <span style="color:var(--dim);font-size:11px;margin-left:10px">WASD pan · wheel/± zoom · drag to use tool</span></h2>
   <div id="ms">
     <div id="ms-tools">
-      ${[['pan', '✋', 'Pan / inspect'], ['terrain', '🖌', 'Paint terrain'], ['elev', '⛰', 'Raise/lower ground'], ['node', '🌳', 'Place model'], ['erase', '⌫', 'Erase model'], ['mob', '👹', 'Mob mode']].map(([t, ic, tip]) => `<button data-tool="${t}" title="${tip}" class="${(t === 'mob' ? MS.mobMode : MS.tool === t && !MS.mobMode) ? 'on' : ''}">${ic}</button>`).join('')}
+      ${[['pan', '✋', 'Pan / inspect'], ['terrain', '🖌', 'Paint terrain'], ['elev', '⛰', 'Raise/lower ground'], ['node', '🌳', 'Place model'], ['erase', '⌫', 'Erase model'], ['mob', '👹', 'Mob mode'], ['view', '🎬', 'Rendered view — edit while seeing the world as the game draws it']].map(([t, ic, tip]) => `<button data-tool="${t}" title="${tip}" class="${(t === 'mob' ? MS.mobMode : t === 'view' ? MS.view === 'iso' : MS.tool === t && !MS.mobMode) ? 'on' : ''}">${ic}</button>`).join('')}
       <div style="flex:1"></div>
       <button id="ms-zin" title="zoom in">＋</button><button id="ms-zout" title="zoom out">－</button>
     </div>
@@ -715,6 +718,7 @@ function renderMapStudio() {
   </div>`;
   for (const b of main.querySelectorAll('[data-tool]')) b.onclick = () => {
     if (b.dataset.tool === 'mob') { MS.mobMode = !MS.mobMode; if (MS.mobMode) send({ t: 'spawnzones' }); }
+    else if (b.dataset.tool === 'view') { MS.view = MS.view === 'iso' ? '2d' : 'iso'; flushChunkCache(); }
     else { MS.tool = b.dataset.tool; MS.mobMode = false; }
     renderMapStudio();
   };
@@ -789,11 +793,19 @@ function msSave() {
   if (!msPendingCount()) return;
   send({ t: 'mapedit', set: MS.pending });
   applyMapOverrides(MS.pending);               // local hot-apply (recomputes world)
+  flushChunkCache();                           // the rendered view rebakes next frame
   MS.pending = { tiles: {}, elev: {}, nodes: {}, levels: {} };
   msSide();
 }
 function msZoom(f) { MS.vp.z = Math.max(1, Math.min(40, MS.vp.z * f)); }
 function msScreenToTile(cv, mx, my) {
+  if (MS.view === 'iso' && !MS.level && MS.isoR) {
+    // invert the game's iso projection about the studio camera (elevation
+    // lift is ignored — clicks on tall ground land a whisker south)
+    const camWx = (MS.isoR.cam.x - MS.isoR.cam.y) * 32, camWy = (MS.isoR.cam.x + MS.isoR.cam.y) * 16;
+    const wx = mx - cv.width / 2 + camWx, wy = my - cv.height / 2 + camWy;
+    return [Math.floor(wx / 64 + wy / 32), Math.floor(wy / 32 - wx / 64)];
+  }
   const z = MS.vp.z;
   return [Math.floor(MS.vp.x + (mx - cv.width / 2) / z), Math.floor(MS.vp.y + (my - cv.height / 2) / z)];
 }
@@ -841,7 +853,11 @@ function msBindInput(cv) {
     const mx = e.clientX - r.left, my = e.clientY - r.top;
     MS.mouse = [mx, my];
     if (!MS.drag) return;
-    if (MS.tool === 'pan' || MS.mobMode) { MS.vp.x = MS.drag.vx - (mx - MS.drag.mx) / MS.vp.z; MS.vp.y = MS.drag.vy - (my - MS.drag.my) / MS.vp.z; }
+    if (MS.tool === 'pan' || MS.mobMode) {
+      const dmx = mx - MS.drag.mx, dmy = my - MS.drag.my;
+      if (MS.view === 'iso' && !MS.level) { MS.vp.x = MS.drag.vx - (dmx / 64 + dmy / 32); MS.vp.y = MS.drag.vy - (dmy / 32 - dmx / 64); }
+      else { MS.vp.x = MS.drag.vx - dmx / MS.vp.z; MS.vp.y = MS.drag.vy - dmy / MS.vp.z; }
+    }
     else msApplyTool(cv, mx, my);
   };
   window.onmouseup = () => { if (MS.drag && MS.tool !== 'pan' && !MS.mobMode) msSide(); MS.drag = null; };
@@ -876,8 +892,55 @@ function msLoop(cv) {
   g.fillStyle = '#04070c'; g.fillRect(0, 0, cv.width, cv.height);
   const lv = MS.level && msLevels()[MS.level];
   if (lv) msDrawLevel(g, cv, lv);
+  else if (MS.view === 'iso') msDrawIso(cv);
   else msDrawWorld(g, cv);
   raf = requestAnimationFrame(() => msLoop(cv));
+}
+// Rendered editing view: the world drawn by the ACTUAL game renderer (chunk
+// bake, live water, falls, nodes, elevation), with every studio tool live on
+// top. Pending edits glow as diamonds; Save rebakes so the render catches up.
+function msDrawIso(cv) {
+  if (!MS.isoR || MS.isoR.canvas !== cv) {
+    MS.isoR = new Renderer(cv);
+    MS.isoR.resize = () => {};        // the studio sizes its own canvas
+    MS.isoR._elevOn = true;
+    MS.isoFx = new Fx();
+  }
+  const R = MS.isoR;
+  R.draw({
+    entities: MS.isoEnts, fx: MS.isoFx, now: performance.now(), depletedNodes: MS.isoDep,
+    me: { id: -1, rx: MS.vp.x, ry: MS.vp.y, x: MS.vp.x, y: MS.vp.y, plane: 0, hp: 1 },
+  });
+  const ctx = cv.getContext('2d');
+  const mark = (k, col) => {
+    const [tx, ty] = k.split(',').map(Number);
+    const [px, py] = R.screenOf(0, tx + 0.5, ty + 0.5);
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.moveTo(px, py - 15); ctx.lineTo(px + 31, py); ctx.lineTo(px, py + 15); ctx.lineTo(px - 31, py); ctx.closePath(); ctx.fill();
+  };
+  for (const k of Object.keys(MS.pending.tiles)) mark(k, 'rgba(227,179,65,0.28)');
+  for (const k of Object.keys(MS.pending.elev)) mark(k, 'rgba(88,166,255,0.28)');
+  for (const [k, v] of Object.entries(MS.pending.nodes)) mark(k, v === null ? 'rgba(248,81,73,0.34)' : 'rgba(63,185,80,0.34)');
+  if (MS.mobMode && state.spawns) {
+    for (const zn of state.spawns.spawns || []) {
+      const [px, py] = R.screenOf(0, zn.x, zn.y);
+      if (px < -100 || py < -100 || px > cv.width + 100 || py > cv.height + 100) continue;
+      ctx.strokeStyle = '#f85149aa'; ctx.beginPath(); ctx.ellipse(px, py, zn.r * 32, zn.r * 16, 0, 0, 7); ctx.stroke();
+      ctx.fillStyle = '#ffb8b2'; ctx.font = '11px monospace'; ctx.textAlign = 'center'; ctx.fillText(`${zn.mob}×${zn.n}`, px, py - zn.r * 16 - 4);
+    }
+  }
+  if (MS.mouse) {
+    const [tx, ty] = msScreenToTile(cv, MS.mouse[0], MS.mouse[1]);
+    const [px, py] = R.screenOf(0, tx + 0.5, ty + 0.5);
+    ctx.strokeStyle = '#e3b341'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(px, py - 16); ctx.lineTo(px + 32, py); ctx.lineTo(px, py + 16); ctx.lineTo(px - 32, py); ctx.closePath(); ctx.stroke();
+    const st = $('#ms-status');
+    if (st) {
+      const n = msNodeAt(tx, ty);
+      st.textContent = `RENDERED VIEW — ${tx},${ty} · ${TILE_NAME[msTileAt(tx, ty)] || '?'} h${msElevAt(tx, ty)} · ${regionAt(tx, ty)}${n ? ' · ' + n : ''}` +
+        `  |  tool: ${MS.mobMode ? 'mob mode' : MS.tool}${MS.tool === 'node' ? ' (' + MS.node + ')' : ''}  |  pending edits glow — Save to bake them into the render${msPendingCount() ? `  |  ✎ ${msPendingCount()} unsaved` : ''}`;
+    }
+  }
 }
 function msDrawWorld(g, cv) {
   // lazily build the 1px/tile base image, a band of rows per frame

@@ -345,7 +345,7 @@ boss('guy_of_gisborne', { name: 'Guy of Gisborne', lvl: 68, life: 1200, atk: 52,
   vis: { skin: 'light', hair: ['plain', 'black'], torso: ['leather', 'black'], legs: ['pants', 'black'], head: ['hood', 'black'], weapon: ['great', 'dark'] },
   region: 'NORTHMOOR', drops: [['bones', 1, 1], ['gisbornes_cowl', 1, 0.05], ['elm_warbow', 1, 0.08], ['silversteel_arrow', [20, 60], 1], ['coins', [200, 600], 1]] });
 boss('sheriff_of_nottingham', { name: 'The Sheriff of Nottingham', lvl: 75, life: 1500, atk: 56, def: 52, style: 'melee', tier: 3,
-  vis: { skin: 'light', hair: ['plain', 'black'], torso: ['plate', 'gold'], legs: ['plate', 'gold'], head: ['greathelm', 'gold'], weapon: ['sword', 'gold'] },
+  vis: { skin: 'light', hair: ['plain', 'black'], torso: ['plate', 'gold'], legs: ['plate', 'gold'], head: ['crown', 'gold'], weapon: ['sword', 'gold'] },
   region: 'NOTTINGHAM', drops: [['bones', 1, 1], ['sheriffs_blade', 1, 0.04], ['damasked_platebody', 1, 0.1], ['coins', [300, 900], 1], ['kings_elixir', 1, 0.3]] });
 boss('troll_king', { name: 'The Stone Troll King', lvl: 82, life: 1900, atk: 62, def: 60, critter: 'troll', style: 'melee', tier: 4, scale: 2.4,
   region: 'PEAKS', drops: [['ancient_bones', 1, 1], ['trollkings_crown', 1, 0.04], ['sylvanite_ore', [1, 3], 0.5], ['gold_ore', [2, 6], 0.8], ['coins', [400, 1000], 1]] });
@@ -425,6 +425,16 @@ for (const [c, base, hide, gem] of DRAGONFLIGHTS) {
   boss(`elder_twin_headed_${c}_dragon`, { name: `Elder twin-headed ${c} dragon`, lvl: L(52), life: L(52) * 14 | 0, atk: L(52) * 0.92 | 0, def: L(52) * 0.8 | 0,
     style: 'magic', sheet: `twin_dragon_${c}`, tint, scale: 1.6, tier: c === 'aethereal' ? 6 : 5, shil: 6, respawnMs: 240000,
     drops: [['ancient_bones', [1, 2], 1], [hide, [3, 6], 1], ['coins', [base * 16, base * 34], 1], [gem, [1, 3], 0.6], ['kings_elixir', [1, 2], 0.35], ['sage_elixir', 1, 0.15]] });
+}
+
+// Royalty wears the LPC crown: any mob with 'king' in its name is crowned —
+// composited as real gold headgear on humanoids, and flagged for the
+// renderer's crown overlay on sheet/critter bodies (King slime, Pumpking,
+// the Troll King, the Badger King, and whoever claims a throne next).
+for (const m of Object.values(MOBS)) {
+  if (!/king/i.test(m.name)) continue;
+  m.crown = m.crown || 'gold';
+  if (m.vis && !m.vis.monster) m.vis = { ...m.vis, head: ['crown', 'gold'] };
 }
 
 // Vis for hair may be absent (helmets); critters are drawn by client code.

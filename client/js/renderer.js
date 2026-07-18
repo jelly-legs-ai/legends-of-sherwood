@@ -790,8 +790,6 @@ function chunkCanvas(plane, cx, cy) {
         const [r, gg, b] = hexRgb(hex);
         return `rgb(${Math.min(255, r * f) | 0},${Math.min(255, gg * f) | 0},${Math.min(255, b * f) | 0})`;
       };
-      const faceL = () => { g.beginPath(); g.moveTo(lx - TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx - TW / 2, ly - wh); g.closePath(); };
-      const faceR = () => { g.beginPath(); g.moveTo(lx + TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx + TW / 2, ly - wh); g.closePath(); };
       // settlement material tiers (#126): walled-town ramparts read as castle
       // curtain wall in big grey brick with a crenellated parapet; stone
       // buildings inside those walls build in rounded cobblestone
@@ -830,81 +828,92 @@ function chunkCanvas(plane, cx, cy) {
         }
         continue;
       }
-      if (wallStyle === 'cobble') {
-        g.fillStyle = tint('#6b6860', wear); faceL(); g.fill();
-        g.fillStyle = tint('#838078', wear); faceR(); g.fill();
-        // rounded river cobbles packed in mortar
-        for (const spec of [[faceL, lx - TW / 2, 0], [faceR, lx, 1]]) {
-          g.save(); spec[0](); g.clip();
-          const rnd = mulberry(x * 131 + y * 977 + spec[2]);
-          for (let i = 0; i < 16; i++) {
-            const px3 = spec[1] + rnd() * (TW / 2), py3 = ly - wh + 3 + rnd() * (wh + TH / 2 - 8);
-            const rw = 4 + rnd() * 4, rh2 = 3 + rnd() * 3;
-            const c3 = ['#918e86', '#7b786f', '#9c9992', '#868378'][(rnd() * 4) | 0];
-            g.fillStyle = c3;
-            g.beginPath(); g.ellipse(px3, py3, rw / 2, rh2 / 2, 0, 0, 7); g.fill();
-            g.strokeStyle = '#4f4c45aa'; g.lineWidth = 0.8; g.stroke();
-          }
-          g.restore();
-        }
-        g.fillStyle = tint('#9a978e', wear);
-        g.beginPath(); g.moveTo(lx, ly - TH / 2 - wh); g.lineTo(lx + TW / 2, ly - wh); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx - TW / 2, ly - wh); g.closePath(); g.fill();
-        g.strokeStyle = '#00000030'; g.lineWidth = 1; g.stroke();
-        continue;
-      }
-      // the Sunfall Sands build in adobe: cream sun-baked plaster with a
-      // protruding beam row, capped flat — no thatch in the desert
+      // Building walls draw as THIN slabs — a third of a tile across — that
+      // follow the wall's run, so rooms stop reading as solid cubes. Corner
+      // tiles draw both runs (their union forms the corner); collision keeps
+      // the full tile. Only the castle curtain wall above stays massive.
+      const P = (u, v, dz = 0) => [lx + (u - v) * TW / 2, ly - TH / 2 + (u + v) * TH / 2 - dz];
+      const wl = (dx2, dy2) => WALLS.has(tileAtPlane(plane, x + dx2, y + dy2));
+      const runX = wl(1, 0) || wl(-1, 0), runY = wl(0, 1) || wl(0, -1);
+      const th3 = 1 / 3, a3 = 0.5 - th3 / 2, b3 = 0.5 + th3 / 2;
+      const slabs = [];
+      if (runX && runY) slabs.push([0, 1, a3, b3], [a3, b3, 0, 1]);
+      else if (runX) slabs.push([0, 1, a3, b3]);
+      else if (runY) slabs.push([a3, b3, 0, 1]);
+      else slabs.push([a3, b3, a3, b3]);
+      const quad = (pts) => { g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (let q = 1; q < pts.length; q++) g.lineTo(pts[q][0], pts[q][1]); g.closePath(); };
       const adobe = !stone && regionAt(x, y) === 'DESERT';
-      if (adobe) {
-        g.fillStyle = tint('#c8b490', wear); faceL(); g.fill();
-        g.fillStyle = tint('#e0cda6', wear); faceR(); g.fill();
-        for (const spec of [[faceL, lx - TW / 2], [faceR, lx]]) {   // beam ends near the top
-          g.save(); spec[0](); g.clip();
-          g.fillStyle = '#6a4a26';
-          for (let i = 0; i < 4; i++) { const bx = spec[1] + 5 + i * (TW / 8), by = ly - wh + 8 + (i * TH / 16); g.fillRect(bx, by, 4, 3); }
-          g.restore();
-        }
-        g.fillStyle = tint('#d8c49a', wear);   // flat adobe cap
-        g.beginPath(); g.moveTo(lx, ly - TH / 2 - wh); g.lineTo(lx + TW / 2, ly - wh); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx - TW / 2, ly - wh); g.closePath(); g.fill();
-        g.strokeStyle = '#00000022'; g.lineWidth = 1; g.stroke();
-        continue;
-      }
-      g.fillStyle = tint(stone ? '#565248' : '#4c381e', wear); faceL(); g.fill();
-      g.fillStyle = tint(stone ? '#6e6a5e' : '#5e462a', wear); faceR(); g.fill();
-      if (stone) {
-        // masonry courses + staggered joints on both faces
-        for (const spec of [[faceL, lx - TW / 2, 1], [faceR, lx, 1]]) {
-          g.save(); spec[0](); g.clip();
-          g.strokeStyle = '#00000040'; g.lineWidth = 1;
-          for (let row = 1; row < 5; row++) {
-            const yy = ly - wh + row * (wh / 5);
-            g.beginPath(); g.moveTo(spec[1], yy); g.lineTo(spec[1] + TW / 2, yy + TH / 4); g.stroke();
-            const jx = spec[1] + (TW / 2) * (row % 2 ? 0.33 : 0.66);
-            g.beginPath(); g.moveTo(jx, yy - wh / 5 + 3); g.lineTo(jx, yy + 3); g.stroke();
+      for (const [u0, u1, v0, v1] of slabs) {
+        const sFaceL = () => quad([P(u0, v1), P(u1, v1), P(u1, v1, wh), P(u0, v1, wh)]);
+        const sFaceR = () => quad([P(u1, v0), P(u1, v1), P(u1, v1, wh), P(u1, v0, wh)]);
+        const sCap = () => quad([P(u0, v0, wh), P(u1, v0, wh), P(u1, v1, wh), P(u0, v1, wh)]);
+        const oL = P(u0, v1)[0], oR = P(u1, v0)[0];
+        if (wallStyle === 'cobble') {
+          g.fillStyle = tint('#6b6860', wear); sFaceL(); g.fill();
+          g.fillStyle = tint('#838078', wear); sFaceR(); g.fill();
+          // rounded river cobbles packed in mortar
+          for (const spec of [[sFaceL, oL, 0], [sFaceR, oR, 1]]) {
+            g.save(); spec[0](); g.clip();
+            const rnd = mulberry(x * 131 + y * 977 + spec[2]);
+            for (let i = 0; i < 12; i++) {
+              const px3 = spec[1] + rnd() * (TW / 2), py3 = ly - wh + 3 + rnd() * (wh + TH / 2 - 8);
+              const rw = 4 + rnd() * 4, rh2 = 3 + rnd() * 3;
+              const c3 = ['#918e86', '#7b786f', '#9c9992', '#868378'][(rnd() * 4) | 0];
+              g.fillStyle = c3;
+              g.beginPath(); g.ellipse(px3, py3, rw / 2, rh2 / 2, 0, 0, 7); g.fill();
+              g.strokeStyle = '#4f4c45aa'; g.lineWidth = 0.8; g.stroke();
+            }
+            g.restore();
           }
+          g.fillStyle = tint('#9a978e', wear); sCap(); g.fill();
+          g.strokeStyle = '#00000030'; g.lineWidth = 1; g.stroke();
+        } else if (adobe) {
+          // Sunfall Sands adobe: cream plaster, protruding beams, flat cap
+          g.fillStyle = tint('#c8b490', wear); sFaceL(); g.fill();
+          g.fillStyle = tint('#e0cda6', wear); sFaceR(); g.fill();
+          for (const spec of [[sFaceL, oL], [sFaceR, oR]]) {
+            g.save(); spec[0](); g.clip();
+            g.fillStyle = '#6a4a26';
+            for (let i = 0; i < 4; i++) { const bx = spec[1] + 5 + i * (TW / 8), by = ly - wh + 8 + (i * TH / 16); g.fillRect(bx, by, 4, 3); }
+            g.restore();
+          }
+          g.fillStyle = tint('#d8c49a', wear); sCap(); g.fill();
+          g.strokeStyle = '#00000022'; g.lineWidth = 1; g.stroke();
+        } else if (stone) {
+          g.fillStyle = tint('#565248', wear); sFaceL(); g.fill();
+          g.fillStyle = tint('#6e6a5e', wear); sFaceR(); g.fill();
+          // masonry courses + staggered joints on both faces
+          for (const spec of [[sFaceL, oL], [sFaceR, oR]]) {
+            g.save(); spec[0](); g.clip();
+            g.strokeStyle = '#00000040'; g.lineWidth = 1;
+            for (let row = 1; row < 5; row++) {
+              const yy = ly - wh + row * (wh / 5);
+              g.beginPath(); g.moveTo(spec[1], yy); g.lineTo(spec[1] + TW / 2, yy + TH / 4); g.stroke();
+              const jx = spec[1] + (TW / 2) * (row % 2 ? 0.33 : 0.66);
+              g.beginPath(); g.moveTo(jx, yy - wh / 5 + 3); g.lineTo(jx, yy + 3); g.stroke();
+            }
+            g.restore();
+          }
+          g.fillStyle = tint('#a09a88', wear); sCap(); g.fill();
+          g.strokeStyle = '#00000030'; g.lineWidth = 1; g.stroke();
+        } else {
+          // timber: dark posts + diagonal brace over lime-washed wattle panels
+          g.fillStyle = tint('#4c381e', wear); sFaceL(); g.fill();
+          g.fillStyle = tint('#5e462a', wear); sFaceR(); g.fill();
+          for (const spec of [[sFaceL, oL, 1], [sFaceR, oR, -1]]) {
+            g.save(); spec[0](); g.clip();
+            g.strokeStyle = '#3c2c14'; g.lineWidth = 2.2;
+            g.beginPath(); g.moveTo(spec[1], ly - wh + 2); g.lineTo(spec[1], ly + TH / 2); g.stroke();
+            g.beginPath(); g.moveTo(spec[1], ly - wh + 6); g.lineTo(spec[1] + spec[2] * TW / 2, ly - wh / 2.6); g.stroke();
+            g.restore();
+          }
+          // thatched roof cap with straw striations
+          g.fillStyle = tint('#a8843c', wear); sCap(); g.fill();
+          g.save(); sCap(); g.clip();
+          g.strokeStyle = '#7d613566'; g.lineWidth = 1;
+          for (let i = -3; i <= 3; i++) { g.beginPath(); g.moveTo(lx + i * 7, ly - TH / 2 - wh); g.lineTo(lx + i * 7 - TW / 4, ly + TH / 2 - wh); g.stroke(); }
           g.restore();
         }
-        g.fillStyle = tint('#a09a88', wear);
-        g.beginPath(); g.moveTo(lx, ly - TH / 2 - wh); g.lineTo(lx + TW / 2, ly - wh); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx - TW / 2, ly - wh); g.closePath(); g.fill();
-        g.strokeStyle = '#00000030'; g.lineWidth = 1; g.stroke();
-      } else {
-        // dark timber posts + diagonal brace over the wattle panels
-        for (const spec of [[faceL, lx - TW / 2, 1], [faceR, lx + TW / 2, -1]]) {
-          g.save(); spec[0](); g.clip();
-          g.strokeStyle = '#3c2c14'; g.lineWidth = 2.2;
-          g.beginPath(); g.moveTo(spec[1], ly - wh + 2); g.lineTo(spec[1], ly + TH / 2); g.stroke();
-          g.beginPath(); g.moveTo(spec[1], ly - wh + 6); g.lineTo(spec[1] + spec[2] * TW / 2, ly - wh / 2.6); g.stroke();
-          g.beginPath(); g.moveTo(spec[1], ly - 10); g.lineTo(spec[1] + spec[2] * TW / 2, ly - 10 + TH / 4 * spec[2] * spec[2]); g.stroke();
-          g.restore();
-        }
-        // thatched roof cap with straw striations
-        g.fillStyle = tint('#a8843c', wear);
-        g.beginPath(); g.moveTo(lx, ly - TH / 2 - wh); g.lineTo(lx + TW / 2, ly - wh); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx - TW / 2, ly - wh); g.closePath(); g.fill();
-        g.save();
-        g.beginPath(); g.moveTo(lx, ly - TH / 2 - wh); g.lineTo(lx + TW / 2, ly - wh); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx - TW / 2, ly - wh); g.closePath(); g.clip();
-        g.strokeStyle = '#7d613566'; g.lineWidth = 1;
-        for (let i = -3; i <= 3; i++) { g.beginPath(); g.moveTo(lx + i * 7, ly - TH / 2 - wh); g.lineTo(lx + i * 7 - TW / 4, ly + TH / 2 - wh); g.stroke(); }
-        g.restore();
       }
     }
   }
@@ -972,6 +981,10 @@ function chunkCanvas(plane, cx, cy) {
 }
 
 // ---- main draw -----------------------------------------------------------------
+// The Map Studio re-renders through this module after live edits: dropping the
+// baked chunks forces the next frame to rebake against the new overrides.
+export function flushChunkCache() { chunkCache.clear(); }
+
 export class Renderer {
   constructor(canvas) {
     this.canvas = canvas;
@@ -1504,6 +1517,16 @@ export class Renderer {
       ctx.fillStyle = '#888'; ctx.fillRect(sx - 8, sy - 30, 16, 30);
     }
 
+    // crowned royalty: kings without a composited head (sheet + critter
+    // bodies) wear the LPC crown floating just above the crown of the head
+    if (e.crown && (e.sheet || e.critter) && !e.vis) {
+      const ci = mimg('env/crown_gold.png');
+      if (ci && ci.complete && ci.naturalWidth) {
+        const ch2 = sy - (sheetH ? sheetH * 0.92 : 64 * scale) + 4;
+        const cs = Math.max(14, 26 * scale);
+        ctx.drawImage(ci, sx - cs / 2, ch2 - cs * 0.7, cs, cs * (ci.naturalHeight / ci.naturalWidth));
+      }
+    }
     // nameplates & bars
     const topY = sy - (sheetH ? sheetH * 0.92 : 64 * scale) + 4;
     if (e.k === 'player') {
