@@ -11,7 +11,7 @@ import { TILE } from '/shared/constants.js';
 import { computeWorld, worldTile, heightAt, regionAt, applyMapOverrides, MAP_OVERRIDES, WORLD_W, WORLD_H, syncTile, syncNode } from '/shared/mapgen.js';
 import { SPAWNS, BOSS_SPAWNS, TOWNS } from '/shared/data/world.js';
 import { loadMedia, MEDIA, drawCreature, drawFrame, drawFxSprite, drawFxBand, customLayerPos } from './media.js';
-import { loadManifest, composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS, gearCatalog, registerCustomWeaponArt, weaponList, weaponSheetFile } from './sprites.js';
+import { loadManifest, composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS, gearCatalog, registerCustomWeaponArt, weaponList, weaponSheetFile, weaponImportable } from './sprites.js';
 import { itemIcon } from './icons.js';
 import { Renderer, flushChunkCache, flushChunkAt } from './renderer.js';
 import { Fx } from './fx.js';
@@ -1802,7 +1802,7 @@ function renderGearSheet() {
       <div class="ms-row"><input type="file" id="gs-file" accept="image/*"></div>
       <div style="font-size:11px;color:var(--dim)">A single weapon image (PNG, transparent). Point the blade UP for best results.</div>
       <div class="ms-row" style="gap:4px;margin-top:5px">…or edit an existing weapon:
-        <select id="gs-import" style="flex:1"><option value="">— pick a weapon —</option>${weaponList().map((w) => `<option value="${w}">${w}</option>`).join('')}</select></div>
+        <select id="gs-import" style="flex:1"><option value="">— pick a weapon —</option>${weaponList().filter(weaponImportable).map((w) => `<option value="${w}">${w}</option>`).join('')}</select></div>
       <h3 style="color:var(--gold);font-size:12px;margin-top:12px">2 · Choose the combat animation</h3>
       <div class="ms-row" style="flex-wrap:wrap;gap:4px">${tgtBtns}</div>
       <div style="font-size:11px;color:var(--dim)">Carry is the base walk/idle sheet; slash &amp; thrust are the attack overlays. Compile whichever your weapon needs.</div>

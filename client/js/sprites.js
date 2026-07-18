@@ -50,6 +50,10 @@ export function registerCustomWeaponArt(defs) {
 }
 // Existing in-game weapons, for the gear sheet maker's "import" picker.
 export function weaponList() { return manifest ? Object.keys(manifest.weapons || {}).sort() : []; }
+// A weapon can be imported into the gear maker only if it has a held/walk sheet to
+// trace (fg or bg). Some manifest entries are icon-/procedural-only with neither, so
+// the picker filters by this. Deployed custom weapons carry an fg sheet, so they pass.
+export function weaponImportable(type) { return !!(weaponSheetFile(type, 'fg') || weaponSheetFile(type, 'bg')); }
 // The fg (or bg) sheet file for a weapon type at a colour, with sensible fallback.
 export function weaponSheetFile(type, part = 'fg', color) {
   const w = manifest?.weapons?.[type]; if (!w) return null;
