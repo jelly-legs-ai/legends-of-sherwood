@@ -1192,6 +1192,17 @@ export class Renderer {
       // night falls deep blue; cloud cover steals some light even at noon
       const gloom = Math.min(0.62, dark * 0.52 + (wx === 'storm' ? 0.22 : wx === 'rain' ? 0.12 : 0));
       if (gloom > 0.01) { ctx.fillStyle = `rgba(9,13,42,${gloom.toFixed(3)})`; ctx.fillRect(0, 0, W, H); }
+      // after dark, lamplight leaks from every doorway and window in town
+      if (gloom > 0.18) {
+        for (const tn of Object.values(TOWNS)) {
+          for (const b of tn.buildings || []) {
+            if (Math.abs(b.x - me.rx) > 40 || Math.abs(b.y - me.ry) > 40) continue;
+            const mid = { S: [b.x + b.w / 2, b.y + b.h], N: [b.x + b.w / 2, b.y], E: [b.x + b.w, b.y + b.h / 2], W: [b.x, b.y + b.h / 2] }[b.door] || [b.x + b.w / 2, b.y + b.h];
+            const [wx, wy] = this.screenOf(0, mid[0], mid[1]);
+            this._lights.push([wx, wy - 22, 0.75]);
+          }
+        }
+      }
       // lamps, campfires and forges kindle against the dark, guttering gently
       if (gloom > 0.18 && this._lights?.length) {
         ctx.save(); ctx.globalCompositeOperation = 'lighter';
@@ -1283,6 +1294,33 @@ export class Renderer {
 
   drawNode(ctx, node, now) {
     const [sx, sy] = this.screenOf(0, node.x + 0.5, node.y + 0.5);
+    // studio-placed pack props: 'prop:<pack>:<idx>' — a standalone decor file
+    // (undeadDecor) or one cell of a grid sheet (geo_objects, geo_rocks)
+    if (node.type.startsWith('prop:')) {
+      const [, pack, is] = node.type.split(':');
+      const sh = MEDIA.sheets?.[pack];
+      if (!sh) return;
+      const idx = +is || 0;
+      ctx.fillStyle = '#00000030';
+      ctx.beginPath(); ctx.ellipse(sx, sy + 6, 15, 5, 0, 0, 7); ctx.fill();
+      if (Array.isArray(sh)) {
+        const e = sh[idx]; const im = e && mimg(e.file);
+        if (im && im.complete && im.naturalWidth) {
+          const s = 2;   // 32px pack art reads right at 2x on the 64px tile
+          ctx.drawImage(im, sx - (e.w * s) / 2, sy - e.h * s + 10, e.w * s, e.h * s);
+        }
+      } else {
+        const im = mimg(sh.file);
+        if (im && im.complete && im.naturalWidth) {
+          const cw = sh.cellW || sh.cell || 32, ch = sh.cellH || sh.cell || 32;
+          const cols = sh.cols || Math.max(1, (sh.w / cw) | 0);
+          const cx = (idx % cols) * cw, cy = ((idx / cols) | 0) * ch;
+          const s = cw >= 256 ? 0.6 : cw >= 128 ? 0.8 : 2;
+          ctx.drawImage(im, cx, cy, cw, ch, sx - (cw * s) / 2, sy - ch * s + 12, cw * s, ch * s);
+        }
+      }
+      return;
+    }
     // a growing garden crop: pick the LPC stage sprite by elapsed grow time
     if (node.type === 'crop' && MEDIA.sheets?.crops?.[node.crop]) {
       const stages = MEDIA.sheets.crops[node.crop];

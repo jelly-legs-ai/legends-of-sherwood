@@ -419,11 +419,11 @@ function townTile(x, y) {
           return TILE.WALL;
         }
       }
-      // settlement grounds are living grass threaded by paths, worn down to
-      // bare dirt only in occasional patches (no more dirt floors)
+      // settlement grounds are living grass threaded by paths, brightened by
+      // occasional wildflower patches (no bare dirt, no dirt floors)
       if (townPath(x, y)) return TILE.PATH;
       if (t.snowy) return TILE.SNOW;
-      return vnoise(x, y, 7, 83) > 0.74 ? TILE.DIRT : TILE.GRASS;
+      return vnoise(x, y, 7, 83) > 0.74 ? TILE.MEADOW : TILE.GRASS;
     }
   }
   return -1;

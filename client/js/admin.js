@@ -649,16 +649,40 @@ const TILE_META = [
 ];
 const TILE_RGB = {}; const TILE_NAME = {};
 for (const [t, n, c] of TILE_META) { TILE_NAME[t] = n; TILE_RGB[t] = [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)]; }
-const MS_CATALOG = () => ({
-  'Trees': Object.keys(MEDIA.trees || {}),
-  'Ores & mining': Object.keys(NODES).filter(k => NODES[k].skill === 'mining'),
-  'Fishing': Object.keys(NODES).filter(k => NODES[k].skill === 'fishing'),
-  'Farming & hunter': Object.keys(NODES).filter(k => ['farming', 'hunter'].includes(NODES[k].skill)),
-  'Agility & POI': Object.keys(NODES).filter(k => ['agility', 'archaeology'].includes(NODES[k].skill)),
-  'Stations': ['anvil', 'furnace', 'range', 'loom', 'spinning_wheel', 'chapel_altar', 'bank_booth', 'ge_booth', 'campfire', 'well', 'obelisk', 'museum_bench', 'bakery_stall', 'gem_stall'],
-  'Formations (pack)': ['rocks_grey', 'rocks_black', 'rocks_sand', 'spire_grey', 'spire_black', 'spire_sand', 'crag_grey', 'crag_black', 'crag_sand', 'dolmen_grey', 'mountain_grey_0', 'mountain_grey_1', 'mountain_grey_2', 'mountain_snow_0', 'mountain_snow_1', 'mountain_snow_2'],
-  'Decor': ['signpost', 'grave', 'scarecrow', 'wash_line', 'shop_sign', 'dungeon_entrance', 'cliff_ladder', 'ge_rope'],
-});
+// Every placeable asset in the game, organized by build intent: the whole
+// MEDIA.trees prop registry (trees, signs, stalls, formations, ruins…), the
+// procedural station/decor sprites, and the grid packs ('prop:<pack>:<idx>')
+// for cave & dungeon dressing. A catch-all row keeps future registry
+// additions from silently vanishing.
+const MS_CATALOG = () => {
+  const T = Object.keys(MEDIA.trees || {});
+  const used = new Set();
+  const pick = (re) => T.filter(k => re.test(k) && !used.has(k) && (used.add(k) || true));
+  const grid = (pack) => {
+    const sh = MEDIA.sheets?.[pack];
+    if (!sh) return [];
+    const n = Array.isArray(sh) ? sh.length : (sh.cols && sh.rows ? sh.cols * sh.rows : 0);
+    return Array.from({ length: n }, (_, i) => `prop:${pack}:${i}`);
+  };
+  const cat = {
+    'Trees': pick(/(^|_)tree$/).filter(k => !/jungle/.test(k)),
+    'Ores & mining': Object.keys(NODES).filter(k => NODES[k].skill === 'mining'),
+    'Fishing': Object.keys(NODES).filter(k => NODES[k].skill === 'fishing'),
+    'Farming & hunter': Object.keys(NODES).filter(k => ['farming', 'hunter'].includes(NODES[k].skill)),
+    'Agility & POI': Object.keys(NODES).filter(k => ['agility', 'archaeology'].includes(NODES[k].skill)),
+    'Stations': ['anvil', 'furnace', 'range', 'loom', 'spinning_wheel', 'chapel_altar', 'bank_booth', 'ge_booth', 'campfire', 'well', 'obelisk', 'museum_bench'],
+    'Town & village': pick(/^sign_|^signpost|wash_line|scarecrow|_stall$|smith_anvil|quench|toolbench/),
+    'Graves & waymarks': pick(/grave/).concat(['dungeon_entrance', 'cliff_ladder', 'ge_rope']),
+    'Stone formations': pick(/^rocks_|^spire_|^dolmen_|^crag_/),
+    'Mountains': pick(/^mountain_/),
+    'Jungle & ruins': pick(/jungle|^ruin_|pitcher|heliconia|potted_palm/),
+    'Desert & adobe': pick(/adobe|sun_rug/),
+    'Cave & dungeon decor': [...grid('undeadDecor'), ...grid('geo_objects'), ...grid('geo_rocks')],
+  };
+  const rest = T.filter(k => !used.has(k) && !/(^|_)tree$/.test(k) && !NODES[k]);
+  if (rest.length) cat['More props'] = rest;
+  return cat;
+};
 const MS = {
   vp: { x: 600, y: 420, z: 4 }, tool: 'pan', terrain: TILE.GRASS, elevDelta: +1,
   node: 'tree', brush: 1, level: null, mobMode: false, zoneSel: null,
@@ -688,13 +712,26 @@ function msPatchBase(x, y) { if (MS.base) { const g = MS.base.getContext('2d'); 
 function msThumb(type) {
   let c = MS.thumbs.get(type);
   if (!c) {
-    const src = MEDIA.trees?.[type] ? null : nodeSprite(type);
     c = document.createElement('canvas'); c.width = 26; c.height = 26;
     const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
-    if (src) g.drawImage(src, 0, 0, src.width, src.height, 0, 0, 26, 26);
-    else { // tree image from media
-      const tm = MEDIA.trees[type]; const im = tm && new Image();
-      if (im) { im.src = tm.file.startsWith('assets') ? tm.file : 'assets/' + tm.file; im.onload = () => { const g2 = c.getContext('2d'); g2.imageSmoothingEnabled = false; g2.drawImage(im, 0, 0, 26, 26); }; }
+    if (type.startsWith('prop:')) { // pack prop: one decor file or one grid cell
+      const [, pack, is] = type.split(':');
+      const sh = MEDIA.sheets?.[pack]; const idx = +is || 0;
+      const spec = sh && (Array.isArray(sh)
+        ? sh[idx] && { file: sh[idx].file, sx: 0, sy: 0, w: sh[idx].w, h: sh[idx].h }
+        : (() => { const cw = sh.cellW || sh.cell || 32, ch = sh.cellH || sh.cell || 32, cols = sh.cols || Math.max(1, (sh.w / cw) | 0); return { file: sh.file, sx: (idx % cols) * cw, sy: ((idx / cols) | 0) * ch, w: cw, h: ch }; })());
+      if (spec) {
+        const im = new Image();
+        im.src = spec.file.startsWith('assets') ? spec.file : 'assets/' + spec.file;
+        im.onload = () => { const g2 = c.getContext('2d'); g2.imageSmoothingEnabled = false; g2.drawImage(im, spec.sx, spec.sy, spec.w, spec.h, 0, 0, 26, 26); };
+      }
+    } else if (MEDIA.trees?.[type]) { // registry prop image from media
+      const tm = MEDIA.trees[type]; const im = new Image();
+      im.src = tm.file.startsWith('assets') ? tm.file : 'assets/' + tm.file;
+      im.onload = () => { const g2 = c.getContext('2d'); g2.imageSmoothingEnabled = false; g2.drawImage(im, 0, 0, 26, 26); };
+    } else {
+      const src = nodeSprite(type);
+      if (src) g.drawImage(src, 0, 0, src.width, src.height, 0, 0, 26, 26);
     }
     MS.thumbs.set(type, c);
   }

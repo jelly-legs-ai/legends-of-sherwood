@@ -396,7 +396,8 @@ function clickGround(e, menu) {
     if (!menu) { UI.openHouse(G.houseFurniture); }
     return;
   }
-  const decor = nodeType && DECOR[nodeType];   // town furniture is examine-only
+  const decor = nodeType && (DECOR[nodeType]   // town furniture is examine-only
+    || (nodeType.startsWith('prop:') ? 'A curious piece of set dressing from a far-off land.' : null));
   if (nodeType && !decor && !menu) {
     send({ t: MSG.ACTION, x: nodeX, y: nodeY, seed: G.selectedSeed });
     return;
