@@ -64,9 +64,10 @@ export function petStage(def, lvl) {
   return def.evo[Math.min(def.evo.length - 1, Math.floor(lvl / step))];
 }
 
-// Wolf pups — every wolf type's pup grows through the pack ranks. Stage
-// visuals reuse the wild pack's sheet at the pack's own sizes (pup 0.3 →
-// young 0.4 → adult 0.5 → alpha 0.8), halved per MOB_PET_SIZE.
+// Wolf pups — every wolf type's pup grows through THREE stages: pup →
+// adolescent → alpha (the full-grown wolf at pack-leader rank). Stage
+// visuals reuse the wild pack's sheet (pup 0.3 → adolescent 0.4 → alpha
+// 0.8), halved per MOB_PET_SIZE.
 const WOLF_PUPS = {
   grey_wolf: ['Grey wolf', 'wolf_grey', 2], sherwood_wolf: ['Sherwood wolf', 'wolf_timber', 2],
   dire_wolf: ['Dire wolf', 'wolf_shadow', 3], moor_wolf: ['Moor wolf', 'wolf_dusk', 4],
@@ -78,12 +79,22 @@ for (const [w, [nm, sheet, tier]] of Object.entries(WOLF_PUPS)) {
     name: `${nm} pup`, cls: 'offense', tier,
     evo: [
       { name: `${nm} pup`, sheet, scale: 0.3 * MOB_PET_SIZE },
-      { name: `Young ${nm.toLowerCase()}`, sheet, scale: 0.4 * MOB_PET_SIZE },
-      { name: nm, sheet, scale: 0.5 * MOB_PET_SIZE },
+      { name: `Adolescent ${nm.toLowerCase()}`, sheet, scale: 0.4 * MOB_PET_SIZE },
       { name: `Alpha ${nm.toLowerCase()}`, sheet, scale: 0.8 * MOB_PET_SIZE },
     ],
   };
 }
+
+// Slimeling — the King slime's rare egg. Three stages: slimeling → slime →
+// King slime (crowned in gold like its sire).
+PETS.slimeling = {
+  name: 'Slimeling', cls: 'defense', tier: 4,
+  evo: [
+    { name: 'Slimeling', sheet: 'mob_slime', scale: 0.12 },
+    { name: 'Slime', sheet: 'mob_slime', scale: 0.2 },
+    { name: 'King slime', sheet: 'mob_slime', tint: 'gold', scale: 0.88 * MOB_PET_SIZE },
+  ],
+};
 
 // Tier 7 — the dragonflights. A stolen egg from each flight; the wild mobs'
 // four life stages (hatchling 0.55 → young 0.85 → adult 1.2 → elder 1.5)
@@ -138,6 +149,8 @@ for (const c of ['blue', 'green', 'red', 'aethereal']) {
   PET_DROPS[`twin_headed_${c}_dragon`] = [`baby_${c}_dragon`];
   PET_DROPS[`elder_twin_headed_${c}_dragon`] = ['dragon_whelp', `baby_${c}_dragon`];
 }
+// The King slime guards the slimeling egg (alpha-grade odds via its flag)
+PET_DROPS.king_slime = ['slimeling'];
 // Every wolf carries its own pup in the super slot (any old ultra is kept);
 // pack Alphas guard the pup at much better odds (PET_ODDS.alphaSuper).
 for (const w of Object.keys(WOLF_PUPS)) {

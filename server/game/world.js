@@ -134,6 +134,7 @@ export class World {
   varyHumanVis(def, seed) {
     const vis = def.vis;
     if (!vis || !vis.skin || vis.monster || def.boss || def.sheet || def.critter) return null;
+    if (vis.skin === 'skeleton') return null;   // the bone legion keeps its bones
     let h = (seed * 2654435761) >>> 0;
     const rnd = () => ((h = (h * 1664525 + 1013904223) >>> 0) / 4294967296);
     const SKINS = ['light', 'light', 'olive', 'taupe', 'brown', 'black', 'bronze'];

@@ -167,7 +167,7 @@ mob('wild_hog', { name: 'Wild hog', lvl: 4, life: 14, atk: 2, def: 2, sheet: 'wi
   drops: [['bones', 1, 1], ['raw_venison', 1, 0.35]] });
 mob('shore_crab', { name: 'Shore crab', lvl: 6, life: 18, atk: 3, def: 5, sheet: 'shore_crab', style: 'melee',
   drops: [['bones', 1, 1], ['coins', [1, 6], 0.6], ['raw_perch', 1, 0.3]] });
-mob('spiked_slime', { name: 'Spiked slime', lvl: 10, life: 26, atk: 5, def: 4, sheet: 'spiked_slime', style: 'melee', aggro: true,
+mob('spiked_slime', { name: 'Spiked slime', lvl: 10, life: 26, atk: 5, def: 4, sheet: 'spiked_slime', style: 'melee', aggro: true, scale: 0.25,
   drops: [['coins', [3, 10], 0.8], ['grimy_nettle', 1, 0.3], ['spirit_shard', [1, 4], 0.25]] });
 // Sherwood & roads
 mob('tusked_boar', { name: 'Tusked boar', lvl: 24, life: 58, atk: 14, def: 12, sheet: 'tusked_boar', scale: 1.3, style: 'melee', aggro: true,
@@ -232,6 +232,33 @@ mob('blood_wolf', { name: 'Blood wolf', lvl: 58, life: 175, atk: 36, def: 30, sh
 mob('gilded_wolf', { name: 'Gilded wolf', lvl: 72, life: 260, atk: 46, def: 40, sheet: 'wolf_gold', style: 'melee', aggro: true, speed: 3.6, howl: true, shil: 2, scale: 0.5,
   drops: [['big_bones', 1, 1], ['wolf_pelt', [1, 3], 0.7], ['gold_ore', [1, 2], 0.3], ['coins', [40, 140], 0.9]] });
 
+// ---- LPC medieval-fantasy pack (wulax): elemental druids + the bone legion --
+// Druids: brown-robed humanoid casters, one per element, each hurling its own
+// projectile (def.proj override) and dropping its element's runes.
+mob('grove_druid', { name: 'Grove druid', lvl: 24, life: 60, atk: 14, def: 11, style: 'magic', aggro: true, proj: 'sheet:bolt:4',
+  vis: { skin: 'taupe', torso: ['robe', 'brown'], legs: ['pants', 'brown'], head: ['hood', 'brown'], weapon: ['staff', 'gnarled'] },
+  drops: [['bones', 1, 1], ['nature_rune', [2, 6], 0.6], ['grimy_mandrake', 1, 0.2], ['coins', [8, 24], 0.7]] });
+mob('tide_druid', { name: 'Tide druid', lvl: 40, life: 98, atk: 24, def: 18, style: 'magic', aggro: true, proj: 'sheet:stave:1',
+  vis: { skin: 'olive', torso: ['robe', 'brown'], legs: ['pants', 'brown'], head: ['hood', 'brown'], weapon: ['staff', 'gnarled'] },
+  drops: [['bones', 1, 1], ['water_rune', [3, 8], 0.6], ['magic_potion', 1, 0.05], ['coins', [12, 36], 0.7]] });
+mob('ember_druid', { name: 'Ember druid', lvl: 56, life: 152, atk: 34, def: 26, style: 'magic', aggro: true, proj: 'sheet:orb:0',
+  vis: { skin: 'brown', torso: ['robe', 'brown'], legs: ['pants', 'brown'], head: ['hood', 'brown'], weapon: ['staff', 'gnarled'] },
+  drops: [['bones', 1, 1], ['fire_rune', [3, 9], 0.6], ['tome_magic', 1, 0.004], ['coins', [18, 50], 0.8]] });
+// Skeletons composite on the pack's bone body (skin: 'skeleton') so they hold
+// REAL weapons — each rank carries and drops the metal tier its level earns.
+mob('skeleton', { name: 'Skeleton', lvl: 18, life: 44, atk: 11, def: 8, style: 'melee', aggro: true,
+  vis: { skin: 'skeleton', weapon: ['sword', 'iron'] },
+  drops: [['bones', 1, 1], ['iron_sword', 1, 0.06], ['iron_helm', 1, 0.03], ['coins', [4, 16], 0.6]] });
+mob('armored_skeleton', { name: 'Armored skeleton', lvl: 46, life: 122, atk: 27, def: 26, style: 'melee', aggro: true,
+  vis: { skin: 'skeleton', torso: ['chainmail', 'steel'], legs: ['plate', 'iron'], head: ['kettle', 'iron'], weapon: ['sword', 'steel'] },
+  drops: [['big_bones', 1, 1], ['steel_sword', 1, 0.06], ['steel_platebody', 1, 0.02], ['coins', [14, 40], 0.7]] });
+mob('robed_skeleton', { name: 'Robed skeleton', lvl: 34, life: 82, atk: 21, def: 14, style: 'magic', aggro: true, proj: 'sheet:bolt:4',
+  vis: { skin: 'skeleton', torso: ['robe', 'black'], legs: ['pants', 'charcoal'], head: ['hood', 'black'], weapon: ['staff', 'gnarled'] },
+  drops: [['bones', 1, 1], ['air_rune', [3, 8], 0.5], ['earth_rune', [3, 8], 0.5], ['coins', [10, 30], 0.7]] });
+mob('grave_robed_skeleton', { name: 'Grave acolyte', lvl: 58, life: 160, atk: 35, def: 24, style: 'magic', aggro: true, proj: 'sheet:orb:0',
+  vis: { skin: 'skeleton', torso: ['robe', 'black'], legs: ['pants', 'charcoal'], head: ['hood', 'black'], weapon: ['staff', 'gnarled'] },
+  drops: [['ancient_bones', 1, 0.5], ['bones', 1, 0.5], ['blood_rune', [2, 6], 0.4], ['cosmic_rune', [1, 4], 0.35], ['coins', [20, 60], 0.8]] });
+
 // Every wolf pack runs behind one ALPHA: 80% of a player tall where the pack
 // stands half, harder-hitting and faster, and far likelier to be trailed by a
 // stealable pup (see pets.js). Spawned one-per-pack by the world spawner.
@@ -280,8 +307,13 @@ mob('gloom_imp', { name: 'Gloom imp', lvl: 62, life: 190, atk: 40, def: 32, shee
 // LPC monster menagerie
 mob('meadow_bee', { name: 'Giant bee', lvl: 8, life: 18, atk: 4, def: 3, sheet: 'mob_bee', style: 'melee', aggro: true, speed: 3.4, scale: 0.8,
   drops: [['coins', [2, 8], 0.6], ['grimy_nettle', 1, 0.25]] });
-mob('forest_slime', { name: 'Forest slime', lvl: 6, life: 16, atk: 3, def: 4, sheet: 'mob_slime', style: 'melee', scale: 0.8,
+mob('forest_slime', { name: 'Forest slime', lvl: 6, life: 16, atk: 3, def: 4, sheet: 'mob_slime', style: 'melee', scale: 0.2,
   drops: [['coins', [1, 6], 0.7], ['nature_rune', 1, 0.2]] });
+// The KING SLIME: a rare royal blob 10% bigger than the slimes USED to be
+// (before the shrink), wobbling around levels 30-35. Guards the slimeling
+// egg at alpha-grade odds (see pets.js).
+mob('king_slime', { name: 'King slime', lvl: 33, life: 140, atk: 19, def: 16, sheet: 'mob_slime', style: 'melee', aggro: true, scale: 0.88, tint: 'gold', alpha: true, speed: 2.4, respawnMs: 90000, shil: 2,
+  drops: [['coins', [30, 90], 1], ['spirit_shard', [2, 6], 0.5], ['nature_rune', [2, 5], 0.4], ['emerald', 1, 0.12], ['kings_elixir', 1, 0.05]] });
 mob('grass_snake', { name: 'Grass snake', lvl: 15, life: 34, atk: 9, def: 7, sheet: 'mob_snake', style: 'melee', aggro: true,
   drops: [['bones', 1, 1], ['coins', [4, 14], 0.7], ['grimy_nettle', 1, 0.3]] });
 mob('gloom_ghost', { name: 'Gloom ghost', lvl: 39, life: 96, atk: 23, def: 20, sheet: 'mob_ghost', style: 'magic', aggro: true, speed: 2.8,

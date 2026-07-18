@@ -259,6 +259,33 @@ for (const D of DHIDES) {
     bonus: { def: s * 0.22 | 0, racc: s * 0.75 | 0 }, value: D.val * 0.8 | 0,
     vis: { layer: 'hands', sheet: 'gloves', color: D.color, glow: gl, fx, aura: D.aura } });
 }
+// ---------------------------------------------------------------------------
+// Wulax ranger outfits (LPC medieval-fantasy pack): the classic hooded-hide
+// ranger look in five hides — leather hat, layered leather body with
+// shoulders + bracers, and field chaps. Brown hide opens the line; the
+// dragon sets are stitched from their flight's leather (recipes in
+// skills.js). Progression per design: blue mid, red higher-mid, green high,
+// aethereal beyond.
+export const RANGER_SETS = [
+  { id: 'hide_ranger', name: 'Hide ranger', lvl: 10, color: 'hide', val: 260 },
+  { id: 'blue_ranger', name: 'Blue dragon ranger', lvl: 45, color: 'blue', glow: '#4aa0e0', val: 8200, hide: 'blue_dragon_leather' },
+  { id: 'red_ranger', name: 'Red dragon ranger', lvl: 62, color: 'red', glow: '#e0503a', val: 21000, hide: 'red_dragon_leather' },
+  { id: 'green_ranger', name: 'Green dragon ranger', lvl: 75, color: 'green', glow: '#3fbf6a', val: 42000, hide: 'green_dragon_leather' },
+  { id: 'aethereal_ranger', name: 'Aethereal ranger', lvl: 88, color: 'aethereal', glow: '#bfeaff', val: 86000, hide: 'aethereal_dragon_leather', unique: true, aura: true },
+];
+for (const R of RANGER_SETS) {
+  const s = T(R.lvl), req = { ranged: R.lvl, defence: Math.max(1, R.lvl - 8) }, u = R.unique;
+  def(`${R.id}_hat`, { name: `${R.name} hat`, slot: 'head', req, unique: u,
+    bonus: { def: s * 0.35 | 0, racc: s * 0.45 | 0 }, value: R.val,
+    vis: { layer: 'head', sheet: 'ranger_hat', color: R.color, glow: R.glow, aura: R.aura } });
+  def(`${R.id}_body`, { name: `${R.name} body`, slot: 'torso', req, unique: u,
+    bonus: { def: s * 0.85 | 0, racc: s | 0 }, value: R.val * 3 | 0,
+    vis: { layer: 'torso', sheet: 'wulax_ranger', color: R.color, glow: R.glow, aura: R.aura } });
+  def(`${R.id}_chaps`, { name: `${R.name} chaps`, slot: 'legs', req, unique: u,
+    bonus: { def: s * 0.5 | 0, racc: s * 0.55 | 0 }, value: R.val * 2 | 0,
+    vis: { layer: 'legs', sheet: 'ranger', color: R.color, glow: R.glow, aura: R.aura } });
+}
+
 // Dragon leathers: tanned into hide only the mightiest beasts yield.
 def('blue_dragon_leather', { name: 'Blue dragon leather', value: 1500, material: true });
 def('green_dragon_leather', { name: 'Green dragon leather', value: 2800, material: true });

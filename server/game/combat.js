@@ -219,9 +219,11 @@ export function mobAttack(world, m, t, now) {
   m.anim = def.style === 'ranged' ? 'shoot' : def.style === 'magic' ? 'spellcast' : 'slash';
   m.animSeq++;
   if (def.style !== 'melee') {
-    // magic mobs fire animated sheet projectiles tiered by their level
+    // magic mobs fire animated sheet projectiles — a def.proj override lets
+    // elemental casters (druids, robed skeletons) keep their own element,
+    // otherwise the bolt tiers up with level
     const proj = def.style !== 'magic' ? undefined
-      : m.lvl >= 80 ? 'sheet:orb:2' : m.lvl >= 60 ? 'sheet:orb:0' : m.lvl >= 40 ? 'sheet:stave:1' : 'sheet:bolt:4';
+      : def.proj || (m.lvl >= 80 ? 'sheet:orb:2' : m.lvl >= 60 ? 'sheet:orb:0' : m.lvl >= 40 ? 'sheet:stave:1' : 'sheet:bolt:4');
     world.fx(m.plane, m.x, m.y, def.style === 'magic' ? FX.FIREBOLT : FX.ARROW, { tx: t.x, ty: t.y, from: m.id, to: t.id, proj });
   }
   const scale = m.lvlScale || 1;

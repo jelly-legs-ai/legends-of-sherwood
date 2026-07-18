@@ -114,7 +114,7 @@ export const RECIPES = [
   { id: 'smelt_sylvan', skill: 'smithing', lvl: 85, xp: 220, station: 'furnace', inputs: { sylvanite_ore: 2, coal: 4 }, output: { sylvan_bar: 1 }, name: 'Sylvan bar' },
 ];
 // Smithing: forging (generated per metal — offsets from the metal's base level)
-import { METALS, DHIDES } from './items.js';
+import { METALS, DHIDES, RANGER_SETS } from './items.js';
 // [item, level offset, bars, xp]. Plate pieces cost more bars than the chain
 // equivalents (a full helm 2 vs a coif 1; a platebody 3 vs a chainmail 2).
 const FORGE = [
@@ -206,6 +206,15 @@ for (const D of DHIDES) for (const [piece, n] of DHIDE_PIECE) {
   const inputs = D.hide ? { [D.hide]: n * 2 } : { soft_leather: n + 1, gold_ore: n };
   RECIPES.push({ id: `craft_${out}`, skill: 'crafting', lvl: Math.min(99, D.lvl), xp: 80 + n * 60 + D.lvl * 2,
     station: 'tanning_rack', tool: 'needle', inputs, output: { [out]: 1 }, name: `${D.name} ${piece}` });
+}
+// Wulax ranger outfits: the hide set from plain leather, each dragon set
+// stitched from its flight's leather
+const RANGER_PIECE = [['hat', 1], ['chaps', 2], ['body', 3]];
+for (const R of RANGER_SETS) for (const [piece, n] of RANGER_PIECE) {
+  const out = `${R.id}_${piece}`;
+  const inputs = R.hide ? { [R.hide]: n * 2 } : { soft_leather: n + 1 };
+  RECIPES.push({ id: `craft_${out}`, skill: 'crafting', lvl: Math.min(99, R.lvl), xp: 70 + n * 55 + R.lvl * 2,
+    station: 'tanning_rack', tool: 'needle', inputs, output: { [out]: 1 }, name: `${R.name} ${piece}` });
 }
 for (const g of GEMS) RECIPES.push({
   id: `craft_${g.id}_amulet`, skill: 'crafting', lvl: g.lvl, xp: 40 + g.lvl * 2, station: 'furnace',

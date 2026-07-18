@@ -1586,6 +1586,54 @@
    "female": {
     "default": "gear_head_celestial_moon_female.png"
    }
+  },
+  "torso/wulax_ranger": {
+   "male": {
+    "hide": "gear_torso_wulaxranger_male_hide.png",
+    "green": "gear_torso_wulaxranger_male_green.png",
+    "blue": "gear_torso_wulaxranger_male_blue.png",
+    "red": "gear_torso_wulaxranger_male_red.png",
+    "aethereal": "gear_torso_wulaxranger_male_aethereal.png"
+   },
+   "female": {
+    "hide": "gear_torso_wulaxranger_male_hide.png",
+    "green": "gear_torso_wulaxranger_male_green.png",
+    "blue": "gear_torso_wulaxranger_male_blue.png",
+    "red": "gear_torso_wulaxranger_male_red.png",
+    "aethereal": "gear_torso_wulaxranger_male_aethereal.png"
+   }
+  },
+  "head/ranger_hat": {
+   "male": {
+    "hide": "gear_head_rangerhat_male_hide.png",
+    "green": "gear_head_rangerhat_male_green.png",
+    "blue": "gear_head_rangerhat_male_blue.png",
+    "red": "gear_head_rangerhat_male_red.png",
+    "aethereal": "gear_head_rangerhat_male_aethereal.png"
+   },
+   "female": {
+    "hide": "gear_head_rangerhat_male_hide.png",
+    "green": "gear_head_rangerhat_male_green.png",
+    "blue": "gear_head_rangerhat_male_blue.png",
+    "red": "gear_head_rangerhat_male_red.png",
+    "aethereal": "gear_head_rangerhat_male_aethereal.png"
+   }
+  },
+  "legs/ranger": {
+   "male": {
+    "hide": "gear_legs_ranger_male_hide.png",
+    "green": "gear_legs_ranger_male_green.png",
+    "blue": "gear_legs_ranger_male_blue.png",
+    "red": "gear_legs_ranger_male_red.png",
+    "aethereal": "gear_legs_ranger_male_aethereal.png"
+   },
+   "female": {
+    "hide": "gear_legs_ranger_male_hide.png",
+    "green": "gear_legs_ranger_male_green.png",
+    "blue": "gear_legs_ranger_male_blue.png",
+    "red": "gear_legs_ranger_male_red.png",
+    "aethereal": "gear_legs_ranger_male_aethereal.png"
+   }
   }
  },
  "weapons": {
@@ -2353,7 +2401,8 @@
    "dark_green": "body_male_dark_green.png",
    "bright_green": "body_male_bright_green.png",
    "fur_brown": "body_male_fur_brown.png",
-   "bronze": "body_male_bronze.png"
+   "bronze": "body_male_bronze.png",
+   "skeleton": "body_male_skeleton.png"
   },
   "female": {
    "light": "body_female_light.png",
@@ -2365,7 +2414,8 @@
    "dark_green": "body_female_dark_green.png",
    "bright_green": "body_female_bright_green.png",
    "fur_brown": "body_female_fur_brown.png",
-   "bronze": "body_female_bronze.png"
+   "bronze": "body_female_bronze.png",
+   "skeleton": "body_male_skeleton.png"
   }
  },
  "heads": {
@@ -2379,7 +2429,8 @@
    "dark_green": "head_male_dark_green.png",
    "bright_green": "head_male_bright_green.png",
    "fur_brown": "head_male_fur_brown.png",
-   "bronze": "head_male_bronze.png"
+   "bronze": "head_male_bronze.png",
+   "skeleton": "head_skeleton_blank.png"
   },
   "female": {
    "light": "head_female_light.png",
@@ -2391,7 +2442,8 @@
    "dark_green": "head_female_dark_green.png",
    "bright_green": "head_female_bright_green.png",
    "fur_brown": "head_female_fur_brown.png",
-   "bronze": "head_female_bronze.png"
+   "bronze": "head_female_bronze.png",
+   "skeleton": "head_skeleton_blank.png"
   }
  },
  "hair": {

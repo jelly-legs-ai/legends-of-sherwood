@@ -401,11 +401,18 @@ export const SPAWNS = [
   { mob: 'horned_hare', x: 150, y: 330, r: 12, n: 4 }, { mob: 'wild_hog', x: 235, y: 350, r: 10, n: 5 },
   { mob: 'shore_crab', x: 56, y: 442, r: 12, n: 6 }, { mob: 'shore_crab', x: 38, y: 470, r: 12, n: 5 },
   { mob: 'spiked_slime', x: 210, y: 372, r: 12, n: 5 }, { mob: 'spiked_slime', x: 246, y: 306, r: 10, n: 4 },
+  // the King slime is a rare sight: two lonely wide territories, one royal each
+  { mob: 'king_slime', x: 228, y: 340, r: 22, n: 1 }, { mob: 'king_slime', x: 280, y: 300, r: 22, n: 1 },
   // Sherwood & roads
   { mob: 'tusked_boar', x: 268, y: 258, r: 14, n: 5 }, { mob: 'tusked_boar', x: 318, y: 246, r: 12, n: 4 },
   { mob: 'marauder', x: 296, y: 320, r: 14, n: 5 }, { mob: 'marauder', x: 232, y: 262, r: 12, n: 4 },
   { mob: 'dire_wolf', x: 252, y: 240, r: 14, n: 5 }, { mob: 'dire_wolf', x: 286, y: 508, r: 14, n: 4 },
   { mob: 'barrow_skeleton', x: 340, y: 372, r: 8, n: 5 }, { mob: 'cave_bat', x: 360, y: 292, r: 8, n: 5 },
+  // wulax pack: elemental druids keep their groves; the bone legion haunts the barrows
+  { mob: 'grove_druid', x: 276, y: 276, r: 12, n: 3 }, { mob: 'tide_druid', x: 250, y: 356, r: 10, n: 3 },
+  { mob: 'ember_druid', x: 350, y: 130, r: 10, n: 2 },
+  { mob: 'skeleton', x: 336, y: 366, r: 10, n: 4 }, { mob: 'robed_skeleton', x: 346, y: 378, r: 10, n: 3 },
+  { mob: 'armored_skeleton', x: 352, y: 146, r: 8, n: 3 }, { mob: 'grave_robed_skeleton', x: 356, y: 152, r: 8, n: 2 },
   // Fenwold
   { mob: 'witch_doctor', x: 470, y: 440, r: 14, n: 5 }, { mob: 'witch_doctor', x: 508, y: 484, r: 12, n: 4 },
   { mob: 'fen_horror', x: 452, y: 492, r: 14, n: 4 }, { mob: 'fen_horror', x: 500, y: 452, r: 12, n: 3 },
