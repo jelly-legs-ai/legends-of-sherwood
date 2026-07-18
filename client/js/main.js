@@ -130,7 +130,8 @@ G.net.on(MSG.SNAP, (m) => {
     if (Math.hypot(u[1] - e.rx, u[2] - e.ry) > 6) { e.rx = u[1]; e.ry = u[2]; }
     e.px = e.rx; e.py = e.ry;
     e.tx = u[1]; e.ty = u[2];
-    e.dir = u[3];
+    // keep our just-predicted facing for a beat so a stale tick can't snap it back
+    if (!(u[0] === G.myId && performance.now() - (G.faceLock || 0) < 160)) e.dir = u[3];
     if (u[5] !== e.seq || u[4] !== e.anim) { e.animStart = now; }
     e.anim = u[4]; e.seq = u[5];
     if (u[6] >= 0) e.hp = u[6];
@@ -297,6 +298,16 @@ function hitTest(sx, sy) {
   return best;
 }
 window._hitTest = hitTest; // debug
+// Turn the player to face a clicked tile immediately (client-side prediction);
+// the server confirms the same facing a tick later. 0 up,1 left,2 down,3 right.
+function faceClickToward(tx, ty) {
+  if (!G.me) return;
+  const dx = tx + 0.5 - G.me.rx, dy = ty + 0.5 - G.me.ry;
+  if (Math.abs(dx) > 0.05 || Math.abs(dy) > 0.05) {
+    G.me.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 3 : 1) : (dy > 0 ? 2 : 0);
+    G.faceLock = performance.now();   // hold the predicted facing until the server catches up
+  }
+}
 function clickEntity(ent, e, menu) {
   const send = G.net.send.bind(G.net);
   if (G.selSpell && (ent.k === 'mob' || ent.k === 'player')) {
@@ -406,11 +417,12 @@ function clickGround(e, menu) {
     return;
   }
   if (menu) {
-    const opts = [['🚶 Walk here', () => send({ t: MSG.MOVE, x, y, run: false })], ['🏃 Run here', () => send({ t: MSG.MOVE, x, y, run: true })]];
+    const opts = [['🚶 Walk here', () => { faceClickToward(x, y); send({ t: MSG.MOVE, x, y, run: false }); }], ['🏃 Run here', () => { faceClickToward(x, y); send({ t: MSG.MOVE, x, y, run: true }); }]];
     if (nodeType && !decor) opts.unshift([actionLabel(nodeType), () => send({ t: MSG.ACTION, x: nodeX, y: nodeY, seed: G.selectedSeed })]);
     ctxWithWalk(e, opts, decor || (nodeType ? examineNode(nodeType) : examineTile(x, y)));
     return;
   }
+  faceClickToward(x, y);   // turn to the click instantly (client-side), don't wait for the server
   send({ t: MSG.MOVE, x, y, run: true });
   clickMarker = { x: tx, y: ty, t0: performance.now() };
 }

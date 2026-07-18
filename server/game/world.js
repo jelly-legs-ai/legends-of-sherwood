@@ -719,13 +719,14 @@ export class World {
         this.petGainXp(owner, rec, dmg * 2);
       }
     } else {
-      // heel a few paces BEHIND the owner (opposite their heading) and match their facing
+      // heel a few paces BEHIND the owner (opposite their heading)
       const FACE = [[0, -1], [-1, 0], [0, 1], [1, 0]];   // dir 0 up,1 left,2 down,3 right
       const back = FACE[owner.dir ?? 2];
       const hx = owner.x - back[0] * 2.5, hy = owner.y - back[1] * 2.5;
       if (Math.hypot(hx - pt.x, hy - pt.y) > 1.1) { this.moveEntity(pt, hx, hy, 5.5, dt); pt.anim = 'walk'; }
       else pt.anim = 'idle';
-      pt.dir = owner.dir ?? 2;   // pets always face the same way as their owner
+      // a heeling pet always looks AT its owner (it only faces elsewhere to attack)
+      pt.dir = Math.abs(owner.x - pt.x) > Math.abs(owner.y - pt.y) ? (owner.x > pt.x ? 3 : 1) : (owner.y > pt.y ? 2 : 0);
     }
     // utility pets: feed a hurt owner from their pack, retrieve their drops
     if (pt.cls === 'utility' && now - pt.lastUtility > 8000) {
@@ -794,7 +795,7 @@ export class World {
       const hx = owner.x - back[0] * 2.5, hy = owner.y - back[1] * 2.5;
       if (Math.hypot(hx - f.x, hy - f.y) > 1.1) { this.moveEntity(f, hx, hy, 5.5, dt); f.anim = 'walk'; }
       else f.anim = 'idle';
-      f.dir = owner.dir ?? 2;
+      f.dir = Math.abs(owner.x - f.x) > Math.abs(owner.y - f.y) ? (owner.x > f.x ? 3 : 1) : (owner.y > f.y ? 2 : 0);   // familiars look at their owner
     }
   }
 

@@ -206,6 +206,10 @@ function onMove(world, p, msg) {
   p.pathGoal = p.path ? { x: tx, y: ty } : null;   // remember the true destination for multi-leg routing
   p.target = null;
   p.action = null;
+  // face the click straight away — turning shouldn't wait for the first step
+  const fx = tx + 0.5, fy = ty + 0.5;
+  if (Math.abs(fx - p.x) > 0.05 || Math.abs(fy - p.y) > 0.05)
+    p.dir = Math.abs(fx - p.x) > Math.abs(fy - p.y) ? (fx > p.x ? 3 : 1) : (fy > p.y ? 2 : 0);
 }
 
 // "Player stuck?" — relocate to the nearest solid ground. Handles spawning on
