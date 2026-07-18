@@ -399,7 +399,7 @@ export class World {
     if (idx < 2) return null;                          // only the adult form onward is big enough to ride
     const fly = /dragon|gryphon|skywing|glider|moth|screecher/.test(st.sheet || '');
     return { speed: Math.min(0.95, 0.5 + (def.tier || 4) * 0.06), fly, sheet: st.sheet, tint: st.tint,
-      scale: Math.max(1, (st.scale || 0.5) * 2.2), pet: true };
+      scale: st.scale || 1, pet: true };   // ride the pet at its own size — no enlargement
   }
   // Broadcast a player's mount/aura state (equip changes + mount toggles).
   rideState(p) {

@@ -1641,10 +1641,32 @@ const GS = {
 };
 // capture the current target's generated sheet as a PNG, ready to deploy
 function gsCapture() { if (GS.gen) GS.sheets[GS.target] = GS.gen.toDataURL(); }
-// grip-anchoring centres the art on the hand; an upright blade wants its handle
-// there and the blade rising above, so seed GS.y with an upward lift (~28% of the
-// art height, clamped to the slider range). The user fine-tunes from this default.
-function gsDefaultLift(h) { return -Math.max(4, Math.min(40, Math.round(h * 0.28))); }
+// The input weapon's own grip + blade axis: the handle is the blade end nearest
+// the image's bottom-centre, the tip is the far end. gsGenerate maps this grip
+// onto each reference cell's HAND and rotates the blade so its axis matches that
+// cell's reference blade — so a generated weapon takes the working sheet's exact
+// grip and per-frame angle in every facing. Cached per source image.
+function gsInputGrip() {
+  const im = GS.img; if (!im) return null;
+  if (GS._grip && GS._gripFor === im) return GS._grip;
+  const W = im.naturalWidth || im.width, H = im.naturalHeight || im.height;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'); g.drawImage(im, 0, 0);
+  const data = g.getImageData(0, 0, W, H).data; const pts = []; let sx = 0, sy = 0, n = 0;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (data[(y * W + x) * 4 + 3] > 40) { pts.push([x, y]); sx += x; sy += y; n++; }
+  GS._gripFor = im;
+  if (!n) return (GS._grip = { gux: W / 2, guy: H, uAng: -Math.PI / 2, uExt: H / 2 });
+  const cx = sx / n, cy = sy / n; let mxx = 0, myy = 0, mxy = 0;
+  for (const [x, y] of pts) { const dx = x - cx, dy = y - cy; mxx += dx * dx; myy += dy * dy; mxy += dx * dy; }
+  mxx /= n; myy /= n; mxy /= n;
+  const ang = 0.5 * Math.atan2(2 * mxy, mxx - myy), ux = Math.cos(ang), uy = Math.sin(ang);
+  let pmin = Infinity, pmax = -Infinity, a = pts[0], b = pts[0];
+  for (const [x, y] of pts) { const p = (x - cx) * ux + (y - cy) * uy; if (p < pmin) { pmin = p; a = [x, y]; } if (p > pmax) { pmax = p; b = [x, y]; } }
+  const bcx = W / 2, bcy = H;                                     // handle sits at the image's bottom centre
+  const dA = Math.hypot(a[0] - bcx, a[1] - bcy), dB = Math.hypot(b[0] - bcx, b[1] - bcy);
+  const grip = dA <= dB ? a : b, tip = dA <= dB ? b : a;
+  return (GS._grip = { gux: grip[0], guy: grip[1], uAng: Math.atan2(tip[1] - grip[1], tip[0] - grip[0]), uExt: Math.hypot(tip[0] - grip[0], tip[1] - grip[1]) || 1 });
+}
 // import an existing in-game weapon: lift the clearest single frame of its own
 // sheet as the input art, so you can re-position / resize / re-deploy it
 function gsImportWeapon(type) {
@@ -1669,10 +1691,10 @@ function gsImportWeapon(type) {
     const w = mxx - mnx + 1, h = mxy - mny + 1, pad = 2;
     const crop = document.createElement('canvas'); crop.width = w + pad * 2; crop.height = h + pad * 2;
     crop.getContext('2d').drawImage(cv, ox + mnx, oy + mny, w, h, pad, pad, w, h);
-    GS.img = crop; GS.imgName = type;
-    // grip anchor centres the art on the hand; lift an upright blade so its handle
-    // sits at the hand and the blade rises from it (the user fine-tunes from here)
-    GS.x = 0; GS.y = gsDefaultLift(crop.height); GS.scale = 1; GS.rot = 0; GS.flipX = false; GS.flipY = false;
+    GS.img = crop; GS.imgName = type; GS._grip = null;
+    // the maker anchors the input's grip on the hand and auto-orients to the
+    // reference blade, so the offsets start neutral — tweak only if needed
+    GS.x = 0; GS.y = 0; GS.scale = 1; GS.rot = 0; GS.flipX = false; GS.flipY = false;
     for (const k of ['x', 'y', 'scale', 'rot']) { const e = $(`#gs-${k}`); if (e) e.value = GS[k]; }
     gsGenerate(); gsCapture(); gsCaps();
   };
@@ -1746,37 +1768,32 @@ function gsEnsureRef(target, cb) {
 function gsGenerate() {
   const ref = gsRef(); if (!ref || !GS.img) return;
   const align = gsAlignCell(); if (!align) return;
-  const fs = ref.fs, ac = gsTpl().align.c;
-  // Track each row RELATIVE TO ITS OWN rest pose (the frame in the calibration
-  // column of that same row), not the global south angle. That was the bug that
-  // warped the non-south facings: the walk sword is carried near-horizontal, so
-  // its blob's principal axis reads ~21° facing N/E but ~159° facing W/S, and
-  // subtracting the south angle rotated N/E by ~138°. Anchoring to each row's own
-  // rest keeps the weapon at the calibrated orientation in every facing (only the
-  // hand position moves), while attack rows still swing about that row's rest.
-  const rowRest = (r) => { const c = ref.cells[r * ref.cols + ac]; return c ? c.angle : null; };
+  const gi = gsInputGrip(); if (!gi) return;
+  const fs = ref.fs;
+  // The input blade's own axis. gsGenerate rotates it so that axis matches EACH
+  // reference cell's blade angle, and pins the input's grip onto that cell's hand
+  // — reproducing the working weapon sheet's exact grips and per-frame angles in
+  // every facing (walk carried at the side, slash/thrust swinging through the arc).
+  let uAng = gi.uAng;
+  if (GS.flipX) uAng = Math.PI - uAng;
+  if (GS.flipY) uAng = -uAng;
   const out = document.createElement('canvas'); out.width = ref.W; out.height = ref.H;
   const g = out.getContext('2d'); g.imageSmoothingEnabled = false;
-  const iw = GS.img.width, ih = GS.img.height;
   for (const cell of ref.cells) {
     if (!cell) continue;
-    const rest = rowRest(cell.row);
-    const dRot = GS.trackRot ? cell.angle - (rest ?? cell.angle) : 0;
-    // size-lock keeps the weapon the size you set in the walk/idle step across
-    // every frame; unlocked, it tracks the reference blade's per-frame length
+    const dRot = GS.trackRot ? cell.angle - uAng : 0;   // align input blade → reference blade
+    // size-lock keeps a constant size across frames; unlocked, it matches the
+    // reference blade's per-frame length
     const dScale = GS.sizeLock ? 1 : cell.ext / (align.ext || 1);
     g.save();
-    // clip to THIS frame's cell so a stamp can never bleed its blade tip into a
-    // neighbouring animation frame (fixes the stray sword tips clipping across)
+    // clip to THIS frame's cell so a stamp can never bleed into a neighbour
     g.beginPath(); g.rect(cell.col * fs, cell.row * fs, fs, fs); g.clip();
-    // anchor at the reference HAND (grip), not the blade's centre of mass — so a
-    // weapon of any size hangs from the hand in every facing instead of drifting
-    // off it (the old centroid anchor floated big weapons away from the hand)
+    // pin the input's grip onto the reference HAND, then pivot/scale about it
     g.translate(cell.col * fs + cell.gx, cell.row * fs + cell.gy);
     g.rotate(dRot); g.scale(dScale, dScale);
     g.translate(GS.x, GS.y); g.rotate(GS.rot * Math.PI / 180); g.scale(GS.scale, GS.scale);
-    g.scale(GS.flipX ? -1 : 1, GS.flipY ? -1 : 1);   // mirror the input art
-    g.drawImage(GS.img, -iw / 2, -ih / 2);
+    g.scale(GS.flipX ? -1 : 1, GS.flipY ? -1 : 1);   // mirror the input art (grip stays pinned)
+    g.drawImage(GS.img, -gi.gux, -gi.guy);
     g.restore();
   }
   GS.gen = out;
@@ -1826,7 +1843,7 @@ function renderGearSheet() {
     if (GS.img) gsGenerate();
   });
   if (!GS.body) { const b = new Image(); b.onload = () => { GS.body = b; }; b.src = 'assets/lpc/body_male_light.png'; }
-  $('#gs-file').onchange = (e) => { const f = e.target.files[0]; if (!f) return; const im = new Image(); im.onload = () => { GS.img = im; GS.imgName = f.name.replace(/\.\w+$/, ''); GS.x = 0; GS.y = gsDefaultLift(im.height); GS.scale = 1; GS.rot = 0; for (const k of ['x', 'y', 'scale', 'rot']) { const el = $(`#gs-${k}`); if (el) el.value = GS[k]; } gsGenerate(); }; im.src = URL.createObjectURL(f); };
+  $('#gs-file').onchange = (e) => { const f = e.target.files[0]; if (!f) return; const im = new Image(); im.onload = () => { GS.img = im; GS.imgName = f.name.replace(/\.\w+$/, ''); GS._grip = null; GS.x = 0; GS.y = 0; GS.scale = 1; GS.rot = 0; for (const k of ['x', 'y', 'scale', 'rot']) { const el = $(`#gs-${k}`); if (el) el.value = GS[k]; } gsGenerate(); }; im.src = URL.createObjectURL(f); };
   $('#gs-import').onchange = (e) => { if (e.target.value) gsImportWeapon(e.target.value); };
   for (const k of ['x', 'y', 'scale', 'rot']) $(`#gs-${k}`).oninput = (e) => { GS[k] = +e.target.value; gsGenerate(); };
   $('#gs-track').onchange = (e) => { GS.trackRot = e.target.checked; gsGenerate(); };
@@ -1976,10 +1993,14 @@ function gsLoop() {
     ag.drawImage(ref.canvas, align.col * ref.fs, align.row * ref.fs, ref.fs, ref.fs, 0, 0, 256, 256);
     ag.restore();
     if (GS.img) {
-      ag.save(); ag.translate(align.gx * z, align.gy * z);   // anchor at the hand (grip), matching gsGenerate
+      const gi = gsInputGrip();
+      let uAng = gi.uAng; if (GS.flipX) uAng = Math.PI - uAng; if (GS.flipY) uAng = -uAng;
+      const dRot = GS.trackRot ? align.angle - uAng : 0;   // auto-orient to the reference blade, matching gsGenerate
+      ag.save(); ag.translate(align.gx * z, align.gy * z);   // pin the input grip onto the reference hand
+      ag.rotate(dRot);
       ag.translate(GS.x * z, GS.y * z); ag.rotate(GS.rot * Math.PI / 180); ag.scale(GS.scale * z, GS.scale * z);
       ag.scale(GS.flipX ? -1 : 1, GS.flipY ? -1 : 1);
-      ag.drawImage(GS.img, -GS.img.width / 2, -GS.img.height / 2);
+      ag.drawImage(GS.img, -gi.gux, -gi.guy);
       ag.restore();
     }
   }
