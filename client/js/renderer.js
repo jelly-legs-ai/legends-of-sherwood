@@ -1158,9 +1158,18 @@ export class Renderer {
     }
 
     drawables.sort((a, b) => a.d - b.d);
+    // light-bearing props remember their screen spots so night can kindle them
+    const LIGHTS = { lamp_post: [46, 1.0], campfire: [10, 1.15], furnace: [16, 0.55], forge: [16, 0.55] };
+    this._lights = [];
     for (const dr of drawables) {
-      if (dr.node) this.drawNode(ctx, dr.node, now);
-      else this.drawEntity(ctx, dr.ent, now, state);
+      if (dr.node) {
+        this.drawNode(ctx, dr.node, now);
+        const li = plane === PLANE.OVERWORLD && LIGHTS[dr.node.type];
+        if (li) {
+          const [lx, ly] = this.screenOf(plane, dr.node.x + 0.5, dr.node.y + 0.5);
+          this._lights.push([lx, ly - li[0], li[1]]);
+        }
+      } else this.drawEntity(ctx, dr.ent, now, state);
     }
 
     // ---- building roofs: complete pitched roofs over town buildings, drawn on
@@ -1183,6 +1192,20 @@ export class Renderer {
       // night falls deep blue; cloud cover steals some light even at noon
       const gloom = Math.min(0.62, dark * 0.52 + (wx === 'storm' ? 0.22 : wx === 'rain' ? 0.12 : 0));
       if (gloom > 0.01) { ctx.fillStyle = `rgba(9,13,42,${gloom.toFixed(3)})`; ctx.fillRect(0, 0, W, H); }
+      // lamps, campfires and forges kindle against the dark, guttering gently
+      if (gloom > 0.18 && this._lights?.length) {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        for (const [lx, ly, inten] of this._lights) {
+          if (lx < -90 || ly < -90 || lx > W + 90 || ly > H + 90) continue;
+          const fl = inten * (gloom / 0.62) * (0.42 + 0.07 * Math.sin(now / 91 + lx) + 0.05 * Math.sin(now / 47 + ly));
+          const r = 88 * inten;
+          const g2 = ctx.createRadialGradient(lx, ly, 0, lx, ly, r);
+          g2.addColorStop(0, `rgba(255,196,102,${Math.min(0.5, fl).toFixed(3)})`);
+          g2.addColorStop(1, 'rgba(255,150,50,0)');
+          ctx.fillStyle = g2; ctx.fillRect(lx - r, ly - r, r * 2, r * 2);
+        }
+        ctx.restore();
+      }
       // dusk and dawn blush warm at the heart of the transition
       const warm = Math.sin(Math.min(1, Math.max(0, dark)) * Math.PI) * 0.12;
       if (warm > 0.01 && wx === 'clear') {

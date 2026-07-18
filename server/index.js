@@ -9,6 +9,7 @@ import { handleMessage, onDisconnect, installHooks } from './game/handlers.js';
 import { handleAdminMessage } from './game/admin.js';
 import { applyMapOverrides } from '../shared/mapgen.js';
 import { registerCustomItems } from '../shared/data/items.js';
+import { armCustomAnims } from '../shared/data/mobs.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -110,6 +111,7 @@ applyMapOverrides(world.mapOverrides);
 world.customItems = loadJson(path.join(DATA_DIR, 'custom-items.json')) || {};
 registerCustomItems(world.customItems);
 world.customAnims = loadJson(path.join(DATA_DIR, 'custom-anims.json')) || {};
+armCustomAnims(world.customAnims);   // studio projectiles fight for real
 await world.init();          // load durable store (Postgres or hardened files) before serving
 installHooks(world);
 world.start();

@@ -442,3 +442,19 @@ for (const m of Object.values(MOBS)) {
 
 // Vis for hair may be absent (helmets); critters are drawn by client code.
 export const CRITTERS =['rat', 'rabbit', 'boar', 'wolf', 'icewolf', 'hawk', 'leech', 'serpent', 'panther', 'treant', 'goat', 'troll', 'sprite', 'spider', 'giant', 'bear', 'stag', 'abyssal'];
+
+// Studio Animations-creator combat: a custom anim carrying a projectile layer
+// turns its base creature into a genuine elemental caster — the server attacks
+// at magic range and the authored fx flies as the bolt, so studio specials
+// deal real damage instead of being decoration. Re-run on every admin save.
+export function armCustomAnims(defs) {
+  for (const d of Object.values(defs || {})) {
+    if (!d) continue;
+    const pl = (d.layers || []).find(l => l && l.projectile && l.fx);
+    if (!pl) continue;
+    // the studio keys anims to a SHEET base — every creature drawn from that
+    // sheet plays the overlay, so every one of them fights with it too
+    const targets = MOBS[d.base] ? [MOBS[d.base]] : Object.values(MOBS).filter(m => m.sheet === d.base);
+    for (const m of targets) { m.style = 'magic'; m.proj = pl.fx; }
+  }
+}

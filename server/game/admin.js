@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { MSG, SHILLING, MILESTONE_LEVELS, MILESTONE_SHILLINGS } from '../../shared/constants.js';
 import { ITEMS, registerCustomItems } from '../../shared/data/items.js';
-import { MOBS } from '../../shared/data/mobs.js';
+import { MOBS, armCustomAnims } from '../../shared/data/mobs.js';
 import { XP_TABLE, PLANE } from '../../shared/constants.js';
 import { applyMapOverrides, MAP_OVERRIDES } from '../../shared/mapgen.js';
 import { SPAWNS, BOSS_SPAWNS } from '../../shared/data/world.js';
@@ -272,6 +272,7 @@ export function handleAdminMessage(world, ws, msg) {
         world.vault.alert('event', `admin created custom animation '${id}'`);
       }
       if (msg.remove) { delete world.customAnims[msg.remove]; try { fs.writeFileSync(path.join(world.dataDir, 'custom-anims.json'), JSON.stringify(world.customAnims, null, 1)); } catch { } }
+      armCustomAnims(world.customAnims);   // projectile anims fight for real, live
       return send({ t: 'customAnims', anims: world.customAnims });
     }
   }
