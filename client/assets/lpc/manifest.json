@@ -1834,6 +1834,406 @@
    "female": {
     "whiteblue": "cape_bluetrim.png"
    }
+  },
+  "behind/cape_skill_attack": {
+   "male": {
+    "gold": "cape_skill_attack_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_attack_behind.png"
+   }
+  },
+  "capefront/cape_skill_attack": {
+   "male": {
+    "gold": "cape_skill_attack_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_attack_front.png"
+   }
+  },
+  "behind/cape_skill_strength": {
+   "male": {
+    "gold": "cape_skill_strength_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_strength_behind.png"
+   }
+  },
+  "capefront/cape_skill_strength": {
+   "male": {
+    "gold": "cape_skill_strength_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_strength_front.png"
+   }
+  },
+  "behind/cape_skill_defence": {
+   "male": {
+    "gold": "cape_skill_defence_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_defence_behind.png"
+   }
+  },
+  "capefront/cape_skill_defence": {
+   "male": {
+    "gold": "cape_skill_defence_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_defence_front.png"
+   }
+  },
+  "behind/cape_skill_constitution": {
+   "male": {
+    "gold": "cape_skill_constitution_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_constitution_behind.png"
+   }
+  },
+  "capefront/cape_skill_constitution": {
+   "male": {
+    "gold": "cape_skill_constitution_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_constitution_front.png"
+   }
+  },
+  "behind/cape_skill_ranged": {
+   "male": {
+    "gold": "cape_skill_ranged_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_ranged_behind.png"
+   }
+  },
+  "capefront/cape_skill_ranged": {
+   "male": {
+    "gold": "cape_skill_ranged_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_ranged_front.png"
+   }
+  },
+  "behind/cape_skill_magic": {
+   "male": {
+    "gold": "cape_skill_magic_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_magic_behind.png"
+   }
+  },
+  "capefront/cape_skill_magic": {
+   "male": {
+    "gold": "cape_skill_magic_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_magic_front.png"
+   }
+  },
+  "behind/cape_skill_prayer": {
+   "male": {
+    "gold": "cape_skill_prayer_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_prayer_behind.png"
+   }
+  },
+  "capefront/cape_skill_prayer": {
+   "male": {
+    "gold": "cape_skill_prayer_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_prayer_front.png"
+   }
+  },
+  "behind/cape_skill_summoning": {
+   "male": {
+    "gold": "cape_skill_summoning_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_summoning_behind.png"
+   }
+  },
+  "capefront/cape_skill_summoning": {
+   "male": {
+    "gold": "cape_skill_summoning_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_summoning_front.png"
+   }
+  },
+  "behind/cape_skill_mining": {
+   "male": {
+    "gold": "cape_skill_mining_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_mining_behind.png"
+   }
+  },
+  "capefront/cape_skill_mining": {
+   "male": {
+    "gold": "cape_skill_mining_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_mining_front.png"
+   }
+  },
+  "behind/cape_skill_fishing": {
+   "male": {
+    "gold": "cape_skill_fishing_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_fishing_behind.png"
+   }
+  },
+  "capefront/cape_skill_fishing": {
+   "male": {
+    "gold": "cape_skill_fishing_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_fishing_front.png"
+   }
+  },
+  "behind/cape_skill_woodcutting": {
+   "male": {
+    "gold": "cape_skill_woodcutting_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_woodcutting_behind.png"
+   }
+  },
+  "capefront/cape_skill_woodcutting": {
+   "male": {
+    "gold": "cape_skill_woodcutting_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_woodcutting_front.png"
+   }
+  },
+  "behind/cape_skill_farming": {
+   "male": {
+    "gold": "cape_skill_farming_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_farming_behind.png"
+   }
+  },
+  "capefront/cape_skill_farming": {
+   "male": {
+    "gold": "cape_skill_farming_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_farming_front.png"
+   }
+  },
+  "behind/cape_skill_hunter": {
+   "male": {
+    "gold": "cape_skill_hunter_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_hunter_behind.png"
+   }
+  },
+  "capefront/cape_skill_hunter": {
+   "male": {
+    "gold": "cape_skill_hunter_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_hunter_front.png"
+   }
+  },
+  "behind/cape_skill_archaeology": {
+   "male": {
+    "gold": "cape_skill_archaeology_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_archaeology_behind.png"
+   }
+  },
+  "capefront/cape_skill_archaeology": {
+   "male": {
+    "gold": "cape_skill_archaeology_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_archaeology_front.png"
+   }
+  },
+  "behind/cape_skill_smithing": {
+   "male": {
+    "gold": "cape_skill_smithing_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_smithing_behind.png"
+   }
+  },
+  "capefront/cape_skill_smithing": {
+   "male": {
+    "gold": "cape_skill_smithing_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_smithing_front.png"
+   }
+  },
+  "behind/cape_skill_cooking": {
+   "male": {
+    "gold": "cape_skill_cooking_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_cooking_behind.png"
+   }
+  },
+  "capefront/cape_skill_cooking": {
+   "male": {
+    "gold": "cape_skill_cooking_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_cooking_front.png"
+   }
+  },
+  "behind/cape_skill_crafting": {
+   "male": {
+    "gold": "cape_skill_crafting_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_crafting_behind.png"
+   }
+  },
+  "capefront/cape_skill_crafting": {
+   "male": {
+    "gold": "cape_skill_crafting_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_crafting_front.png"
+   }
+  },
+  "behind/cape_skill_firemaking": {
+   "male": {
+    "gold": "cape_skill_firemaking_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_firemaking_behind.png"
+   }
+  },
+  "capefront/cape_skill_firemaking": {
+   "male": {
+    "gold": "cape_skill_firemaking_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_firemaking_front.png"
+   }
+  },
+  "behind/cape_skill_fletching": {
+   "male": {
+    "gold": "cape_skill_fletching_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_fletching_behind.png"
+   }
+  },
+  "capefront/cape_skill_fletching": {
+   "male": {
+    "gold": "cape_skill_fletching_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_fletching_front.png"
+   }
+  },
+  "behind/cape_skill_runecrafting": {
+   "male": {
+    "gold": "cape_skill_runecrafting_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_runecrafting_behind.png"
+   }
+  },
+  "capefront/cape_skill_runecrafting": {
+   "male": {
+    "gold": "cape_skill_runecrafting_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_runecrafting_front.png"
+   }
+  },
+  "behind/cape_skill_herblore": {
+   "male": {
+    "gold": "cape_skill_herblore_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_herblore_behind.png"
+   }
+  },
+  "capefront/cape_skill_herblore": {
+   "male": {
+    "gold": "cape_skill_herblore_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_herblore_front.png"
+   }
+  },
+  "behind/cape_skill_construction": {
+   "male": {
+    "gold": "cape_skill_construction_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_construction_behind.png"
+   }
+  },
+  "capefront/cape_skill_construction": {
+   "male": {
+    "gold": "cape_skill_construction_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_construction_front.png"
+   }
+  },
+  "behind/cape_skill_agility": {
+   "male": {
+    "gold": "cape_skill_agility_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_agility_behind.png"
+   }
+  },
+  "capefront/cape_skill_agility": {
+   "male": {
+    "gold": "cape_skill_agility_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_agility_front.png"
+   }
+  },
+  "behind/cape_skill_thieving": {
+   "male": {
+    "gold": "cape_skill_thieving_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_thieving_behind.png"
+   }
+  },
+  "capefront/cape_skill_thieving": {
+   "male": {
+    "gold": "cape_skill_thieving_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_thieving_front.png"
+   }
+  },
+  "behind/cape_skill_dungeoneering": {
+   "male": {
+    "gold": "cape_skill_dungeoneering_behind.png"
+   },
+   "female": {
+    "gold": "cape_skill_dungeoneering_behind.png"
+   }
+  },
+  "capefront/cape_skill_dungeoneering": {
+   "male": {
+    "gold": "cape_skill_dungeoneering_front.png"
+   },
+   "female": {
+    "gold": "cape_skill_dungeoneering_front.png"
+   }
   }
  },
  "weapons": {

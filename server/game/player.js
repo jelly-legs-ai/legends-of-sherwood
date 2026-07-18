@@ -2,7 +2,7 @@
 // serialization. All mutation happens here so the rules live in one place.
 
 import { SKILLS, XP_TABLE, levelForXp, MAX_LEVEL, MILESTONE_LEVELS, MILESTONE_SHILLINGS, combatLevel, MSG, PLANE, FX, COMBAT } from '../../shared/constants.js';
-import { ITEMS } from '../../shared/data/items.js';
+import { ITEMS, skillCapeId } from '../../shared/data/items.js';
 import { PRAYERS, ABILITIES, RELICS } from '../../shared/data/skills.js';
 import { QUESTS } from '../../shared/data/quests.js';
 
@@ -84,10 +84,28 @@ export class Player {
           paid.push(ml);
           this.world.earn(this, MILESTONE_SHILLINGS[ml], `milestone:${skill}:${ml}`);
           this.world.send(this, { t: MSG.MSGBOX, kind: 'milestone', m: `Milestone! ${skill} ${ml} — ${MILESTONE_SHILLINGS[ml]} $LoS earned.` });
-          if (ml === 99) this.world.announce(`♛ ${this.name} has achieved level 99 ${skill} — a true Legend of Sherwood! (+${MILESTONE_SHILLINGS[99]} $LoS)`);
+          if (ml === 99) {
+            this.world.announce(`♛ ${this.name} has achieved level 99 ${skill} — a true Legend of Sherwood! (+${MILESTONE_SHILLINGS[99]} $LoS)`);
+            this.grantSkillCape(skill);
+          }
         }
       }
     }
+  }
+
+  // Award a skill's gold-trimmed mastery cape. Lands in the pack, or the bank if
+  // the pack is full; never duplicated (already-held check + the milestone that
+  // calls this fires once per skill).
+  grantSkillCape(skill) {
+    const id = skillCapeId(skill);
+    if (!ITEMS[id] || this.countItem(id) || this.bank[id] || this.equip.cape?.id === id) return;
+    if (!this.addItem(id)) { this.bank[id] = (this.bank[id] || 0) + 1; }
+    this.world.send(this, { t: MSG.MSGBOX, kind: 'milestone', m: `A gold-trimmed ${skill} cape is yours — worn only by a true master.` });
+  }
+  // On login, back-fill mastery capes for any skill already at 99 (masters from
+  // before the capes existed, or after an inventory wipe).
+  ensureSkillCapes() {
+    for (const sk of SKILLS) if (this.baseLevel(sk) >= 99) this.grantSkillCape(sk);
   }
 
   // ---------------- inventory ----------------

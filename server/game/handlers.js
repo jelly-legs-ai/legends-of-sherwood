@@ -171,6 +171,7 @@ function onHello(world, ws, msg) {
     const q = QUESTS.a_legend_begins;
     for (const [id, qty] of Object.entries(q.steps[0].give || {})) p.addItem(id, qty);
   }
+  p.ensureSkillCapes();   // back-fill mastery capes for any skill already at 99
   sendWelcome(world, p);
   world.announce(`${p.name} has entered Sherwood.`);
 }

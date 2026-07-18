@@ -468,3 +468,21 @@ export function armCustomAnims(defs) {
     for (const m of targets) { m.style = 'magic'; m.proj = pl.fx; }
   }
 }
+
+// Colourful capes as rare cosmetic drops across the bestiary — tattered cuts from
+// the rabble, pristine capes from tougher foes, the blue-trim cape a rarer prize
+// from the deadliest. A splash of colour for your outlaw, tradeable on the GE.
+// (Skill-mastery capes are NOT here — those are earned only at level 99.)
+const CAPE_DROPS = [
+  ['bandit', 'tattered_cape_brown', 0.02], ['goblin', 'tattered_cape_green', 0.02],
+  ['smuggler', 'tattered_cape_gray', 0.02], ['goblin_archer', 'tattered_cape_black', 0.02],
+  ['outlaw', 'cape_green', 0.015], ['poacher', 'cape_maroon', 0.015],
+  ['sheriffs_guard', 'cape_blue', 0.012], ['bog_wraith', 'cape_black', 0.015],
+  ['druid_shade', 'cape_lavender', 0.015], ['lizardfolk', 'cape_yellow', 0.015],
+  ['brown_bear', 'cape_brown', 0.015], ['crag_troll', 'cape_gray', 0.012],
+  ['moor_brigand', 'cape_red', 0.012], ['orc_raider', 'cape_pink', 0.012],
+  ['orc_warlord', 'cape_white', 0.012], ['minotaur', 'cape_red', 0.012],
+  ['revenant_knight', 'cape_bluetrim', 0.01], ['frost_revenant', 'cape_bluetrim', 0.012],
+  ['wight_archer', 'cape_black', 0.012],
+];
+for (const [id, cape, rate] of CAPE_DROPS) if (MOBS[id]) MOBS[id].drops.push([cape, 1, rate]);

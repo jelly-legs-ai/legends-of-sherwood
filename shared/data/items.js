@@ -705,6 +705,32 @@ for (const c of CAPE_COLORS) {
 def('cape_bluetrim', { name: 'White cape with blue trim', slot: 'cape', value: 1600, req: {}, tint: '#e6ecff',
   vis: { layer: 'behind', sheet: 'cape_bluetrim', color: 'whiteblue' } });
 
+// ---------------------------------------------------------------------------
+// Skill-mastery capes: one gold-trimmed cape per skill, tinted to that skill's
+// colour with the skill's emblem crested on the back (art baked by
+// tools/build-skillcapes.mjs). Earned the instant you hit level 99 in the skill
+// (granted from the milestone hook in server/game/player.js) — a Legend of
+// Sherwood's badge. Wearable only by a master of that skill; light prestige
+// defence bonus. SKILLCAPE_COLORS must stay in step with the bake tool.
+export const SKILLCAPE_COLORS = {
+  attack: '#a51e26', strength: '#c0592a', defence: '#4d6b96', constitution: '#d04545',
+  ranged: '#2b6b30', magic: '#3560d8', prayer: '#e6d38a', summoning: '#2aa090',
+  mining: '#8a8f96', fishing: '#3aa6c8', woodcutting: '#43a043', farming: '#8fae3a',
+  hunter: '#9a6a3a', archaeology: '#b08a4a', smithing: '#6f6f78', cooking: '#c24a2a',
+  crafting: '#a05fb0', firemaking: '#e08030', fletching: '#a89a6a', runecrafting: '#6a3aa0',
+  herblore: '#3a9a4a', construction: '#8a5a2a', agility: '#5ab0d0', thieving: '#40404e',
+  dungeoneering: '#b8863a',
+};
+export const skillCapeId = (skill) => `skillcape_${skill}`;
+for (const [sk, color] of Object.entries(SKILLCAPE_COLORS)) {
+  const cap = sk[0].toUpperCase() + sk.slice(1);
+  def(skillCapeId(sk), {
+    name: `${cap} cape`, slot: 'cape', unique: true, master: sk, req: { [sk]: 99 },
+    bonus: { def: 6 }, value: 99000, tint: color,
+    vis: { layer: 'behind', sheet: `cape_skill_${sk}`, color: 'gold' },
+  });
+}
+
 // Unique boss drops
 def('sheriffs_blade', { name: "The Sheriff's blade", slot: 'weapon', kind: 'sword', style: 'melee', anim: 'slash',
   speed: 2200, req: { attack: 70 }, bonus: { acc: 92, str: 88 }, value: 45000, unique: true,
