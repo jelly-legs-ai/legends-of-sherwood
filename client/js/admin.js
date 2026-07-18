@@ -1747,18 +1747,25 @@ function gsGenerate() {
   const ref = gsRef(); if (!ref || !GS.img) return;
   const align = gsAlignCell(); if (!align) return;
   const fs = ref.fs, ac = gsTpl().align.c;
-  // SOUTH is exactly what you line up: each row's calibration-column frame gets no
-  // extra rotation, so the generated sheet keeps the orientation you set — south,
-  // idle, walk AND combat, in every facing (only the hand position changes, and
-  // attack rows swing about that row's rest). It never auto-rotates from a guessed
-  // blade axis, so a differently-shaped model can't throw the south facing off.
-  const rowRest = (r) => { const c = ref.cells[r * ref.cols + ac]; return c ? c.angle : null; };
+  // SOUTH is exactly what you line up, and the weapon TURNS with the body like the
+  // built-in weapon sheets. Within each 4-row block (N/W/S/E) the SOUTH row is the
+  // anchor: south gets no extra rotation (your alignment 1:1 — idle, walk AND
+  // combat), while the other facings take the reference blade's angle RELATIVE to
+  // that block's south (down-right facing N/E, down-left facing W/S, the arc on
+  // attack). Nothing is inferred from the art's shape, so a differently-shaped
+  // model lines up the same and south always holds. Line your art up to the
+  // diagonal guideline in the aligner and every facing follows the reference.
+  const southRest = (r) => {
+    const sr = (Math.floor(r / 4) * 4) + 2;                    // the south row of r's 4-row block
+    const c = ref.cells[sr * ref.cols + ac] || ref.cells[r * ref.cols + ac];
+    return c ? c.angle : null;
+  };
   const out = document.createElement('canvas'); out.width = ref.W; out.height = ref.H;
   const g = out.getContext('2d'); g.imageSmoothingEnabled = false;
   const iw = GS.img.width, ih = GS.img.height;
   for (const cell of ref.cells) {
     if (!cell) continue;
-    const rest = rowRest(cell.row);
+    const rest = southRest(cell.row);
     const dRot = GS.trackRot ? cell.angle - (rest ?? cell.angle) : 0;
     // size-lock keeps a constant size across frames; unlocked, it matches the
     // reference blade's per-frame length
@@ -1790,7 +1797,8 @@ function renderGearSheet() {
       <h3 style="color:var(--gold);font-size:12px;margin-top:12px">2 · Choose the combat animation</h3>
       <div class="ms-row" style="flex-wrap:wrap;gap:4px">${tgtBtns}</div>
       <div style="font-size:11px;color:var(--dim)">Carry is the base walk/idle sheet; slash &amp; thrust are the attack overlays. Compile whichever your weapon needs.</div>
-      <h3 style="color:var(--gold);font-size:12px;margin-top:12px">3 · Align to the grip guideline</h3>
+      <h3 style="color:var(--gold);font-size:12px;margin-top:12px">3 · Overlay the guideline blade</h3>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:5px">Lay your weapon <b>right over the cyan guideline blade</b> — match its <b>angle and grip</b>, not straight up. The guideline is how the real weapon is held facing south; the maker then turns your art to every other facing exactly like the built-in sheets.</div>
       <canvas id="gs-align" width="256" height="256" style="background:#20331f;border:1px solid var(--trim);border-radius:6px;cursor:move"></canvas>
       <div class="ms-row">X <input id="gs-x" type="range" min="-40" max="40" step="0.5" value="${GS.x}" style="flex:1"></div>
       <div class="ms-row">Y <input id="gs-y" type="range" min="-40" max="40" step="0.5" value="${GS.y}" style="flex:1"></div>
