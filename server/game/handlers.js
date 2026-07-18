@@ -10,7 +10,7 @@ import { NPCS } from '../../shared/data/npcs.js';
 import { QUESTS, TASKS } from '../../shared/data/quests.js';
 import { CROPS } from '../../shared/data/items.js';
 import { SHORTCUTS, ANCHORS, ARENA, HOUSE } from '../../shared/data/world.js';
-import { computeWorld, isBlocked, dungeonFloor, tileAtPlane } from '../../shared/mapgen.js';
+import { computeWorld, isBlocked, dungeonFloor, tileAtPlane, levelEntry } from '../../shared/mapgen.js';
 import { TILE } from '../../shared/constants.js';
 import { Player } from './player.js';
 
@@ -394,6 +394,9 @@ function onAction(world, p, msg) {
   if (msg.milk) return farmGather(world, p, msg.milk | 0, 'milk');
   if (msg.shear) return farmGather(world, p, msg.shear | 0, 'shear');
   const x = msg.x | 0, y = msg.y | 0;
+  // inside a studio level: any click just walks — stepping onto the exit
+  // pad (see world.tickPlayer) carries you back out through the gate
+  if (p.plane <= -10) return;
   // dungeon exit ladder
   if (p.plane >= PLANE.DUNGEON_BASE) return dungeonAction(world, p, x, y, msg);
   if (p.plane >= PLANE.HOUSE_BASE) {
@@ -406,6 +409,19 @@ function onAction(world, p, msg) {
   if (p.plane === PLANE.COLOSSEUM) return;
   const type = nodeAtTile(world, x, y);
   if (!type) return;
+  // studio cave gates: slip into the linked level at its entry pad
+  if (type.startsWith('cave_gate:')) {
+    const id = type.slice(10);
+    const lv = world.mapOverrides?.levels?.[id];
+    if (!lv || lv.slot === undefined) return;
+    return walkThen(world, p, x, y, () => {
+      const en = levelEntry(lv);
+      p.plane = -10 - lv.slot; p.x = en.x + 0.5; p.y = en.y - 1.5;
+      p.path = null; p.target = null; world.gridMove(p);
+      world.send(p, { t: MSG.RESPAWN, x: p.x, y: p.y, plane: p.plane });
+      world.send(p, { t: MSG.MSGBOX, m: `You slip into ${lv.name || id.replace(/_/g, ' ')}… step back onto the glowing pad to leave.` });
+    });
+  }
   const node = NODES[type];
   if (!node) return;
   walkThen(world, p, x, y, () => doNode(world, p, type, node, x, y, msg));

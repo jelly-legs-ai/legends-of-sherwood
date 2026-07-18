@@ -4,7 +4,7 @@
 // by total world population — one shared channel, many players.
 
 import { WORLD, PLANE, MSG, GROUND, SHILLING, TILE, COMBAT, WILDERNESS_Y } from '../../shared/constants.js';
-import { computeWorld, isBlocked, dungeonFloor, tileAtPlane, regionAt } from '../../shared/mapgen.js';
+import { computeWorld, isBlocked, dungeonFloor, tileAtPlane, regionAt, customLevel, levelEntry } from '../../shared/mapgen.js';
 import { MOBS } from '../../shared/data/mobs.js';
 import { NPCS } from '../../shared/data/npcs.js';
 import { NODES } from '../../shared/data/skills.js';
@@ -493,6 +493,19 @@ export class World {
     return s;
   }
   tickPlayer(p, now, dt) {
+    // studio levels: standing on the exit pad walks you back out the gate
+    if (p.plane <= -10) {
+      const lv = customLevel(-10 - p.plane);
+      if (lv) {
+        const en = levelEntry(lv);
+        if (Math.hypot(p.x - (en.x + 0.5), p.y - (en.y + 0.5)) < 0.7) {
+          const g = lv.gate || { x: 300, y: 500 };
+          p.plane = PLANE.OVERWORLD; p.x = g.x + 0.5; p.y = g.y + 1.5;
+          p.path = null; p.target = null; this.gridMove(p);
+          this.send(p, { t: MSG.RESPAWN, x: p.x, y: p.y, plane: p.plane });
+        }
+      }
+    }
     // Teleport channel: a 6s focus. Movement or damage since the channel began
     // breaks it; otherwise the world folds when the timer elapses.
     if (p.teleporting) {

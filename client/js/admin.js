@@ -776,7 +776,9 @@ function msSide() {
     <h3>Levels</h3>
     <div class="ms-row"><select id="ms-level"><option value="">overworld</option>${Object.keys(levels).map(id => `<option ${MS.level === id ? 'selected' : ''}>${id}</option>`).join('')}</select>
     <button class="act" id="ms-newlevel" title="new dungeon/cave level">＋</button></div>
-    <div style="font-size:10.5px;color:var(--dim)">Enter in-game via terminal: <b>level &lt;player&gt; &lt;id&gt;</b></div>
+    ${MS.level ? `<div class="ms-row"><button class="act ${MS.gateArm ? 'on' : ''}" id="ms-gate" style="flex:1">${MS.gateArm ? '● click the overworld to set the gate' : '⛩ place world entrance'}</button></div>
+    <div style="font-size:10.5px;color:var(--dim)">${levels[MS.level]?.gate ? `gate at ${levels[MS.level].gate.x},${levels[MS.level].gate.y} — players click it to enter, and leave via the glowing pad inside` : 'no gate yet — place one so players can walk in'}</div>` : ''}
+    <div style="font-size:10.5px;color:var(--dim)">Admin shortcut: terminal <b>level &lt;player&gt; &lt;id&gt;</b></div>
     <h3>Terrain brush</h3>
     <div class="ms-cat">${TILE_META.map(([t, n, c]) => `<div class="ms-cell ${MS.terrain === t ? 'on' : ''}" data-terr="${t}" title="${n}"><div class="ms-swatch" style="background:${c}"></div><div>${n}</div></div>`).join('')}</div>
     <div class="ms-row">brush <input id="ms-brush" type="range" min="1" max="6" value="${MS.brush}" style="flex:1"> ${MS.brush}×${MS.brush}</div>
@@ -787,7 +789,9 @@ function msSide() {
     ${Object.entries(cat).map(([name, list]) => `<h3>${name}</h3><div class="ms-cat">${list.map(k => `<div class="ms-cell ${MS.node === k ? 'on' : ''}" draggable="true" data-node="${k}" title="${NODES[k]?.name || k}"></div>`).join('')}</div>`).join('')}`;
   $('#ms-save').onclick = msSave;
   $('#ms-discard').onclick = () => { MS.pending = { tiles: {}, elev: {}, nodes: {}, levels: {}, spawns: {} }; MS.base = null; MS.baseRows = 0; renderMapStudio(); };
-  $('#ms-level').onchange = (e) => { MS.level = e.target.value || null; renderMapStudio(); };
+  $('#ms-level').onchange = (e) => { MS.level = e.target.value || null; MS.gateArm = false; renderMapStudio(); };
+  const gateBtn = $('#ms-gate');
+  if (gateBtn) gateBtn.onclick = () => { MS.gateArm = !MS.gateArm; msSide(); };
   $('#ms-newlevel').onclick = () => {
     const id = prompt('Level id (letters/numbers/_):', 'cave_1'); if (!id) return;
     const size = Math.min(160, Math.max(16, parseInt(prompt('Size (tiles, 16–160):', '64')) || 64));
@@ -819,7 +823,7 @@ function msSave() {
 }
 function msZoom(f) { MS.vp.z = Math.max(1, Math.min(40, MS.vp.z * f)); }
 function msScreenToTile(cv, mx, my) {
-  if (MS.view === 'iso' && !MS.level && MS.isoR) {
+  if (MS.view === 'iso' && (!MS.level || MS.gateArm) && MS.isoR) {
     // invert the game's iso projection about the studio camera (elevation
     // lift is ignored — clicks on tall ground land a whisker south)
     const camWx = (MS.isoR.cam.x - MS.isoR.cam.y) * 32, camWy = (MS.isoR.cam.x + MS.isoR.cam.y) * 16;
@@ -872,6 +876,15 @@ function msBindInput(cv) {
       for (const z of cands) { const d = Math.hypot(z.x - tx, z.y - ty); if (d < Math.max(6, z.r + 3) && d < bd) { bd = d; best = z; } }
       MS.zoneSel = best; msSide(); return;
     }
+    // armed gate placement: the click drops the selected level's world entrance
+    // (the studio shows the OVERWORLD while a gate is armed, whatever level is picked)
+    if (MS.gateArm && MS.level) {
+      const [tx, ty] = msScreenToTile(cv, mx, my);
+      const lv = msLevels()[MS.level] || {};
+      MS.pending.levels[MS.level] = { ...lv, tiles: { ...(lv.tiles || {}) }, gate: { x: tx, y: ty } };
+      MS.gateArm = false;
+      msSide(); return;
+    }
     MS.drag = { mx, my, vx: MS.vp.x, vy: MS.vp.y, painted: new Set() };
     if (MS.tool !== 'pan') msApplyTool(cv, mx, my);
   };
@@ -882,7 +895,7 @@ function msBindInput(cv) {
     if (!MS.drag) return;
     if (MS.tool === 'pan' || MS.mobMode) {
       const dmx = mx - MS.drag.mx, dmy = my - MS.drag.my;
-      if (MS.view === 'iso' && !MS.level) { MS.vp.x = MS.drag.vx - (dmx / 64 + dmy / 32); MS.vp.y = MS.drag.vy - (dmy / 32 - dmx / 64); }
+      if (MS.view === 'iso' && (!MS.level || MS.gateArm)) { MS.vp.x = MS.drag.vx - (dmx / 64 + dmy / 32); MS.vp.y = MS.drag.vy - (dmy / 32 - dmx / 64); }
       else { MS.vp.x = MS.drag.vx - dmx / MS.vp.z; MS.vp.y = MS.drag.vy - dmy / MS.vp.z; }
     }
     else msApplyTool(cv, mx, my);
@@ -917,7 +930,8 @@ function msLoop(cv) {
   const g = cv.getContext('2d');
   g.imageSmoothingEnabled = false;
   g.fillStyle = '#04070c'; g.fillRect(0, 0, cv.width, cv.height);
-  const lv = MS.level && msLevels()[MS.level];
+  // an armed gate placer always shows the OVERWORLD, whatever level is picked
+  const lv = MS.level && !MS.gateArm && msLevels()[MS.level];
   if (lv) msDrawLevel(g, cv, lv);
   else if (MS.view === 'iso') msDrawIso(cv);
   else msDrawWorld(g, cv);

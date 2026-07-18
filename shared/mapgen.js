@@ -33,6 +33,11 @@ export function customLevel(slot) {
   for (const lv of Object.values(MAP_OVERRIDES.levels)) if (lv.slot === slot) return lv;
   return null;
 }
+// where you arrive in (and leave) a studio level: a pad by the south wall
+export function levelEntry(lv) {
+  const s = lv?.size || 64;
+  return { x: s >> 1, y: s - 3 };
+}
 function customLevelTile(slot, x, y) {
   const lv = customLevel(slot);
   if (!lv) return TILE.OCEAN;
@@ -662,6 +667,10 @@ export function computeWorld() {
   for (const [key, t] of Object.entries(MAP_OVERRIDES.nodes)) {
     if (t === null) _nodes.delete(key); else _nodes.set(key, t);
   }
+  // every studio level with a placed gate opens a cave mouth in the world
+  for (const [id, lv] of Object.entries(MAP_OVERRIDES.levels)) {
+    if (lv?.gate) _nodes.set((lv.gate.x | 0) + ',' + (lv.gate.y | 0), 'cave_gate:' + id);
+  }
   // big formations spread their collision over the surrounding tiles
   _footprint = new Set();
   for (const [key, type] of _nodes) {
@@ -688,7 +697,7 @@ export function isBlockedOverworld(x, y) {
   if (!TILE_WALKABLE.has(worldTile(x, y))) return true;
   const key = (x | 0) + ',' + (y | 0);
   const n = computeWorld().nodes.get(key);
-  if (n && !FLAT_NODES.has(n)) return true;
+  if (n && !FLAT_NODES.has(n) && !n.startsWith('cave_gate:')) return true;
   if (_footprint.has(key)) return true;   // inside a big formation's base
   return false;
 }

@@ -1,5 +1,5 @@
 // Legends of Sherwood — client entry: login, game state, input, main loop.
-import { MSG, PLANE, WILDERNESS_Y, REGIONS, TILE } from '/shared/constants.js';
+import { MSG, PLANE, WILDERNESS_Y, REGIONS, TILE, FX } from '/shared/constants.js';
 import { computeWorld, regionAt, dungeonFloor, worldTile, applyMapOverrides } from '/shared/mapgen.js';
 import { QUESTS } from '/shared/data/quests.js';
 import { HOUSE } from '/shared/data/world.js';
@@ -14,6 +14,7 @@ import { loadMedia } from './media.js';
 import { Renderer, drawMinimap, MM_RANGE, flushChunkCache } from './renderer.js';
 import { Fx } from './fx.js';
 import * as UI from './ui.js';
+import { initSound, sfx } from './sound.js';
 
 const $ = (s) => document.querySelector(s);
 
@@ -33,6 +34,7 @@ window.R = R; // debug
 
 // ---------------- login ----------------
 async function boot() {
+  initSound(() => G.muted);
   await Promise.all([loadManifest(), loadMedia()]);
   // admin-authored world edits + custom content, shared with the server
   const j = (u) => fetch(u).then(r => r.json()).catch(() => null);
@@ -153,17 +155,17 @@ G.net.on(MSG.SNAP, (m) => {
   }
 });
 G.net.on(MSG.MSGBOX, (m) => {
-  if (m.kind === 'milestone') { UI.toast(m.m, 'milestone'); UI.chatLine(`<span class="tok">${m.m}</span>`); }
+  if (m.kind === 'milestone') { UI.toast(m.m, 'milestone'); UI.chatLine(`<span class="tok">${m.m}</span>`); sfx.milestone(); }
   else if (m.kind === 'level') UI.chatLine(`<span class="lvl">${m.m}</span>`);
-  else if (m.kind === 'loot') UI.chatLine(`<span class="sys">+${m.m}</span>`);
+  else if (m.kind === 'loot') { UI.chatLine(`<span class="sys">+${m.m}</span>`); sfx.coin(); }
   else { UI.toast(m.m); UI.chatLine(`<span class="sys">${m.m}</span>`); }
 });
 G.net.on(MSG.DIALOGUE, (m) => UI.showDialogue(m));
 // live Map Studio edits: the admin saved — apply the same patch and rebake
 G.net.on('mapPatch', (m) => { applyMapOverrides(m.set); flushChunkCache(); });
-G.net.on(MSG.FX, (m) => fx.spawn(m, G.entities));
-G.net.on(MSG.HIT, (m) => fx.hit(m, G.entities));
-G.net.on(MSG.LEVELUP, (m) => { UI.toast(`⬆ ${m.skill} is now level ${m.level}!`); UI.renderAbilities(); if (G.tab === 'skills') UI.renderPanel(); });
+G.net.on(MSG.FX, (m) => { fx.spawn(m, G.entities); if (m.fx === FX.TELEPORT) sfx.teleport(); else if (m.proj) sfx.spell(); });
+G.net.on(MSG.HIT, (m) => { fx.hit(m, G.entities); if (m.dmg > 0) sfx.hit(m.id === G.myId || m.src === G.myId); else sfx.whiff(); });
+G.net.on(MSG.LEVELUP, (m) => { sfx.levelup(); UI.toast(`⬆ ${m.skill} is now level ${m.level}!`); UI.renderAbilities(); if (G.tab === 'skills') UI.renderPanel(); });
 G.net.on('xp', (m) => {
   G.xp[m.skill] = m.xp;
   if (G.me) fx.floatText(G.me.rx, G.me.ry, `+${m.gain} ${m.skill}`, '#8fd6ff');
@@ -175,6 +177,7 @@ G.net.on(MSG.TOKEN, (m) => {
     UI.toast(`+${m.delta} $LoS ${m.risk ? '(in pouch — bank it!)' : ''} — ${m.reason || ''}`, 'milestone');
     UI.chatLine(`<span class="tok">+${m.delta} $LoS (${m.reason || 'earned'})</span>`);
     if (G.me) fx.floatText(G.me.rx, G.me.ry, `+${m.delta} $LoS`, '#ffd75e', true);
+    sfx.coin(m.delta >= 25);
   }
   UI.updateOrbs();
 });
@@ -183,7 +186,7 @@ G.net.on('coinpouch', (m) => { G.coinPouch = m.coins; UI.updateOrbs(); if (G._co
 G.net.on(MSG.DEATH, (m) => {
   const e = G.entities.get(m.id);
   if (e) { e.anim = 'hurt'; e.animStart = performance.now(); e.hp = 0; }
-  if (m.id === G.myId) UI.toast('Oh dear, you are dead. You awaken in Loxley…');
+  if (m.id === G.myId) { UI.toast('Oh dear, you are dead. You awaken in Loxley…'); sfx.death(); }
 });
 G.net.on(MSG.RESPAWN, () => UI.toast('You wake by the Loxley square.'));
 G.net.on(MSG.EVENT, (m) => { UI.eventBanner(m.m); UI.chatLine(`<span class="tok">${m.m}</span>`); });
@@ -470,6 +473,7 @@ function nodeDisplayName(type) {
 }
 const SKILL_VERB = { woodcutting: ['🪓', 'Chop'], mining: ['⛏', 'Mine'], hunter: ['🪤', 'Trap'], archaeology: ['🗿', 'Excavate'], runecrafting: ['✨', 'Craft runes at'], farming: ['🌱', 'Tend'], agility: ['🤸', 'Traverse'] };
 function actionLabel(type) {
+  if (type.startsWith('cave_gate:')) return '🕳 Enter ' + type.slice(10).replace(/_/g, ' ');
   const n = NODES[type];
   if (!n) return '✋ Use';
   const name = nodeDisplayName(type);

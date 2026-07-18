@@ -210,6 +210,7 @@ export function handleAdminMessage(world, ws, msg) {
               slot: ov.levels[safe]?.slot ?? (lv.slot ?? (Math.max(0, ...slots) + 1)),
               size: Math.min(160, Math.max(16, lv.size | 0 || 64)),
               fill: lv.fill | 0, tiles: lv.tiles || ov.levels[safe]?.tiles || {},
+              gate: lv.gate ? { x: lv.gate.x | 0, y: lv.gate.y | 0 } : ov.levels[safe]?.gate,
             };
           }
         }

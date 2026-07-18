@@ -2,7 +2,7 @@
 // LPC characters, procedural critters/nodes, day-night tint, northern snow.
 
 import { WORLD, TILE, PLANE, WILDERNESS_Y } from '/shared/constants.js';
-import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV, SHORTCUTS, wallStyleAt } from '/shared/mapgen.js';
+import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV, SHORTCUTS, wallStyleAt, customLevel, levelEntry } from '/shared/mapgen.js';
 import { REGIONS } from '/shared/constants.js';
 import { HOUSE, TOWNS } from '/shared/data/world.js';
 import { composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS, itemIcon, proc } from './sprites.js';
@@ -1128,6 +1128,10 @@ export class Renderer {
           const type = nodes.get(tx + ',' + ty);
           if (type) drawables.push({ d: tx + ty + 0.5, node: { type, x: tx, y: ty, off: depletedNodes.has(tx + ',' + ty) } });
         }
+    } else if (plane <= -10) {
+      // studio level: the glowing exit pad by the south wall carries you out
+      const lv = customLevel(-10 - plane);
+      if (lv) { const en = levelEntry(lv); drawables.push({ d: en.x + en.y + 0.5, node: { type: 'cave_exit_pad', x: en.x, y: en.y } }); }
     } else if (plane >= PLANE.DUNGEON_BASE) {
       const f = dungeonFloor(plane - PLANE.DUNGEON_BASE);
       drawables.push({ d: f.entrance.x + f.entrance.y + 0.5, node: { type: 'dungeon_entrance', x: f.entrance.x, y: f.entrance.y } });
@@ -1276,6 +1280,19 @@ export class Renderer {
         ctx.drawImage(tim, sx - tm.w / 2, sy - tm.h + 14);
         return;
       }
+    }
+    // studio cave gates share the abyss-mouth art; the exit pad glows softly
+    if (type.startsWith('cave_gate:')) { ctx.drawImage(nodeSprite('dungeon_entrance'), sx - 32, sy - 64); return; }
+    if (type === 'cave_exit_pad') {
+      const pulse = 0.35 + 0.2 * Math.sin(now / 400);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = `rgba(140,220,255,${pulse.toFixed(3)})`;
+      ctx.beginPath(); ctx.ellipse(sx, sy, 22, 11, 0, 0, 7); ctx.fill();
+      ctx.strokeStyle = 'rgba(200,240,255,0.8)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(sx, sy, 15, 7.5, 0, 0, 7); ctx.stroke();
+      ctx.restore();
+      return;
     }
     // fishing spots: a live, quietly bubbling patch of water
     if (/_spot$/.test(type)) { this.drawFishingSpot(ctx, sx, sy, node, now); return; }
