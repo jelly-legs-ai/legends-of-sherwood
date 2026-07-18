@@ -140,6 +140,16 @@ export class Player {
     return true;
   }
   freeSlots() { return this.inv.filter(s => !s).length; }
+  // a worn backpack grows the pack: the inventory array (which the client
+  // renders slot-for-slot) is resized to 28 + the pack's invBonus. Shrinking
+  // only ever drops trailing EMPTY slots — occupied extras block the unequip.
+  backpackBonus() { const b = this.equip.back; return (b && ITEMS[b.id]?.invBonus) || 0; }
+  retileInv() {
+    const target = INV_SIZE + this.backpackBonus();
+    while (this.inv.length < target) this.inv.push(null);
+    while (this.inv.length > target && this.inv[this.inv.length - 1] == null) this.inv.pop();
+    this.invDirty();
+  }
   invDirty() { this.world.send(this, { t: 'inv', inv: this.inv, equip: this.equip }); }
 
   meetsReq(def) {
@@ -169,14 +179,18 @@ export class Player {
       if (slot === 'mount') this.mounted = false;      // a new mount starts stabled
       this.world.syncRide?.(this);
     }
+    if (slot === 'back') this.retileInv();             // roomier pack, more slots
     this.questProgress('equip', s.id);
   }
   addItemFromEquip(slot) {
     const e = this.equip[slot];
     if (!e) return true;
+    // a backpack can only come off once its extra slots are cleared
+    if (slot === 'back') for (let i = INV_SIZE; i < this.inv.length; i++) if (this.inv[i]) { this.world.send(this, { t: MSG.MSGBOX, m: 'Empty the backpack slots before taking it off.' }); return false; }
     if (this.freeSlots() === 0 && !(ITEMS[e.id].stack && this.countItem(e.id))) { this.world.send(this, { t: MSG.MSGBOX, m: 'No inventory space.' }); return false; }
     delete this.equip[slot];
     this.addItem(e.id, e.qty);
+    if (slot === 'back') this.retileInv();             // shrink back to 28 empty slots
     this.visDirty = true;
     if (slot === 'mount' || slot === 'aura') {
       if (slot === 'mount') this.mounted = false;      // unsaddling dismounts
@@ -311,6 +325,7 @@ export class Player {
     if (typeof s.x === 'number' && typeof s.y === 'number') { this.x = s.x; this.y = s.y; }
     this.plane = PLANE.OVERWORLD; // always rejoin the overworld
     while (this.inv.length < INV_SIZE) this.inv.push(null);
+    if (this.equip.back) this.retileInv();   // restore a worn pack's extra slots
   }
 }
 export { ABILITIES, RELICS };

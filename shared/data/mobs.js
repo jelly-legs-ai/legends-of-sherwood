@@ -440,6 +440,16 @@ for (const m of Object.values(MOBS)) {
   if (m.vis && !m.vis.monster) m.vis = { ...m.vis, head: ['crown', 'gold'] };
 }
 
+// Roomy backpacks are a reward for the endgame: the Adventurer's pack is a rare
+// drop from anything level 55+, and the super-rare Abyssal packmaw only comes
+// off the truly high-level content (level 80+ — elder dragons, bosses…).
+for (const m of Object.values(MOBS)) {
+  if (m.critter || m.farm || !m.lvl) continue;
+  const d = m.drops || (m.drops = []);
+  if (m.lvl >= 55 && !d.some(x => x[0] === 'adventurer_pack')) d.push(['adventurer_pack', 1, 0.008]);
+  if ((m.lvl >= 80 || m.boss) && !d.some(x => x[0] === 'abyssal_pack')) d.push(['abyssal_pack', 1, 0.0025]);
+}
+
 // Vis for hair may be absent (helmets); critters are drawn by client code.
 export const CRITTERS =['rat', 'rabbit', 'boar', 'wolf', 'icewolf', 'hawk', 'leech', 'serpent', 'panther', 'treant', 'goat', 'troll', 'sprite', 'spider', 'giant', 'bear', 'stag', 'abyssal'];
 

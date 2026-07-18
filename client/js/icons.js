@@ -824,6 +824,18 @@ export function itemIcon(id) {
       g.beginPath(); g.moveTo(22, 12); g.quadraticCurveTo(29, 4, 30, 10); g.quadraticCurveTo(27.5, 11, 27, 14); g.quadraticCurveTo(24.5, 13, 22, 15); g.closePath(); g.fill();
       g.strokeStyle = INK; g.stroke();
     }
+  } else if (def.backpack) {
+    // a rounded rucksack: body + buckled flap + side straps, tinted per pack
+    const col = def.tint || '#6e522f';
+    g.fillStyle = shadeHex(col, 0.7);   // shoulder straps behind
+    g.fillRect(10, 8, 3, 18); g.fillRect(19, 8, 3, 18);
+    g.fillStyle = col;                  // main body
+    g.beginPath(); g.moveTo(8, 12); g.quadraticCurveTo(8, 8, 16, 8); g.quadraticCurveTo(24, 8, 24, 12); g.lineTo(24, 24); g.quadraticCurveTo(24, 27, 21, 27); g.lineTo(11, 27); g.quadraticCurveTo(8, 27, 8, 24); g.closePath(); g.fill();
+    g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
+    g.fillStyle = shadeHex(col, 1.15);  // top flap
+    g.beginPath(); g.moveTo(8, 12); g.quadraticCurveTo(8, 8, 16, 8); g.quadraticCurveTo(24, 8, 24, 12); g.lineTo(24, 17); g.lineTo(8, 17); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = '#c8a038'; g.fillRect(14.5, 15, 3, 4); g.strokeRect(14.5, 15, 3, 4);   // buckle
+    g.strokeStyle = shadeHex(col, 0.55); g.lineWidth = 1; g.beginPath(); g.moveTo(12, 20); g.lineTo(12, 26); g.moveTo(20, 20); g.lineTo(20, 26); g.stroke();   // pocket seams
   } else if (name.includes('letter')) {
     g.fillStyle = '#efe6d0'; g.fillRect(7, 10, 18, 13);
     g.strokeStyle = INK; g.strokeRect(7, 10, 18, 13);

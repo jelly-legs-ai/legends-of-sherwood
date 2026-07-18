@@ -664,6 +664,24 @@ export const MOUNTS = [
 for (const [id, name, speed, fly, sheet, val, tint] of MOUNTS)
   def(id, { name, slot: 'mount', mount: { speed, fly: !!fly, sheet, tint }, value: val, req: {} });
 
+// Backpacks (slot 'back'): worn packs that enlarge the inventory. General packs
+// are rare-to-super-rare drops from high-level content; skilling satchels are
+// unlocked by a mid-high gathering level and carry a big haul of ore/wood/etc.
+// invBonus = extra inventory slots the worn pack grants (see player.retileInv).
+export const BACKPACKS = [
+  // id, name, +slots, value, req, tint
+  ['traveller_pack', "Traveller's pack", 4, 3500, {}, '#8a6a3c'],
+  ['adventurer_pack', "Adventurer's pack", 8, 22000, {}, '#6e522f'],
+  ['abyssal_pack', 'Abyssal packmaw', 12, 90000, {}, '#8a5cff'],   // super-rare, high-level content
+  ['miners_satchel', "Miner's satchel", 8, 9000, { mining: 45 }, '#7d7a70'],
+  ['foresters_pack', "Forester's pack", 8, 9000, { woodcutting: 45 }, '#4f7d33'],
+  ['anglers_creel', "Angler's creel", 8, 9000, { fishing: 45 }, '#2e5f8a'],
+  ['herbalists_satchel', "Herbalist's satchel", 8, 9000, { herblore: 45 }, '#6fc04a'],
+  ['prospectors_rucksack', "Prospector's rucksack", 12, 34000, { mining: 75 }, '#cfd4dc'],
+];
+for (const [id, name, invBonus, value, req, tint] of BACKPACKS)
+  def(id, { name, slot: 'back', invBonus, value, req, tint, backpack: true });
+
 // Unique boss drops
 def('sheriffs_blade', { name: "The Sheriff's blade", slot: 'weapon', kind: 'sword', style: 'melee', anim: 'slash',
   speed: 2200, req: { attack: 70 }, bonus: { acc: 92, str: 88 }, value: 45000, unique: true,

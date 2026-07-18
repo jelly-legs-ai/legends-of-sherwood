@@ -258,7 +258,7 @@ function renderEquip(p) {
   p.innerHTML = '';
   const grid = document.createElement('div');
   grid.className = 'equip-grid';
-  const slots = [null, 'head', null, 'cape', 'torso', 'neck', 'weapon', 'legs', 'shield', 'hands', 'feet', 'ammo', 'aura', null, 'mount'];
+  const slots = [null, 'head', null, 'cape', 'torso', 'neck', 'weapon', 'legs', 'shield', 'hands', 'feet', 'ammo', 'aura', 'back', 'mount'];
   for (const sl of slots) {
     const d = document.createElement('div');
     if (!sl) { d.style.visibility = 'hidden'; grid.appendChild(d); continue; }
