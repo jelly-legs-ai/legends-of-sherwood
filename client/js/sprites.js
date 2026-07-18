@@ -25,6 +25,13 @@ export async function loadManifest() {
   manifest = await (await fetch('assets/lpc/manifest.json')).json();
   return manifest;
 }
+// The LPC wardrobe, for the compositor's Gear browser: every equipment slot/type
+// with its available dye colours. { 'torso/plate': ['copper','iron',…], … }
+export function gearCatalog() {
+  const out = {};
+  for (const [k, v] of Object.entries(manifest?.gear || {})) out[k] = Object.keys(v.male || v.female || {});
+  return out;
+}
 function img(file) {
   if (!file) return null;
   let im = images.get(file);

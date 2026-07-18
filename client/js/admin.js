@@ -11,7 +11,7 @@ import { TILE } from '/shared/constants.js';
 import { computeWorld, worldTile, heightAt, regionAt, applyMapOverrides, MAP_OVERRIDES, WORLD_W, WORLD_H, syncTile, syncNode } from '/shared/mapgen.js';
 import { SPAWNS, BOSS_SPAWNS, TOWNS } from '/shared/data/world.js';
 import { loadMedia, MEDIA, drawCreature, drawFrame, drawFxSprite, drawFxBand, customLayerPos } from './media.js';
-import { loadManifest, composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS } from './sprites.js';
+import { loadManifest, composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS, gearCatalog } from './sprites.js';
 import { itemIcon } from './icons.js';
 import { Renderer, flushChunkCache, flushChunkAt } from './renderer.js';
 import { Fx } from './fx.js';
@@ -332,7 +332,7 @@ function renderComp() {
 }
 function renderCompBrowse() {
   $('#comp-body').innerHTML = `
-    <div class="tabs2">${['items', 'creatures', 'weapons', 'fx', 'pets', 'spells'].map(t => `<button data-t="${t}" class="${compTab === t ? 'on' : ''}">${t}</button>`).join('')}
+    <div class="tabs2">${['items', 'gear', 'weapons', 'creatures', 'fx', 'pets', 'spells'].map(t => `<button data-t="${t}" class="${compTab === t ? 'on' : ''}">${t}</button>`).join('')}
       <input id="comp-q" placeholder="filter…" style="margin-left:auto">
     </div>
     <div id="preview"><i style="color:var(--dim)">select an asset below to preview it</i></div>
@@ -357,6 +357,15 @@ function fillGrid(q) {
   grid.innerHTML = '';
   const add = (label, canvas, sel) => { if (!q || label.toLowerCase().includes(q)) grid.appendChild(cellDiv(label, canvas, () => preview(sel))); };
   if (compTab === 'items') for (const id of Object.keys(ITEMS)) add(id, scaled(itemIcon(id), 40), { kind: 'item', id });
+  // the full LPC wardrobe: every equipment slot/type, worn on a mannequin
+  if (compTab === 'gear') {
+    for (const [key, colors] of Object.entries(gearCatalog())) {
+      const [slot, type] = key.split('/');
+      add(key, gearThumb(slot, type, colors[0]), { kind: 'gear', key, slot, type, color: colors[0], colors });
+    }
+    // the mannequin sheets stream in lazily — refresh the thumbnails once
+    if (!MS._gearRefreshed) { MS._gearRefreshed = true; setTimeout(() => { if (compTab === 'gear') fillGrid($('#comp-q')?.value.toLowerCase() || ''); }, 700); }
+  }
   if (compTab === 'creatures') for (const id of Object.keys(MOBS)) add(id, null, { kind: 'creature', id });
   if (compTab === 'weapons') for (const [id, it] of Object.entries(ITEMS)) if (it.vis?.layer === 'weapon') add(id, scaled(itemIcon(id), 40), { kind: 'weapon', id });
   if (compTab === 'fx') for (const id of Object.keys(MEDIA.fx || {})) { const f = MEDIA.fx[id]; for (let v = 0; v < (f.variants || 1); v++) add(`${id}:${v}`, null, { kind: 'fx', id: `${id}:${v}` }); }
@@ -369,6 +378,25 @@ function scaled(src, size) {
   const g = c.getContext('2d');
   g.imageSmoothingEnabled = false;
   g.drawImage(src, 0, 0, size, size);
+  return c;
+}
+// A plain LPC mannequin wearing one gear piece in the given slot (head gear
+// hides the hair). Shared by the Gear browser's thumbnails and preview.
+function gearVis(slot, type, color, sex = 'male') {
+  const vis = { sex, skin: 'light', hair: ['plain', 'dark_brown'], torso: ['tunic', 'green'], legs: ['pants', 'brown'], feet: ['shoes', 'brown'] };
+  if (slot === 'head') delete vis.hair;
+  vis[slot] = [type, color];
+  return vis;
+}
+function gearThumb(slot, type, color, size = 40) {
+  const c = document.createElement('canvas'); c.width = size; c.height = size;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  try {
+    const vis = gearVis(slot, type, color);
+    const comp = composite(vis);
+    drawChar(g, comp, 'walk', 2, 0, size / 2, size * 0.94, size / 46);
+    drawOversize(g, comp, vis, 'walk', 2, 0, size / 2, size * 0.94, size / 46);
+  } catch { }
   return c;
 }
 function preview(sel) {
@@ -489,6 +517,33 @@ function preview(sel) {
     const it = ITEMS[sel.id];
     info.textContent = JSON.stringify(it, null, 1);
     previewEquipped(g, it, () => compSel === sel);
+  }
+  if (sel.kind === 'gear') {
+    info.textContent = `LPC gear · ${sel.slot} / ${sel.type}\ndye colours: ${sel.colors.join(', ')}`;
+    const vis = gearVis(sel.slot, sel.type, sel.color);
+    const comp = composite(vis);
+    const loop = (now) => {
+      g.clearRect(0, 0, 260, 200);
+      g.imageSmoothingEnabled = false;
+      const wf = Math.floor(now / 110) % ANIMS.walk.frames;
+      drawChar(g, comp, 'walk', 2, wf, 74, 176, 2.1);
+      drawOversize(g, comp, vis, 'walk', 2, wf, 74, 176, 2.1);
+      const ai = ANIMS.slash, sf = Math.floor(now / 90) % ai.frames;   // a combat pose too, for shields/behind gear
+      drawChar(g, comp, 'slash', 2, sf, 190, 176, 2.1);
+      drawOversize(g, comp, vis, 'slash', 2, sf, 190, 176, 2.1);
+      if (compSel === sel) raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    // dye swatches: click to re-dye and re-preview the same piece
+    const sw = document.createElement('div');
+    sw.style = 'display:flex;gap:4px;flex-wrap:wrap;margin-top:6px';
+    for (const col of sel.colors) {
+      const b = document.createElement('button'); b.className = 'act'; b.textContent = col;
+      b.style.cssText = 'padding:2px 6px;font-size:10px' + (col === sel.color ? ';outline:2px solid var(--gold)' : '');
+      b.onclick = () => preview({ ...sel, color: col });
+      sw.appendChild(b);
+    }
+    pv.appendChild(sw);
   }
 }
 
