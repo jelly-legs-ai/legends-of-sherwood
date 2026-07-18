@@ -287,7 +287,9 @@ export function applyPlayerDamage(world, p, dmg, source) {
     p.lastCombat = Date.now();                     // taking damage locks teleports/mounts
     if (p.mounted) {
       p.mounted = false;
+      const wasPet = p.mountIsPet; p.mountIsPet = false;
       world.syncRide(p);
+      if (wasPet && p.activePet !== null && !p.activePetEnt) world.spawnPet(p, p.activePet);   // the pet lands beside you
       world.send(p, { t: MSG.MSGBOX, m: 'You are knocked from your mount!' });
     }
   }

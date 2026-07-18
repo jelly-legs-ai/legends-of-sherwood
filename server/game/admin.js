@@ -10,6 +10,7 @@ import { ITEMS, registerCustomItems, itemName } from '../../shared/data/items.js
 import { MOBS, armCustomAnims } from '../../shared/data/mobs.js';
 import { RECIPES } from '../../shared/data/skills.js';
 import { QUESTS } from '../../shared/data/quests.js';
+import { PETS, PET_XP, PET_MAX_LEVEL, petStage } from '../../shared/data/pets.js';
 import { XP_TABLE, PLANE } from '../../shared/constants.js';
 import { applyMapOverrides, MAP_OVERRIDES } from '../../shared/mapgen.js';
 import { SPAWNS, BOSS_SPAWNS } from '../../shared/data/world.js';
@@ -60,6 +61,7 @@ const HELP = [
   'give <player> <item> [qty]',
   'los <player> <amount> — mint $LoS',
   'xp <player> <skill> <amount>',
+  'pet <player> <petId> [stage] — give a pet at an evolution stage (e.g. pet Robin baby_red_dragon 3)',
   'tp <player> <x> <y> — move a player',
   'heal <player>',
   'kick <player>',
@@ -417,6 +419,27 @@ function runCommand(world, line) {
         const p = P(args[0]); if (!p) return `no player '${args[0]}'`;
         p.addXp(args[1], Math.max(0, parseInt(args[2]) || 0));
         return `+${args[2]} ${args[1]} xp to ${p.name}`;
+      }
+      case 'pet': {
+        const p = P(args[0]); if (!p) return `no player '${args[0]}'`;
+        const petId = args[1], def = PETS[petId];
+        if (!def) return `no pet '${petId}' — e.g. baby_red_dragon, grey_wolf_pup, dragon_whelp, gryphon_chick`;
+        // optional evolution stage (1..N): set the pet's xp so it sits at that form
+        const stages = def.evo?.length || 1;
+        let xp = 0, note = '';
+        if (args[2] != null && stages > 1) {
+          const stage = Math.max(1, Math.min(stages, parseInt(args[2]) || 1));
+          const lvl = Math.min(PET_MAX_LEVEL, Math.round((stage - 1) * (PET_MAX_LEVEL / stages)));
+          xp = PET_XP[lvl] || 0;
+          note = ` — stage ${stage}/${stages} (${petStage(def, lvl)?.name || def.name}, lvl ${lvl})`;
+        }
+        p.pets = p.pets || [];
+        p.pets.push({ id: petId, xp });
+        const idx = p.pets.length - 1;
+        if (p.activePetEnt) { const old = world.entities.get(p.activePetEnt); if (old) world.removeEntity(old); p.activePetEnt = null; }
+        p.activePet = idx; world.spawnPet(p, idx);
+        world.send(p, { t: 'pets', pets: p.pets, activePet: p.activePet });
+        return `gave ${def.name}${note} to ${p.name}`;
       }
       case 'tp': {
         const p = P(args[0]); if (!p) return `no player '${args[0]}'`;

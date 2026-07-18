@@ -388,17 +388,30 @@ export class World {
   }
   builtinEvents() { return EVENTS; }
   fx(plane, x, y, fxId, extra = {}) { this.broadcastNear(plane, x, y, { t: MSG.FX, fx: fxId, x, y, ...extra }); }
+  // The active pet, once it grows to its adult form (evolution stage 3+), can be
+  // ridden as a mount: its stage sheet becomes the steed, dragons/flyers take
+  // wing. Returns a mount def, or null if there's no grown pet.
+  petMountDef(p) {
+    if (p.activePet == null || !p.pets?.[p.activePet]) return null;
+    const rec = p.pets[p.activePet], def = PETS[rec.id];
+    if (!def?.evo || def.evo.length < 3) return null;
+    const st = petStage(def, petLevel(rec.xp || 0)), idx = def.evo.indexOf(st);
+    if (idx < 2) return null;                          // only the adult form onward is big enough to ride
+    const fly = /dragon|gryphon|skywing|glider|moth|screecher/.test(st.sheet || '');
+    return { speed: Math.min(0.95, 0.5 + (def.tier || 4) * 0.06), fly, sheet: st.sheet, tint: st.tint,
+      scale: Math.max(1, (st.scale || 0.5) * 2.2), pet: true };
+  }
   // Broadcast a player's mount/aura state (equip changes + mount toggles).
   rideState(p) {
-    const m = p.mounted && ITEMS[p.equip.mount?.id]?.mount;
+    const m = p.mounted && p.mountDef;
     return {
-      mnt: m ? { s: m.sheet, f: m.fly ? 1 : 0, t: m.tint } : 0,
+      mnt: m ? { s: m.sheet, f: m.fly ? 1 : 0, t: m.tint, sc: m.scale || 1 } : 0,
       aura: ITEMS[p.equip.aura?.id]?.aura || 0,
     };
   }
   syncRide(p) {
-    if (p.mounted) p.mountDef = ITEMS[p.equip.mount?.id]?.mount || null;
-    if (!p.mountDef) p.mounted = false;
+    if (p.mounted) p.mountDef = p.mountIsPet ? this.petMountDef(p) : (ITEMS[p.equip.mount?.id]?.mount || null);
+    if (!p.mountDef) { p.mounted = false; p.mountIsPet = false; }
     this.broadcastNear(p.plane, p.x, p.y, { t: 'ride', id: p.id, ...this.rideState(p) });
   }
 

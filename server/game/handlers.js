@@ -735,14 +735,24 @@ function openEventBox(world, p, id) {
 function onMount(world, p) {
   if (p.mounted) {
     p.mounted = false;
+    const wasPet = p.mountIsPet;
+    p.mountIsPet = false;
     world.syncRide(p);
+    // a dismounted pet trots beside you again
+    if (wasPet && p.activePet !== null && !p.activePetEnt) world.spawnPet(p, p.activePet);
     return;
   }
-  const def = ITEMS[p.equip.mount?.id]?.mount;
-  if (!def) return world.send(p, { t: MSG.MSGBOX, m: 'You have no mount equipped.' });
   if (Date.now() - (p.lastCombat || 0) < 5000) return world.send(p, { t: MSG.MSGBOX, m: 'You cannot mount so soon after combat.' });
+  // prefer an equipped mount; otherwise ride your grown pet (adult evolution+)
+  const itemDef = ITEMS[p.equip.mount?.id]?.mount;
+  const petDef = itemDef ? null : world.petMountDef(p);
+  const def = itemDef || petDef;
+  if (!def) return world.send(p, { t: MSG.MSGBOX, m: 'You have no mount equipped, and no grown pet to ride (a pet must reach its adult form).' });
   p.mounted = true;
   p.mountDef = def;
+  p.mountIsPet = !!petDef;
+  // riding the pet: it becomes your steed, so retire its trailing entity
+  if (petDef && p.activePetEnt) { const pe = world.entities.get(p.activePetEnt); if (pe) world.removeEntity(pe); p.activePetEnt = null; }
   world.syncRide(p);
 }
 

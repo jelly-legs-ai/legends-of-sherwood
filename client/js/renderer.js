@@ -1607,7 +1607,7 @@ export class Renderer {
     if (e.mnt) {
       mounted = true;
       mountBob = e.mnt.f ? Math.sin(now / 320 + e.id) * 3 + 10 : 0;
-      const mh = drawCreature(ctx, e.mnt.s, { id: e.id, dir: e.dir, hp: 1, tint: e.mnt.t, animStart: e.animStart }, e.anim === 'walk' ? 'walk' : 'idle', now, sx, sy - mountBob, 1);
+      const mh = drawCreature(ctx, e.mnt.s, { id: e.id, dir: e.dir, hp: 1, tint: e.mnt.t, animStart: e.animStart }, e.anim === 'walk' ? 'walk' : 'idle', now, sx, sy - mountBob, e.mnt.sc || 1);
       lift = (mh ? mh * 0.42 : 15) + mountBob;
     }
     const ry = sy - lift;
@@ -1663,9 +1663,10 @@ export class Renderer {
       }
       // re-draw the mount's lower body over the rider's legs (seated occlusion)
       if (mounted) {
+        const msc = e.mnt.sc || 1;
         ctx.save();
-        ctx.beginPath(); ctx.rect(sx - 40, ry - 8, 80, 40); ctx.clip();
-        drawCreature(ctx, e.mnt.s, { id: e.id, dir: e.dir, hp: 1, tint: e.mnt.t, animStart: e.animStart }, e.anim === 'walk' ? 'walk' : 'idle', now, sx, sy - mountBob, 1);
+        ctx.beginPath(); ctx.rect(sx - 40 * msc, ry - 8, 80 * msc, 40 * msc); ctx.clip();
+        drawCreature(ctx, e.mnt.s, { id: e.id, dir: e.dir, hp: 1, tint: e.mnt.t, animStart: e.animStart }, e.anim === 'walk' ? 'walk' : 'idle', now, sx, sy - mountBob, msc);
         ctx.restore();
       }
     } else if (!sheetH && !e.sheet) {
