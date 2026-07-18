@@ -204,6 +204,48 @@ function gemIcon(g, col, cx = 16, cy = 16, s = 9) {
   px(g, cx - s * 0.4, cy - s * 0.7, 2, 2, '#ffffffcc');
 }
 
+// The wulax ranger sets in their five hides: a brimmed leather hat, a layered
+// jerkin with shoulder pads and belt, and field chaps. `aeth` adds the
+// spectral sheen of the aethereal set.
+function drawRangerIcon(g, slot, col, aeth) {
+  const dark = shadeHex(col, 0.62), light = shadeHex(col, 1.25);
+  g.fillStyle = '#00000030';
+  g.beginPath(); g.ellipse(16, 27.5, 10, 2.6, 0, 0, 7); g.fill();
+  if (aeth) { g.shadowColor = '#bfeaff'; g.shadowBlur = 5; }
+  g.lineJoin = 'round'; g.strokeStyle = '#241a10'; g.lineWidth = 1.2;
+  if (slot === 'head') {
+    // wide brim + dome + band
+    g.fillStyle = col; g.beginPath(); g.ellipse(16, 19, 11, 4.4, 0, 0, 7); g.fill(); g.stroke();
+    g.fillStyle = light; g.beginPath(); g.ellipse(16, 14.5, 6.4, 6, 0, Math.PI, 0); g.fill();
+    g.beginPath(); g.moveTo(9.6, 15); g.quadraticCurveTo(16, 5, 22.4, 15); g.closePath(); g.fillStyle = col; g.fill(); g.stroke();
+    g.fillStyle = dark; g.fillRect(9.6, 14.5, 12.8, 2.4);
+    g.fillStyle = '#e8dcc0'; g.beginPath(); g.moveTo(21, 9); g.lineTo(26, 5); g.lineTo(23.4, 11); g.closePath(); g.fill(); // fletch feather
+  } else if (slot === 'torso') {
+    // jerkin: body, shoulder pads, stitched belt
+    g.fillStyle = col; g.beginPath();
+    g.moveTo(10, 10); g.lineTo(22, 10); g.lineTo(24, 15); g.lineTo(22.6, 25); g.lineTo(9.4, 25); g.lineTo(8, 15); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = dark; g.beginPath(); g.ellipse(10, 11, 4, 2.8, -0.5, 0, 7); g.fill();
+    g.beginPath(); g.ellipse(22, 11, 4, 2.8, 0.5, 0, 7); g.fill();
+    g.fillStyle = light; g.fillRect(14.6, 10, 2.8, 15);   // lacing strip
+    g.fillStyle = '#3c2c14'; g.fillRect(9, 19, 14, 2.6);  // belt
+    g.fillStyle = '#d8b45e'; g.fillRect(14.6, 18.6, 3, 3.4); // buckle
+  } else {
+    // chaps: two legs with a reinforced knee patch
+    g.fillStyle = col; g.beginPath();
+    g.moveTo(10.6, 8); g.lineTo(21.4, 8); g.lineTo(20.6, 14); g.lineTo(17.4, 14); g.lineTo(17, 26); g.lineTo(13.4, 26); g.lineTo(11.4, 14); g.closePath();
+    g.moveTo(17.4, 14); g.lineTo(20.6, 14); g.lineTo(21.4, 26); g.lineTo(17.8, 26); g.closePath();
+    g.fill(); g.stroke();
+    g.fillStyle = dark; g.fillRect(12.6, 17, 3.4, 3); g.fillRect(17.8, 17, 3.4, 3);   // knee patches
+    g.fillStyle = '#3c2c14'; g.fillRect(10.6, 8, 10.8, 2.2);                          // waistband
+  }
+  g.shadowBlur = 0;
+}
+function shadeHex(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  const ch = (v) => Math.max(0, Math.min(255, Math.round(v * f)));
+  return `rgb(${ch(n >> 16)},${ch((n >> 8) & 255)},${ch(n & 255)})`;
+}
+
 export function itemIcon(id) {
   let c = cache.get(id);
   if (c) return c;
@@ -215,6 +257,13 @@ export function itemIcon(id) {
   // the sheet image is loaded so early calls retry instead of freezing blank
   if (def.micon) {
     if (drawMediaIcon(g, def.micon, 1, 1, 30)) cache.set(id, c);
+    return c;
+  }
+  // wulax ranger sets: hand-drawn hat / layered jerkin / chaps in the set's hide
+  if (def.vis && ['wulax_ranger', 'ranger_hat', 'ranger'].includes(def.vis.sheet) && def.slot) {
+    const RC = { hide: '#8a6a42', blue: '#4878c8', red: '#c04848', green: '#3f9c50', aethereal: '#cfe6f2' };
+    drawRangerIcon(g, def.slot, RC[def.vis.color] || '#8a6a42', def.vis.color === 'aethereal');
+    cache.set(id, c);
     return c;
   }
   // custom items (admin Creation menu): compose from existing icons with the

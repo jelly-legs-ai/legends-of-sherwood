@@ -100,15 +100,17 @@ const server = http.createServer((req, res) => {
 
 const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, 'data');
 const world = new World(DATA_DIR);
-await world.init();          // load durable store (Postgres or hardened files) before serving
 // Map Studio overrides + custom content authored in the admin studio apply
-// before the world spawns so collision, nodes and levels agree everywhere.
+// BEFORE init() so collision, nodes, levels and authored spawn zones are all
+// in force when the world first spawns its mobs.
 const loadJson = (f) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return null; } };
-world.mapOverrides = loadJson(path.join(DATA_DIR, 'map-overrides.json')) || { tiles: {}, elev: {}, nodes: {}, levels: {} };
+world.mapOverrides = loadJson(path.join(DATA_DIR, 'map-overrides.json')) || { tiles: {}, elev: {}, nodes: {}, levels: {}, spawns: {} };
+world.mapOverrides.spawns = world.mapOverrides.spawns || {};
 applyMapOverrides(world.mapOverrides);
 world.customItems = loadJson(path.join(DATA_DIR, 'custom-items.json')) || {};
 registerCustomItems(world.customItems);
 world.customAnims = loadJson(path.join(DATA_DIR, 'custom-anims.json')) || {};
+await world.init();          // load durable store (Postgres or hardened files) before serving
 installHooks(world);
 world.start();
 

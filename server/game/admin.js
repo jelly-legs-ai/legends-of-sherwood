@@ -213,17 +213,35 @@ export function handleAdminMessage(world, ws, msg) {
             };
           }
         }
+        // admin-authored spawn zones: new zones spawn their pack IMMEDIATELY;
+        // deleted zones stop respawning (the living linger until restart)
+        ov.spawns = ov.spawns || {};
+        for (const [id, z] of Object.entries(msg.set.spawns || {})) {
+          const safe = String(id).replace(/\W/g, '_').slice(0, 40);
+          if (z === null) { delete ov.spawns[safe]; continue; }
+          if (!MOBS[z.mob]) continue;
+          const fresh = !ov.spawns[safe];
+          ov.spawns[safe] = {
+            mob: z.mob, x: z.x | 0, y: z.y | 0,
+            r: Math.min(40, Math.max(1, z.r | 0 || 6)), n: Math.min(12, Math.max(1, z.n | 0 || 3)),
+            plane: z.plane | 0 || 0,
+          };
+          if (fresh) world.spawnZone(ov.spawns[safe], ov.spawns[safe].plane);
+        }
         try { fs.writeFileSync(path.join(world.dataDir, 'map-overrides.json'), JSON.stringify(ov)); } catch (e) { console.error('[mapedit] save', e.message); }
         applyMapOverrides(msg.set);   // hot-apply: collision, nodes, levels update live
-        world.vault.alert('event', `admin map edit — ${Object.keys(msg.set.tiles || {}).length}t/${Object.keys(msg.set.elev || {}).length}e/${Object.keys(msg.set.nodes || {}).length}n`);
+        // every connected player hot-applies the same patch — no relog needed
+        const patch = { t: 'mapPatch', set: { tiles: msg.set.tiles || {}, elev: msg.set.elev || {}, nodes: msg.set.nodes || {}, levels: msg.set.levels || {} } };
+        for (const p of world.players.values()) world.send(p, patch);
+        world.vault.alert('event', `admin map edit — ${Object.keys(msg.set.tiles || {}).length}t/${Object.keys(msg.set.elev || {}).length}e/${Object.keys(msg.set.nodes || {}).length}n/${Object.keys(msg.set.spawns || {}).length}s`);
       }
       return send({ t: 'mapedit', overrides: world.mapOverrides });
     }
     case 'spawnzones': {
-      // mob mode: authored spawn zones + live mob census for the overlay
+      // mob mode: authored + admin spawn zones, plus a live mob census
       const live = {};
       for (const e of world.entities.values()) if (e.kind === 'mob') live[e.type] = (live[e.type] || 0) + 1;
-      return send({ t: 'spawnzones', spawns: SPAWNS, bosses: BOSS_SPAWNS, live });
+      return send({ t: 'spawnzones', spawns: SPAWNS, bosses: BOSS_SPAWNS, custom: world.mapOverrides?.spawns || {}, live });
     }
     case 'customItems': {
       if (msg.create) {

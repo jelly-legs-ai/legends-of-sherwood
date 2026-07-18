@@ -269,6 +269,9 @@ for (const w of WOLF_TYPES) {
     lvl: b.lvl + 6, life: Math.round(b.life * 1.7), atk: Math.round(b.atk * 1.35), def: Math.round(b.def * 1.35),
     scale: 0.8, speed: (b.speed || 3.2) + 0.2,
     drops: [...b.drops, ['coins', [b.lvl, b.lvl * 4], 0.8]] });
+  // the pack's pup: a harmless 0.3-scale wolf gambolling with the wild pack
+  mob(`${w}_puppy`, { name: `${b.name} pup`, lvl: 1, life: 8, atk: 0, def: 1,
+    sheet: b.sheet, style: 'melee', scale: 0.3, speed: 3.6, drops: [] });
 }
 // Songbirds & raptors: ambient hunter quarry — snare them for plumes and meat.
 mob('robin_bird', { name: 'Robin', lvl: 1, life: 3, atk: 0, def: 0, sheet: 'bird_robin', style: 'melee', scale: 0.24, speed: 3.2,

@@ -11,7 +11,7 @@ import { SPELLS, NODES } from '/shared/data/skills.js';
 import { Net } from './net.js';
 import { loadManifest, composite, drawChar } from './sprites.js';
 import { loadMedia } from './media.js';
-import { Renderer, drawMinimap, MM_RANGE } from './renderer.js';
+import { Renderer, drawMinimap, MM_RANGE, flushChunkCache } from './renderer.js';
 import { Fx } from './fx.js';
 import * as UI from './ui.js';
 
@@ -159,6 +159,8 @@ G.net.on(MSG.MSGBOX, (m) => {
   else { UI.toast(m.m); UI.chatLine(`<span class="sys">${m.m}</span>`); }
 });
 G.net.on(MSG.DIALOGUE, (m) => UI.showDialogue(m));
+// live Map Studio edits: the admin saved — apply the same patch and rebake
+G.net.on('mapPatch', (m) => { applyMapOverrides(m.set); flushChunkCache(); });
 G.net.on(MSG.FX, (m) => fx.spawn(m, G.entities));
 G.net.on(MSG.HIT, (m) => fx.hit(m, G.entities));
 G.net.on(MSG.LEVELUP, (m) => { UI.toast(`⬆ ${m.skill} is now level ${m.level}!`); UI.renderAbilities(); if (G.tab === 'skills') UI.renderPanel(); });

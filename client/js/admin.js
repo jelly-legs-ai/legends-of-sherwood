@@ -662,11 +662,11 @@ const MS_CATALOG = () => ({
 const MS = {
   vp: { x: 600, y: 420, z: 4 }, tool: 'pan', terrain: TILE.GRASS, elevDelta: +1,
   node: 'tree', brush: 1, level: null, mobMode: false, zoneSel: null,
-  pending: { tiles: {}, elev: {}, nodes: {}, levels: {} }, dirty: 0,
+  pending: { tiles: {}, elev: {}, nodes: {}, levels: {}, spawns: {} }, dirty: 0,
   base: null, baseRows: 0, drag: null, mouse: null, thumbs: new Map(), inited: false,
   view: '2d', isoR: null, isoFx: null, isoEnts: new Map(), isoDep: new Set(),
 };
-function msPendingCount() { return Object.keys(MS.pending.tiles).length + Object.keys(MS.pending.elev).length + Object.keys(MS.pending.nodes).length + Object.keys(MS.pending.levels).length; }
+function msPendingCount() { return Object.keys(MS.pending.tiles).length + Object.keys(MS.pending.elev).length + Object.keys(MS.pending.nodes).length + Object.keys(MS.pending.levels).length + Object.keys(MS.pending.spawns || {}).length; }
 function msOnServerOverrides(ov) {
   if (MS.inited) return;                       // first load only: apply saved edits
   MS.inited = true;
@@ -736,17 +736,36 @@ function msSide() {
   if (MS.mobMode) {
     const z = MS.zoneSel;
     const def = z && MOBS[z.mob];
+    const custom = { ...(state.spawns?.custom || {}), ...MS.pending.spawns };
+    const lv = MS.level && msLevels()[MS.level];
+    const canPlaceHere = !MS.level || lv?.slot !== undefined;
     side.innerHTML = `<h3>Mob mode</h3>
-      <div style="font-size:11.5px;color:var(--dim)">Spawn zones glow on the map — click one for its details. Live census refreshes on toggle.</div>
+      <div style="font-size:11.5px;color:var(--dim)">Click a zone for details. Arm the placer below, then click the map to set a pack down${MS.level ? ' inside this level' : ''}.</div>
+      <div class="ms-row"><button class="act" id="ms-save" style="flex:1">💾 Save ${msPendingCount() ? `(${msPendingCount()} edits)` : ''}</button></div>
+      <h3>Place a spawn zone</h3>
+      <div class="ms-row"><select id="ms-spawn-mob">${Object.keys(MOBS).sort().map(m => `<option ${MS.spawnMob === m ? 'selected' : ''}>${m}</option>`).join('')}</select></div>
+      <div class="ms-row">count <input id="ms-spawn-n" type="number" min="1" max="12" value="${MS.spawnN || 3}" style="width:56px">
+        radius <input id="ms-spawn-r" type="number" min="1" max="40" value="${MS.spawnR || 8}" style="width:56px">
+        <button class="act ${MS.spawnArm ? 'on' : ''}" id="ms-spawn-arm" ${canPlaceHere ? '' : 'disabled title="save the level first"'}>${MS.spawnArm ? '● placing' : 'place'}</button></div>
       ${z ? `<h3>${def?.name || z.mob}</h3><div id="ms-inspect">
-        zone: ${z.x},${z.y} r${z.r} × ${z.n}<br>
+        zone: ${z.x},${z.y} r${z.r} × ${z.n}${z.plane ? ` · plane ${z.plane}` : ''}<br>
         level ${def?.lvl} — ${def?.life} hp, atk ${def?.atk}, def ${def?.def}<br>
         style ${def?.style}${def?.aggro ? ' · aggro' : ''}${def?.howl ? ' · howls' : ''}${def?.alpha ? ' · ALPHA' : ''}<br>
         live in world: ${state.spawns?.live?.[z.mob] ?? '…'}<br>
         drops: ${(def?.drops || []).slice(0, 6).map(d => d[0]).join(', ')}</div>` : ''}
-      <h3>All zones</h3>
-      <div style="font-size:11px;max-height:300px;overflow:auto">${(state.spawns?.spawns || []).map((s, i) => `<div style="cursor:pointer;padding:1px 0" data-z="${i}">${s.mob} ×${s.n} @ ${s.x},${s.y}</div>`).join('')}</div>`;
+      <h3>Studio zones ${Object.keys(custom).length ? `(${Object.keys(custom).length})` : ''}</h3>
+      <div style="font-size:11px;max-height:170px;overflow:auto">${Object.entries(custom).map(([id, s]) => s ? `<div style="display:flex;justify-content:space-between;padding:1px 0"><span style="cursor:pointer" data-cz="${id}">${s.mob} ×${s.n} @ ${s.x},${s.y}${s.plane ? ' · L' + s.plane : ''}${MS.pending.spawns[id] ? ' ✎' : ''}</span><button class="act" data-czrm="${id}" style="padding:0 6px">✕</button></div>` : '').join('') || '<i style="color:var(--dim)">none yet — place one above</i>'}</div>
+      <h3>World zones</h3>
+      <div style="font-size:11px;max-height:230px;overflow:auto">${(state.spawns?.spawns || []).map((s, i) => `<div style="cursor:pointer;padding:1px 0" data-z="${i}">${s.mob} ×${s.n} @ ${s.x},${s.y}</div>`).join('')}</div>`;
     for (const d of side.querySelectorAll('[data-z]')) d.onclick = () => { const s = state.spawns.spawns[+d.dataset.z]; MS.zoneSel = s; MS.vp.x = s.x; MS.vp.y = s.y; msSide(); };
+    for (const d of side.querySelectorAll('[data-cz]')) d.onclick = () => { const s = custom[d.dataset.cz]; MS.zoneSel = s; if (!s.plane) { MS.vp.x = s.x; MS.vp.y = s.y; } msSide(); };
+    for (const b of side.querySelectorAll('[data-czrm]')) b.onclick = () => { MS.pending.spawns[b.dataset.czrm] = null; msSide(); };
+    const mobSel = $('#ms-spawn-mob');
+    mobSel.onchange = () => MS.spawnMob = mobSel.value;
+    $('#ms-spawn-n').oninput = (e) => MS.spawnN = +e.target.value || 3;
+    $('#ms-spawn-r').oninput = (e) => MS.spawnR = +e.target.value || 8;
+    $('#ms-spawn-arm').onclick = () => { MS.spawnArm = !MS.spawnArm; MS.spawnMob = mobSel.value; msSide(); };
+    $('#ms-save').onclick = msSave;
     return;
   }
   const cat = MS_CATALOG();
@@ -767,7 +786,7 @@ function msSide() {
     <button class="act ${MS.elevDelta === 0 ? 'on' : ''}" data-ed="0" style="flex:1">flatten 0</button></div>
     ${Object.entries(cat).map(([name, list]) => `<h3>${name}</h3><div class="ms-cat">${list.map(k => `<div class="ms-cell ${MS.node === k ? 'on' : ''}" draggable="true" data-node="${k}" title="${NODES[k]?.name || k}"></div>`).join('')}</div>`).join('')}`;
   $('#ms-save').onclick = msSave;
-  $('#ms-discard').onclick = () => { MS.pending = { tiles: {}, elev: {}, nodes: {}, levels: {} }; MS.base = null; MS.baseRows = 0; renderMapStudio(); };
+  $('#ms-discard').onclick = () => { MS.pending = { tiles: {}, elev: {}, nodes: {}, levels: {}, spawns: {} }; MS.base = null; MS.baseRows = 0; renderMapStudio(); };
   $('#ms-level').onchange = (e) => { MS.level = e.target.value || null; renderMapStudio(); };
   $('#ms-newlevel').onclick = () => {
     const id = prompt('Level id (letters/numbers/_):', 'cave_1'); if (!id) return;
@@ -794,7 +813,8 @@ function msSave() {
   send({ t: 'mapedit', set: MS.pending });
   applyMapOverrides(MS.pending);               // local hot-apply (recomputes world)
   flushChunkCache();                           // the rendered view rebakes next frame
-  MS.pending = { tiles: {}, elev: {}, nodes: {}, levels: {} };
+  MS.pending = { tiles: {}, elev: {}, nodes: {}, levels: {}, spawns: {} };
+  setTimeout(() => send({ t: 'spawnzones' }), 300);   // refresh zone list + census
   msSide();
 }
 function msZoom(f) { MS.vp.z = Math.max(1, Math.min(40, MS.vp.z * f)); }
@@ -839,10 +859,17 @@ function msBindInput(cv) {
   cv.onmousedown = (e) => {
     const r = cv.getBoundingClientRect();
     const mx = e.clientX - r.left, my = e.clientY - r.top;
-    if (MS.mobMode) {   // click selects the nearest spawn zone
+    if (MS.mobMode) {   // armed: place a pack; otherwise select the nearest zone
       const [tx, ty] = msScreenToTile(cv, mx, my);
+      if (MS.spawnArm && MS.spawnMob) {
+        const lv = MS.level && msLevels()[MS.level];
+        const plane = lv?.slot !== undefined ? -10 - lv.slot : 0;
+        MS.pending.spawns['z_' + Date.now().toString(36)] = { mob: MS.spawnMob, x: tx, y: ty, r: MS.spawnR || 8, n: MS.spawnN || 3, plane };
+        msSide(); return;
+      }
       let best = null, bd = 1e9;
-      for (const z of state.spawns?.spawns || []) { const d = Math.hypot(z.x - tx, z.y - ty); if (d < Math.max(6, z.r + 3) && d < bd) { bd = d; best = z; } }
+      const cands = [...(state.spawns?.spawns || []), ...Object.values({ ...(state.spawns?.custom || {}), ...MS.pending.spawns }).filter(z => z && !z.plane)];
+      for (const z of cands) { const d = Math.hypot(z.x - tx, z.y - ty); if (d < Math.max(6, z.r + 3) && d < bd) { bd = d; best = z; } }
       MS.zoneSel = best; msSide(); return;
     }
     MS.drag = { mx, my, vx: MS.vp.x, vy: MS.vp.y, painted: new Set() };
@@ -922,11 +949,17 @@ function msDrawIso(cv) {
   for (const k of Object.keys(MS.pending.elev)) mark(k, 'rgba(88,166,255,0.28)');
   for (const [k, v] of Object.entries(MS.pending.nodes)) mark(k, v === null ? 'rgba(248,81,73,0.34)' : 'rgba(63,185,80,0.34)');
   if (MS.mobMode && state.spawns) {
-    for (const zn of state.spawns.spawns || []) {
+    const all = [...(state.spawns.spawns || []).map(z => [null, z]), ...Object.entries({ ...(state.spawns.custom || {}), ...MS.pending.spawns })];
+    for (const [id, zn] of all) {
+      if (!zn || zn.plane) continue;
       const [px, py] = R.screenOf(0, zn.x, zn.y);
       if (px < -100 || py < -100 || px > cv.width + 100 || py > cv.height + 100) continue;
-      ctx.strokeStyle = '#f85149aa'; ctx.beginPath(); ctx.ellipse(px, py, zn.r * 32, zn.r * 16, 0, 0, 7); ctx.stroke();
-      ctx.fillStyle = '#ffb8b2'; ctx.font = '11px monospace'; ctx.textAlign = 'center'; ctx.fillText(`${zn.mob}×${zn.n}`, px, py - zn.r * 16 - 4);
+      const mine = id !== null;
+      if (mine && MS.pending.spawns[id]) ctx.setLineDash([6, 4]);
+      ctx.strokeStyle = mine ? '#e3b341cc' : '#f85149aa';
+      ctx.beginPath(); ctx.ellipse(px, py, zn.r * 32, zn.r * 16, 0, 0, 7); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = mine ? '#ffe27a' : '#ffb8b2'; ctx.font = '11px monospace'; ctx.textAlign = 'center'; ctx.fillText(`${zn.mob}×${zn.n}`, px, py - zn.r * 16 - 4);
     }
   }
   if (MS.mouse) {
@@ -1014,6 +1047,17 @@ function msDrawZones(g, toScr) {
     g.fillStyle = '#e3b341'; g.font = `${Math.max(10, MS.vp.z * 1.4)}px monospace`; g.textAlign = 'center';
     g.fillText('★', px, py + 4);
     if (MS.vp.z >= 3) { g.font = '10px monospace'; g.fillText(b.mob, px, py + 16); }
+  }
+  // studio-authored zones ring gold (pending ones dashed until saved)
+  for (const [id, zn] of Object.entries({ ...(state.spawns.custom || {}), ...MS.pending.spawns })) {
+    if (!zn || zn.plane) continue;
+    const [px, py] = toScr(zn.x, zn.y);
+    const r = Math.max(4, zn.r * MS.vp.z);
+    g.setLineDash(MS.pending.spawns[id] ? [5, 4] : []);
+    g.strokeStyle = '#e3b341'; g.beginPath(); g.arc(px, py, r, 0, 7); g.stroke();
+    g.setLineDash([]);
+    g.fillStyle = 'rgba(227,179,65,0.10)'; g.fill();
+    if (MS.vp.z >= 3) { g.fillStyle = '#ffe27a'; g.font = '10px monospace'; g.textAlign = 'center'; g.fillText(`${zn.mob}×${zn.n}`, px, py - r - 3); }
   }
 }
 function msDrawLevel(g, cv, lv) {

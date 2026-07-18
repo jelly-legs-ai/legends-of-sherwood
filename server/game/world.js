@@ -104,12 +104,21 @@ export class World {
 
   // ---------------- spawning ----------------
   spawnMobs() {
-    for (const z of SPAWNS) for (let i = 0; i < z.n; i++) {
-      // wolf packs run behind one Alpha: the zone's first spawn takes the rank
-      const alpha = i === 0 && MOBS[`alpha_${z.mob}`] ? `alpha_${z.mob}` : z.mob;
-      this.spawnMob(alpha, z, PLANE.OVERWORLD);
-    }
+    for (const z of SPAWNS) this.spawnZone(z, PLANE.OVERWORLD);
     for (const b of BOSS_SPAWNS) this.spawnMob(b.mob, { x: b.x, y: b.y, r: 2, n: 1 }, PLANE.OVERWORLD);
+    // Map Studio spawn zones: admin-authored packs, overworld or custom levels
+    for (const z of Object.values(this.mapOverrides?.spawns || {})) {
+      if (z && MOBS[z.mob]) this.spawnZone(z, z.plane ?? PLANE.OVERWORLD);
+    }
+  }
+  spawnZone(z, plane) {
+    const wolfPack = !!MOBS[`alpha_${z.mob}`];
+    for (let i = 0; i < z.n; i++) {
+      // wolf packs run behind one Alpha: the zone's first spawn takes the rank
+      this.spawnMob(i === 0 && wolfPack ? `alpha_${z.mob}` : z.mob, z, plane);
+    }
+    // and a harmless pup gambols along with every pack
+    if (wolfPack && MOBS[`${z.mob}_puppy`]) this.spawnMob(`${z.mob}_puppy`, z, plane);
   }
   spawnMob(type, zone, plane, lvlScale = 1) {
     const def = MOBS[type];
