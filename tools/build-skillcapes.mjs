@@ -20,24 +20,27 @@ import { decode, encode, makeImage, blit, blend, crop, downscale } from './png.m
 
 const LPC = path.resolve('client/assets/lpc');
 const MANIFEST = path.join(LPC, 'manifest.json');
-const ICONS = decode(fs.readFileSync(path.resolve('client/assets/icons/freebies_skills.png')));
+// Skill emblems = the SAME icons the skills tab shows (each skill's representative
+// item icon), rendered to a 5x5 grid of 40px cells by tools/gen-skillcape-emblems
+// (see the crest cells below, in the SKILLCAPES order).
+const EMBLEMS = decode(fs.readFileSync(path.resolve('client/assets/icons/skillcape_emblems.png')));
+const EM_CELL = 40, EM_COLS = 5;
 const FS = 64;
 const BASES = [0, 4, 8, 12, 16];    // LPC anim blocks; within each +0 N, +1 W, +2 S, +3 E
 const HURT = 20;
 const ANCHOR_Y = 20, BOT_Y = 60, SWEEP = 20;   // side-profile shear (matches fix-capes)
 const TRIM = [232, 194, 64];        // gold trim colour
 
-// skill -> [cape colour, emblem cell [col,row] in the skills icon sheet (32px)]
+// skill -> cape colour. The emblem is the skill's own tab icon: cell N of
+// skillcape_emblems.png, in THIS declaration order (0-indexed, row-major 5x5).
 const SKILLCAPES = {
-  attack: ['#a51e26', [6, 3]], strength: ['#c0592a', [3, 5]], defence: ['#4d6b96', [5, 3]],
-  constitution: ['#d04545', [0, 3]], ranged: ['#2b6b30', [7, 3]], magic: ['#3560d8', [3, 2]],
-  prayer: ['#e6d38a', [1, 6]], summoning: ['#2aa090', [6, 0]],
-  mining: ['#8a8f96', [3, 1]], fishing: ['#3aa6c8', [0, 2]], woodcutting: ['#43a043', [6, 1]],
-  farming: ['#8fae3a', [5, 1]], hunter: ['#9a6a3a', [4, 1]], archaeology: ['#b08a4a', [7, 1]],
-  smithing: ['#6f6f78', [4, 0]], cooking: ['#c24a2a', [0, 1]], crafting: ['#a05fb0', [7, 2]],
-  firemaking: ['#e08030', [5, 0]], fletching: ['#a89a6a', [1, 7]], runecrafting: ['#6a3aa0', [2, 2]],
-  herblore: ['#3a9a4a', [3, 6]], construction: ['#8a5a2a', [3, 3]],
-  agility: ['#5ab0d0', [2, 6]], thieving: ['#40404e', [0, 6]], dungeoneering: ['#b8863a', [0, 0]],
+  attack: '#a51e26', strength: '#c0592a', defence: '#4d6b96', constitution: '#d04545',
+  ranged: '#2b6b30', magic: '#3560d8', prayer: '#e6d38a', summoning: '#2aa090',
+  mining: '#8a8f96', fishing: '#3aa6c8', woodcutting: '#43a043', farming: '#8fae3a',
+  hunter: '#9a6a3a', archaeology: '#b08a4a', smithing: '#6f6f78', cooking: '#c24a2a',
+  crafting: '#a05fb0', firemaking: '#e08030', fletching: '#a89a6a', runecrafting: '#6a3aa0',
+  herblore: '#3a9a4a', construction: '#8a5a2a', agility: '#5ab0d0', thieving: '#40404e',
+  dungeoneering: '#b8863a',
 };
 
 const src = decode(fs.readFileSync(path.join(LPC, 'cape_normal_white.png')));
@@ -66,8 +69,8 @@ function tintTrim([r, g, b]) {
 
 // Stamp the skill emblem at the centre-back of each SOUTH drape frame, tracked to
 // that frame's opaque centroid so the crest rides the cape as it sways.
-function crest(img, cell) {
-  const em = downscale(crop(ICONS, cell[0] * 32, cell[1] * 32, 32, 32), 2);   // 16px emblem
+function crest(img, idx) {
+  const em = downscale(crop(EMBLEMS, (idx % EM_COLS) * EM_CELL, Math.floor(idx / EM_COLS) * EM_CELL, EM_CELL, EM_CELL), 2);   // 20px emblem
   for (const base of BASES) {
     const sy = (base + 2) * FS;
     for (let c = 0; c < img.w / FS; c++) {
@@ -121,9 +124,9 @@ const reg = (cat, key, color, file) => {
 };
 
 let n = 0;
-for (const [skill, [color, cell]] of Object.entries(SKILLCAPES)) {
+for (const [skill, color] of Object.entries(SKILLCAPES)) {
   const coloured = tintTrim(hex(color));
-  crest(coloured, cell);
+  crest(coloured, n);                       // emblem cell n, matching the sheet's order
   const key = `cape_skill_${skill}`, col = 'gold';
   bake(coloured, `${key}_behind.png`, `${key}_front.png`);
   reg('behind', key, col, `${key}_behind.png`);
