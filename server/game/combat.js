@@ -62,6 +62,13 @@ function attackRange(p, style) {
   return 7.5;                                     // shortbows
 }
 
+// A fleeing or home-leashing target can otherwise drag its attacker any
+// distance across the map (straight into whatever camp it came from). The
+// chase anchor re-plants every time the player is genuinely in range, so a
+// drifting toe-to-toe fight never trips it — only an unbroken cross-country
+// pursuit does.
+const CHASE_MAX = 16;
+
 export function tickCombat(world, p, now) {
   if (!p.target || p.hp <= 0) return;
   const t = world.entities.get(p.target);
@@ -69,14 +76,24 @@ export function tickCombat(world, p, now) {
   // PvP legality
   if (t.kind === 'player' && !pvpAllowed(world, p, t)) { p.target = null; return; }
   if (t.kind === 'npc') { p.target = null; return; }
+  // the anchor is wherever the fight last was: the target's spot on acquire,
+  // re-planted every in-range tick. Walking UP to a stationary mob never trips
+  // it — only the TARGET moving CHASE_MAX away from the joined fight does.
+  if (p._chaseTid !== p.target) { p._chaseTid = p.target; p._chaseFrom = { x: t.x, y: t.y }; }
   const style = p.combatStyle();
   const d = Math.hypot(t.x - p.x, t.y - p.y);
   if (d > attackRange(p, style)) {
+    if (p._chaseFrom && Math.hypot(t.x - p._chaseFrom.x, t.y - p._chaseFrom.y) > CHASE_MAX) {
+      p.target = null; p.path = null;
+      world.send(p, { t: MSG.MSGBOX, m: 'You give up the chase.' });
+      return;
+    }
     // walk toward target only while genuinely out of range
     if (!p.vel || now - p.velT > 400) { p.path = [{ x: t.x | 0, y: t.y | 0 }]; }
     return;
   }
   p.path = null;
+  p._chaseFrom = { x: t.x, y: t.y };
   const speed = p.weaponSpeed() * (p.effects.haste && p.effects.haste > now ? 0.7 : 1);
   if (now - (p.lastAttack || 0) < speed) return;
   p.lastAttack = now;
