@@ -610,15 +610,12 @@ export class World {
     else if (t) {
       // always square up to the target — mobs face whoever they're fighting
       m.dir = Math.abs(t.x - m.x) > Math.abs(t.y - m.y) ? (t.x > m.x ? 3 : 1) : (t.y > m.y ? 2 : 0);
+      // ranged/caster mobs strike from up to 6 tiles, melee must close in.
+      // Either way: chase when the quarry steps out of range, hold and attack
+      // the instant it's within — never retreat once a player is in reach.
       const range = def.reach || (def.style === 'melee' ? 1.5 : 6);
       const d = Math.hypot(t.x - m.x, t.y - m.y);
       if (d > range) this.moveEntity(m, t.x, t.y, def.speed || 2.2, dt), m.anim = 'walk';
-      else if (def.style !== 'melee' && d < 2.2) {
-        // casters give ground: back off toward casting distance, still firing
-        const bx = m.x + (m.x - t.x) / (d || 1) * 3, by = m.y + (m.y - t.y) / (d || 1) * 3;
-        if (!this.blockedFor(m, bx | 0, by | 0)) { this.moveEntity(m, bx, by, (def.speed || 2.2) * 0.85, dt); m.anim = 'walk'; }
-        mobAttack(this, m, t, now);
-      }
       else { m.anim = 'idle'; mobAttack(this, m, t, now); }
       return;
     }

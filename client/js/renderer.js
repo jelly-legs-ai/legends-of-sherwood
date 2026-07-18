@@ -985,6 +985,14 @@ function chunkCanvas(plane, cx, cy) {
 // The Map Studio re-renders through this module after live edits: dropping the
 // baked chunks forces the next frame to rebake against the new overrides.
 export function flushChunkCache() { chunkCache.clear(); }
+// Re-bake just the chunk containing (x,y) plus its ring — used by the Map
+// Studio to show a single painted tile's real terrain without clearing all
+// bakes. The ring covers cliff skirts and wall runs that spill across seams.
+export function flushChunkAt(plane, x, y) {
+  const cx = Math.floor(x / CH), cy = Math.floor(y / CH);
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++)
+    chunkCache.delete(plane + ':' + (cx + dx) + ',' + (cy + dy));
+}
 
 export class Renderer {
   constructor(canvas) {

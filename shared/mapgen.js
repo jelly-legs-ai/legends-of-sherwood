@@ -29,6 +29,24 @@ export function applyMapOverrides(ov) {
   }
   _tiles = _nodes = _footprint = null;   // recompute the cached world
 }
+// Map Studio live preview: after the studio writes MAP_OVERRIDES.tiles for one
+// tile, re-derive just that cell of the cached world so the rendered iso view
+// updates instantly — no full computeWorld() rebuild per brush stroke.
+export function syncTile(x, y) {
+  if (!_tiles || x < 0 || y < 0 || x >= W || y >= H) return;
+  const ov = MAP_OVERRIDES.tiles[x + ',' + y];
+  _tiles[y * W + x] = ov !== undefined ? ov : tileAt(x, y);
+}
+// Same idea for a placed/removed node: re-derive just this cell of the node
+// map so studio-placed props and deletions show in the rendered view at once.
+export function syncNode(x, y) {
+  if (!_nodes) return;
+  const k = x + ',' + y;
+  const ov = MAP_OVERRIDES.nodes[k];
+  if (ov === null) _nodes.delete(k);
+  else if (ov !== undefined) _nodes.set(k, ov);
+  else { const n = scatterNodeAt(x, y); if (n) _nodes.set(k, n); else _nodes.delete(k); }
+}
 export function customLevel(slot) {
   for (const lv of Object.values(MAP_OVERRIDES.levels)) if (lv.slot === slot) return lv;
   return null;

@@ -8,12 +8,12 @@ import { MOBS } from '/shared/data/mobs.js';
 import { PETS } from '/shared/data/pets.js';
 import { SPELLS, PRAYERS, NODES } from '/shared/data/skills.js';
 import { TILE } from '/shared/constants.js';
-import { computeWorld, worldTile, heightAt, regionAt, applyMapOverrides, MAP_OVERRIDES, WORLD_W, WORLD_H } from '/shared/mapgen.js';
+import { computeWorld, worldTile, heightAt, regionAt, applyMapOverrides, MAP_OVERRIDES, WORLD_W, WORLD_H, syncTile, syncNode } from '/shared/mapgen.js';
 import { SPAWNS, BOSS_SPAWNS, TOWNS } from '/shared/data/world.js';
 import { loadMedia, MEDIA, drawCreature, drawFrame, drawFxSprite, drawFxBand, customLayerPos } from './media.js';
 import { loadManifest, composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS } from './sprites.js';
 import { itemIcon } from './icons.js';
-import { Renderer, flushChunkCache } from './renderer.js';
+import { Renderer, flushChunkCache, flushChunkAt } from './renderer.js';
 import { Fx } from './fx.js';
 
 const $ = (s) => document.querySelector(s);
@@ -687,9 +687,110 @@ const MS = {
   vp: { x: 600, y: 420, z: 4 }, tool: 'pan', terrain: TILE.GRASS, elevDelta: +1,
   node: 'tree', brush: 1, level: null, mobMode: false, zoneSel: null,
   pending: { tiles: {}, elev: {}, nodes: {}, levels: {}, spawns: {} }, dirty: 0,
+  previewBackup: { tiles: {}, elev: {}, nodes: {} },   // pre-edit override values, for Discard
   base: null, baseRows: 0, drag: null, mouse: null, thumbs: new Map(), inited: false,
-  view: '2d', isoR: null, isoFx: null, isoEnts: new Map(), isoDep: new Set(),
+  view: '2d', isoR: null, isoFx: null, isoEnts: new Map(), isoDep: new Set(), sel: null, hover: null,
 };
+// Live rendered preview: as the brush paints (terrain, elevation, models), poke
+// the edit straight into the override layer + cached world and re-bake only the
+// touched chunk, so the iso "Rendered view" shows the true result immediately —
+// not just a highlight. Discard restores the snapshotted originals.
+function msPreviewPoke(x, y) {
+  const k = msKey(x, y);
+  if (!(k in MS.previewBackup.tiles)) MS.previewBackup.tiles[k] = k in MAP_OVERRIDES.tiles ? MAP_OVERRIDES.tiles[k] : undefined;
+  if (!(k in MS.previewBackup.elev)) MS.previewBackup.elev[k] = k in MAP_OVERRIDES.elev ? MAP_OVERRIDES.elev[k] : undefined;
+  if (!(k in MS.previewBackup.nodes)) MS.previewBackup.nodes[k] = k in MAP_OVERRIDES.nodes ? MAP_OVERRIDES.nodes[k] : undefined;
+  if (MS.pending.tiles[k] !== undefined) { MAP_OVERRIDES.tiles[k] = MS.pending.tiles[k]; syncTile(x, y); }
+  if (MS.pending.elev[k] !== undefined) MAP_OVERRIDES.elev[k] = MS.pending.elev[k];
+  if (MS.pending.nodes[k] !== undefined) { MAP_OVERRIDES.nodes[k] = MS.pending.nodes[k]; syncNode(x, y); }
+  flushChunkAt(0, x, y);
+}
+function msRevertPreview() {
+  for (const store of ['tiles', 'elev', 'nodes']) {
+    for (const k of Object.keys(MS.previewBackup[store])) {
+      const v = MS.previewBackup[store][k];
+      if (v === undefined) delete MAP_OVERRIDES[store][k]; else MAP_OVERRIDES[store][k] = v;
+    }
+  }
+  MS.previewBackup = { tiles: {}, elev: {}, nodes: {} };
+  applyMapOverrides({});   // null the cached world so procedural tiles/nodes restore cleanly
+  flushChunkCache();
+}
+// Selector tool: what asset sits at a tile? Checks the plane the studio is
+// looking at — a placed node/prop/tree/station, or a spawn zone covering it.
+function msAssetAt(x, y) {
+  const lv = MS.level && !MS.gateArm && msLevels()[MS.level];
+  if (lv) {
+    const cur = MS.pending.levels[MS.level] || lv;
+    const t = cur.nodes?.[msKey(x, y)];
+    return t ? { kind: 'levelnode', x, y, type: t, level: MS.level } : null;
+  }
+  const n = msNodeAt(x, y);
+  if (n) return { kind: 'node', x, y, type: n };
+  const zones = { ...(state.spawns?.custom || {}), ...MS.pending.spawns };
+  let best = null, bd = 1e9;
+  for (const [id, z] of Object.entries(zones)) {
+    if (!z || (z.plane | 0) !== 0) continue;
+    const d = Math.hypot(z.x - x, z.y - y);
+    if (d <= Math.max(1.5, z.r) && d < bd) { bd = d; best = { kind: 'spawn', id, zone: z, x: z.x, y: z.y }; }
+  }
+  return best;
+}
+// Screen-space centre of a tile in whichever view is active (iso or flat).
+function msTileToScreen(cv, tx, ty) {
+  if (MS.view === 'iso' && (!MS.level || MS.gateArm) && MS.isoR) return MS.isoR.screenOf(0, tx + 0.5, ty + 0.5);
+  const z = MS.vp.z, sx = MS.vp.x - cv.width / 2 / z, sy = MS.vp.y - cv.height / 2 / z;
+  return [(tx + 0.5 - sx) * z, (ty + 0.5 - sy) * z];
+}
+// Hover (cyan) + selection (gold) outlines drawn over any view.
+function msDrawSelection(g, cv) {
+  const iso = MS.view === 'iso' && (!MS.level || MS.gateArm);
+  const ring = (a, color, lw) => {
+    if (!a) return;
+    const [cx, cy] = msTileToScreen(cv, a.x, a.y);
+    g.strokeStyle = color; g.lineWidth = lw;
+    if (a.kind === 'spawn') { g.beginPath(); g.arc(cx, cy, Math.max(8, a.zone.r * (iso ? 20 : MS.vp.z)), 0, 7); g.stroke(); return; }
+    if (iso) { g.beginPath(); g.moveTo(cx, cy - 18); g.lineTo(cx + 34, cy); g.lineTo(cx, cy + 18); g.lineTo(cx - 34, cy); g.closePath(); g.stroke(); }
+    else { const z = MS.vp.z; g.strokeRect(cx - z / 2, cy - z / 2, z, z); }
+  };
+  ring(MS.hover, '#7cd6ff', 2);
+  ring(MS.sel, '#ffd75e', 2.5);
+}
+function msAssetName(type) {
+  if (type.startsWith('prop:')) { const [, pack, i] = type.split(':'); return `Prop · ${pack} #${i}`; }
+  return NODES[type]?.name || MEDIA.trees?.[type]?.name || type.replace(/_/g, ' ');
+}
+function msSelCard(a) {
+  if (a.kind === 'spawn') {
+    const d = MOBS[a.zone.mob];
+    return `<h3>${d?.name || a.zone.mob} pack</h3>
+      <div style="font-size:11.5px">zone @ ${a.zone.x},${a.zone.y} · radius ${a.zone.r} · count ${a.zone.n}${a.zone.plane ? ` · plane ${a.zone.plane}` : ''}</div>
+      ${d ? `<div style="font-size:11px;color:var(--dim)">level ${d.lvl} · ${d.style}${d.aggro ? ' · aggro' : ''}</div>` : ''}
+      <div class="ms-row" style="margin-top:8px"><button class="act" id="ms-sel-del" style="flex:1">🗑 Delete zone</button></div>`;
+  }
+  return `<h3>${msAssetName(a.type)}</h3>
+    <div style="font-size:11.5px">${a.type} @ ${a.x},${a.y}${a.level ? ` · in ${a.level}` : ''}</div>
+    <div style="font-size:11px;color:var(--dim)">${NODES[a.type]?.skill ? `${NODES[a.type].skill} node` : a.type.startsWith('prop:') ? 'decorative prop' : 'world model'}</div>
+    <div class="ms-row" style="margin-top:8px"><button class="act" id="ms-sel-del" style="flex:1">🗑 Delete</button></div>`;
+}
+function msBindSelCard(side, a) {
+  const del = side.querySelector('#ms-sel-del');
+  if (!del) return;
+  del.onclick = () => {
+    if (a.kind === 'spawn') {
+      MS.pending.spawns[a.id] = null;           // stop it respawning; ring disappears
+    } else if (a.kind === 'levelnode') {
+      const lv = msLevels()[a.level] || {};
+      const cur = MS.pending.levels[a.level] || { ...lv, tiles: { ...(lv.tiles || {}) }, nodes: { ...(lv.nodes || {}) } };
+      cur.nodes = { ...(cur.nodes || {}) }; delete cur.nodes[msKey(a.x, a.y)];
+      MS.pending.levels[a.level] = cur;
+    } else {
+      MS.pending.nodes[msKey(a.x, a.y)] = null; // overworld node → removed
+      msPreviewPoke(a.x, a.y);                  // vanishes from the rendered view at once
+    }
+    MS.sel = null; MS.hover = null; msSide();
+  };
+}
 function msPendingCount() { return Object.keys(MS.pending.tiles).length + Object.keys(MS.pending.elev).length + Object.keys(MS.pending.nodes).length + Object.keys(MS.pending.levels).length + Object.keys(MS.pending.spawns || {}).length; }
 function msOnServerOverrides(ov) {
   if (MS.inited) return;                       // first load only: apply saved edits
@@ -743,7 +844,7 @@ function renderMapStudio() {
     <span style="color:var(--dim);font-size:11px;margin-left:10px">WASD pan · wheel/± zoom · drag to use tool</span></h2>
   <div id="ms">
     <div id="ms-tools">
-      ${[['pan', '✋', 'Pan / inspect'], ['terrain', '🖌', 'Paint terrain'], ['elev', '⛰', 'Raise/lower ground'], ['node', '🌳', 'Place model'], ['erase', '⌫', 'Erase model'], ['mob', '👹', 'Mob mode'], ['view', '🎬', 'Rendered view — edit while seeing the world as the game draws it']].map(([t, ic, tip]) => `<button data-tool="${t}" title="${tip}" class="${(t === 'mob' ? MS.mobMode : t === 'view' ? MS.view === 'iso' : MS.tool === t && !MS.mobMode) ? 'on' : ''}">${ic}</button>`).join('')}
+      ${[['pan', '✋', 'Pan / inspect'], ['select', '🎯', 'Select — hover to highlight any asset, click for options'], ['terrain', '🖌', 'Paint terrain'], ['elev', '⛰', 'Raise/lower ground'], ['node', '🌳', 'Place model'], ['erase', '⌫', 'Erase model'], ['mob', '👹', 'Mob mode'], ['view', '🎬', 'Rendered view — edit while seeing the world as the game draws it']].map(([t, ic, tip]) => `<button data-tool="${t}" title="${tip}" class="${(t === 'mob' ? MS.mobMode : t === 'view' ? MS.view === 'iso' : MS.tool === t && !MS.mobMode) ? 'on' : ''}">${ic}</button>`).join('')}
       <div style="flex:1"></div>
       <button id="ms-zin" title="zoom in">＋</button><button id="ms-zout" title="zoom out">－</button>
     </div>
@@ -756,7 +857,7 @@ function renderMapStudio() {
   for (const b of main.querySelectorAll('[data-tool]')) b.onclick = () => {
     if (b.dataset.tool === 'mob') { MS.mobMode = !MS.mobMode; if (MS.mobMode) send({ t: 'spawnzones' }); }
     else if (b.dataset.tool === 'view') { MS.view = MS.view === 'iso' ? '2d' : 'iso'; flushChunkCache(); }
-    else { MS.tool = b.dataset.tool; MS.mobMode = false; }
+    else { MS.tool = b.dataset.tool; MS.mobMode = false; MS.hover = null; if (b.dataset.tool !== 'select') MS.sel = null; }
     renderMapStudio();
   };
   $('#ms-zin').onclick = () => msZoom(1.5); $('#ms-zout').onclick = () => msZoom(1 / 1.5);
@@ -770,6 +871,14 @@ function msSide() {
   const side = $('#ms-side');
   if (!side) return;
   const levels = msLevels();
+  if (MS.tool === 'select') {
+    const a = MS.sel;
+    side.innerHTML = `<h3>Selector</h3>
+      <div style="font-size:11.5px;color:var(--dim)">Hover any asset to highlight it; click to select. Targets every node, prop, tree, station and spawn zone in the world${MS.level ? ' — and this level' : ''}.</div>
+      ${a ? msSelCard(a) : '<div style="margin-top:12px;color:var(--dim)"><i>nothing selected — click an asset on the map</i></div>'}`;
+    if (a) msBindSelCard(side, a);
+    return;
+  }
   if (MS.mobMode) {
     const z = MS.zoneSel;
     const def = z && MOBS[z.mob];
@@ -832,7 +941,7 @@ function msSide() {
     <button class="act ${MS.elevDelta === 0 ? 'on' : ''}" data-ed="0" style="flex:1">flatten 0</button></div>
     ${Object.entries(cat).map(([name, list]) => `<h3>${name}</h3><div class="ms-cat">${list.map(k => `<div class="ms-cell ${MS.node === k ? 'on' : ''}" draggable="true" data-node="${k}" title="${NODES[k]?.name || k}"></div>`).join('')}</div>`).join('')}`;
   $('#ms-save').onclick = msSave;
-  $('#ms-discard').onclick = () => { MS.pending = { tiles: {}, elev: {}, nodes: {}, levels: {}, spawns: {} }; MS.base = null; MS.baseRows = 0; renderMapStudio(); };
+  $('#ms-discard').onclick = () => { msRevertPreview(); MS.pending = { tiles: {}, elev: {}, nodes: {}, levels: {}, spawns: {} }; MS.base = null; MS.baseRows = 0; renderMapStudio(); };
   $('#ms-level').onchange = (e) => {
     MS.level = e.target.value || null; MS.gateArm = false;
     // snap the viewport onto the picked level so it never opens off-screen
@@ -868,6 +977,7 @@ function msSave() {
   applyMapOverrides(MS.pending);               // local hot-apply (recomputes world)
   flushChunkCache();                           // the rendered view rebakes next frame
   MS.pending = { tiles: {}, elev: {}, nodes: {}, levels: {}, spawns: {} };
+  MS.previewBackup = { tiles: {}, elev: {}, nodes: {} };  // edits are permanent now — no revert
   setTimeout(() => send({ t: 'spawnzones' }), 300);   // refresh zone list + census
   msSide();
 }
@@ -900,13 +1010,13 @@ function msApplyTool(cv, mx, my) {
     }
     if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H) continue;
     const k = msKey(x, y);
-    if (MS.tool === 'terrain') { MS.pending.tiles[k] = MS.terrain; msPatchBase(x, y); }
+    if (MS.tool === 'terrain') { MS.pending.tiles[k] = MS.terrain; msPatchBase(x, y); msPreviewPoke(x, y); }
     else if (MS.tool === 'elev') {
       MS.pending.elev[k] = MS.elevDelta === 0 ? 0 : Math.max(0, Math.min(8, msElevAt(x, y) + MS.elevDelta));
-      msPatchBase(x, y);
+      msPatchBase(x, y); msPreviewPoke(x, y);
     }
-    else if (MS.tool === 'node' && !MS.drag?.painted?.has(k)) { MS.pending.nodes[k] = MS.node; (MS.drag?.painted || new Set()).add?.(k); }
-    else if (MS.tool === 'erase') MS.pending.nodes[k] = null;
+    else if (MS.tool === 'node' && !MS.drag?.painted?.has(k)) { MS.pending.nodes[k] = MS.node; (MS.drag?.painted || new Set()).add?.(k); msPreviewPoke(x, y); }
+    else if (MS.tool === 'erase') { MS.pending.nodes[k] = null; msPreviewPoke(x, y); }
   }
 }
 function msBindInput(cv) {
@@ -939,6 +1049,10 @@ function msBindInput(cv) {
       MS.gateArm = false;
       msSide(); return;
     }
+    if (MS.tool === 'select') {   // pick the asset under the cursor, show its options
+      const [tx, ty] = msScreenToTile(cv, mx, my);
+      MS.sel = msAssetAt(tx, ty); msSide(); return;
+    }
     MS.drag = { mx, my, vx: MS.vp.x, vy: MS.vp.y, painted: new Set() };
     if (MS.tool !== 'pan') msApplyTool(cv, mx, my);
   };
@@ -946,6 +1060,7 @@ function msBindInput(cv) {
     const r = cv.getBoundingClientRect();
     const mx = e.clientX - r.left, my = e.clientY - r.top;
     MS.mouse = [mx, my];
+    if (MS.tool === 'select' && !MS.drag) { const [tx, ty] = msScreenToTile(cv, mx, my); MS.hover = msAssetAt(tx, ty); }
     if (!MS.drag) return;
     if (MS.tool === 'pan' || MS.mobMode) {
       const dmx = mx - MS.drag.mx, dmy = my - MS.drag.my;
@@ -963,6 +1078,7 @@ function msBindInput(cv) {
     const r = cv.getBoundingClientRect();
     const [tx, ty] = msScreenToTile(cv, e.clientX - r.left, e.clientY - r.top);
     MS.pending.nodes[msKey(tx, ty)] = type;
+    if (!MS.level) msPreviewPoke(tx, ty);
     msSide();
   };
   window.onkeydown = (e) => {
@@ -989,6 +1105,7 @@ function msLoop(cv) {
   if (lv) msDrawLevel(g, cv, lv);
   else if (MS.view === 'iso') msDrawIso(cv);
   else msDrawWorld(g, cv);
+  if (MS.tool === 'select') msDrawSelection(g, cv);
   raf = requestAnimationFrame(() => msLoop(cv));
 }
 // Rendered editing view: the world drawn by the ACTUAL game renderer (chunk
