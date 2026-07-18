@@ -74,6 +74,55 @@ function render() {
   if (view === 'events') return renderEvents();
   if (view === 'map') return renderMapStudio();
   if (view === 'comp') return renderComp();
+  if (view === 'drops') return renderDrops();
+}
+
+// ---------------- drop-table browser ----------------
+// Every place items enter the world — mob loot, boss loot, quest rewards, and
+// crafting recipes — categorized and searchable, from the live server tables
+// (so studio-deployed weapons show up alongside the built-ins).
+const dropView = { q: '', tab: 'mobs' };
+function renderDrops() {
+  const dt = state.dropTables;
+  if (!dt) { main.innerHTML = '<h2>Drop tables</h2><p style="color:var(--dim)">loading the world\'s loot tables…</p>'; send({ t: 'dropTables' }); return; }
+  const tabs = [['mobs', `Mobs (${dt.mobs.length})`], ['bosses', `Bosses (${dt.bosses.length})`], ['quests', `Quests (${dt.quests.length})`], ['recipes', `Recipes (${dt.recipes.length})`]];
+  const q = dropView.q.trim().toLowerCase();
+  const match = (s) => !q || (s || '').toLowerCase().includes(q);
+  const pct = (c) => (c >= 1 ? '100%' : (c * 100 < 1 ? (c * 100).toFixed(2) : (c * 100).toFixed(1)) + '%');
+  const rar = (c) => c >= 0.5 ? '#9fe08a' : c >= 0.1 ? '#e8d27a' : c >= 0.02 ? '#e8a05a' : '#e0748a';   // common→rare
+  let bodyHtml = '';
+  if (dropView.tab === 'mobs' || dropView.tab === 'bosses') {
+    // a mob matches if its name OR any dropped item name matches the query
+    const rows = dt[dropView.tab].filter(m => match(m.name) || m.drops.some(d => match(d.name) || match(d.item)));
+    bodyHtml = rows.length ? rows.map(m => `<div style="border:1px solid var(--trim);border-radius:7px;padding:8px 10px;margin-bottom:7px;background:#181f1a">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+          <b style="color:var(--gold)">${m.name}</b><span style="font-size:11px;color:var(--dim)">lv ${m.lvl} · <code style="color:var(--dim)">${m.id}</code></span></div>
+        <table style="width:100%;margin-top:5px;font-size:12px"><tr style="color:var(--dim)"><th style="text-align:left">item</th><th style="text-align:right">qty</th><th style="text-align:right">rate</th></tr>
+        ${m.drops.length ? m.drops.map(d => `<tr><td>${match(d.name) && q ? `<mark style="background:#4a5a2a;color:#fff">${d.name}</mark>` : d.name} <code style="color:#5f6a5f;font-size:10px">${d.item}</code></td><td style="text-align:right">${Array.isArray(d.qty) ? d.qty.join('–') : d.qty}</td><td style="text-align:right;color:${rar(d.chance)}">${pct(d.chance)}</td></tr>`).join('') : '<tr><td colspan=3 style="color:var(--dim)"><i>no drops</i></td></tr>'}
+        </table></div>`).join('') : '<p style="color:var(--dim)">no matches</p>';
+  } else if (dropView.tab === 'quests') {
+    const rows = dt.quests.filter(qq => match(qq.name) || qq.items.some(i => match(i.name)));
+    bodyHtml = rows.length ? rows.map(qq => `<div style="border:1px solid var(--trim);border-radius:7px;padding:8px 10px;margin-bottom:7px;background:#181f1a">
+        <b style="color:var(--gold)">${qq.name}</b>
+        <div style="font-size:12px;margin-top:4px">${qq.items.map(i => `${i.qty}× ${i.name} <code style="color:#5f6a5f;font-size:10px">${i.item}</code>`).join(' · ') || '<span style="color:var(--dim)">no item rewards</span>'}</div>
+        ${(qq.coins || qq.shillings) ? `<div style="font-size:11px;color:var(--dim);margin-top:2px">${qq.coins ? qq.coins + ' coins' : ''}${qq.coins && qq.shillings ? ' · ' : ''}${qq.shillings ? qq.shillings + ' $LoS' : ''}</div>` : ''}</div>`).join('') : '<p style="color:var(--dim)">no matches</p>';
+  } else {
+    const rows = dt.recipes.filter(r => match(r.name) || match(r.output));
+    bodyHtml = `<table style="width:100%;font-size:12px"><tr style="color:var(--dim)"><th style="text-align:left">makes</th><th style="text-align:left">skill</th><th style="text-align:right">lvl</th><th style="text-align:left">station</th><th style="text-align:left">materials</th></tr>
+      ${rows.length ? rows.map(r => `<tr><td><b>${r.name}</b> <code style="color:#5f6a5f;font-size:10px">${r.output}</code></td><td>${r.skill}</td><td style="text-align:right">${r.lvl}</td><td>${r.station || 'anywhere'}</td><td>${Object.entries(r.inputs || {}).filter(([, q2]) => q2 > 0).map(([it, q2]) => `${q2}× ${it}`).join(', ')}</td></tr>`).join('') : '<tr><td colspan=5 style="color:var(--dim)">no matches</td></tr>'}</table>`;
+  }
+  main.innerHTML = `<h2>Drop tables &amp; item sources</h2>
+    <p style="color:var(--dim);margin-bottom:10px">Every source that grants an item — read live from the server, so studio-deployed gear appears here too. Search by monster, reward, or recipe.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+      ${tabs.map(([k, label]) => `<button class="act ${dropView.tab === k ? 'on' : ''}" data-dtab="${k}">${label}</button>`).join('')}
+      <input id="drop-q" placeholder="search item / mob / recipe…" value="${dropView.q.replace(/"/g, '&quot;')}" style="flex:1;min-width:180px;margin-left:auto">
+      <button class="act" id="drop-refresh" title="reload live tables">↻</button>
+    </div>
+    <div>${bodyHtml}</div>`;
+  for (const b of main.querySelectorAll('[data-dtab]')) b.onclick = () => { dropView.tab = b.dataset.dtab; renderDrops(); };
+  main.querySelector('#drop-refresh').onclick = () => send({ t: 'dropTables' });
+  const qi = main.querySelector('#drop-q');
+  qi.oninput = () => { dropView.q = qi.value; renderDrops(); const f = main.querySelector('#drop-q'); if (f) { f.focus(); f.setSelectionRange(qi.value.length, qi.value.length); } };
 }
 
 function renderTreasury() {
