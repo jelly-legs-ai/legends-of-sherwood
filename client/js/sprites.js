@@ -307,8 +307,55 @@ function tintedMul(im, col) {
 }
 // Surface fx stamped over a garment's own pixels (source-atop respects alpha):
 // studs = riveted dots, scales = overlapping dragonhide crescents, runes =
-// stitched arcane glyphs. Deterministic per 64px cell so frames stay steady.
+// stitched glyphs. These are stamped PER 64px CELL — the pattern restarts at
+// every frame's origin, so it sits STILL on the garment as the wearer animates
+// (a fixed texture, not a crawling one). 'arcane' is the exception: its runic
+// shimmer is painted continuously across the whole sheet so it drifts over the
+// hide frame-to-frame — a deliberate living-magic animation on spellhide gear.
 const decoCache = new Map();
+function stampFx(g, fx, ox, oy, w, h) {
+  if (fx === 'studs') {
+    for (let y = 22; y < h; y += 5) {
+      const x0 = ((y / 5) | 0) % 2 ? 2 : 4;
+      for (let x = x0; x < w; x += 5) {
+        g.fillStyle = 'rgba(226,231,238,0.85)'; g.fillRect(ox + x, oy + y, 1.6, 1.6);
+        g.fillStyle = 'rgba(40,40,48,0.5)'; g.fillRect(ox + x + 0.8, oy + y + 1.2, 1.2, 0.8);
+      }
+    }
+  } else if (fx === 'scales') {
+    g.lineWidth = 1;
+    for (let y = 20; y < h; y += 4) {
+      const off = ((y / 4) | 0) % 2 ? 3 : 0;
+      for (let x = off; x < w; x += 6) {
+        g.strokeStyle = 'rgba(0,0,0,0.30)';
+        g.beginPath(); g.arc(ox + x + 3, oy + y, 3, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
+        g.strokeStyle = 'rgba(255,255,255,0.20)';
+        g.beginPath(); g.arc(ox + x + 3, oy + y - 1, 3, 0.25 * Math.PI, 0.75 * Math.PI); g.stroke();
+      }
+    }
+  } else if (fx === 'runes') {
+    g.strokeStyle = 'rgba(255,255,255,0.35)'; g.lineWidth = 1;
+    const GLYPH = [[0, 0, 0, 3], [0, 1, 2, 1], [0, 3, 2, 0], [2, 0, 2, 3]];
+    for (let y = 26; y < h; y += 9) for (let x = ((y / 9) | 0) % 2 ? 3 : 8; x < w; x += 11) {
+      const seg = GLYPH[((x * 7 + y * 13) >> 2) % GLYPH.length];
+      g.beginPath(); g.moveTo(ox + x + seg[0], oy + y + seg[1]); g.lineTo(ox + x + seg[2], oy + y + seg[3]); g.stroke();
+    }
+  } else if (fx === 'arcane') {
+    // luminous runic glyphs woven through the hide — bright cyan strokes with a
+    // violet glow node, read clearly against any dye so the shimmer stands out
+    const GLYPH = [[0, 0, 0, 3], [0, 1, 2, 1], [0, 3, 2, 0], [2, 0, 2, 3], [0, 0, 2, 2], [2, 0, 0, 2]];
+    g.lineWidth = 1.1; g.lineCap = 'round';
+    for (let y = 24; y < h; y += 8) for (let x = ((y / 8) | 0) % 2 ? 4 : 9; x < w; x += 10) {
+      const seg = GLYPH[((x * 7 + y * 13) >> 2) % GLYPH.length];
+      g.strokeStyle = 'rgba(120,190,255,0.45)'; g.lineWidth = 2.2;   // soft outer glow
+      g.beginPath(); g.moveTo(ox + x + seg[0], oy + y + seg[1]); g.lineTo(ox + x + seg[2], oy + y + seg[3]); g.stroke();
+      g.strokeStyle = 'rgba(200,240,255,0.9)'; g.lineWidth = 1;       // bright core
+      g.beginPath(); g.moveTo(ox + x + seg[0], oy + y + seg[1]); g.lineTo(ox + x + seg[2], oy + y + seg[3]); g.stroke();
+      g.fillStyle = 'rgba(224,190,255,0.85)'; g.fillRect(ox + x + seg[0] - 0.3, oy + y + seg[1] - 0.3, 1.6, 1.6);  // violet node
+    }
+    g.lineCap = 'butt';
+  }
+}
 function decorated(im, fx) {
   const key = (im.src || im.toDataURL?.().slice(0, 40) || 'c') + '|' + fx + '|' + im.width;
   let c = decoCache.get(key);
@@ -318,32 +365,8 @@ function decorated(im, fx) {
   const g = c.getContext('2d');
   g.drawImage(im, 0, 0);
   g.globalCompositeOperation = 'source-atop';
-  if (fx === 'studs') {
-    g.fillStyle = 'rgba(226,231,238,0.85)';
-    for (let y = 22; y < H2; y += 5) for (let x = ((y / 5) | 0) % 2 ? 2 : 4; x < W2; x += 5) {
-      g.fillRect(x, y, 1.6, 1.6);
-      g.fillStyle = 'rgba(40,40,48,0.5)'; g.fillRect(x + 0.8, y + 1.2, 1.2, 0.8);
-      g.fillStyle = 'rgba(226,231,238,0.85)';
-    }
-  } else if (fx === 'scales') {
-    g.lineWidth = 1;
-    for (let y = 20; y < H2; y += 4) {
-      const off = ((y / 4) | 0) % 2 ? 3 : 0;
-      for (let x = off; x < W2; x += 6) {
-        g.strokeStyle = 'rgba(0,0,0,0.30)';
-        g.beginPath(); g.arc(x + 3, y, 3, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
-        g.strokeStyle = 'rgba(255,255,255,0.20)';
-        g.beginPath(); g.arc(x + 3, y - 1, 3, 0.25 * Math.PI, 0.75 * Math.PI); g.stroke();
-      }
-    }
-  } else if (fx === 'runes') {
-    g.strokeStyle = 'rgba(255,255,255,0.35)'; g.lineWidth = 1;
-    const GLYPH = [[0, 0, 0, 3], [0, 1, 2, 1], [0, 3, 2, 0], [2, 0, 2, 3]];
-    for (let y = 26; y < H2; y += 9) for (let x = ((y / 9) | 0) % 2 ? 3 : 8; x < W2; x += 11) {
-      const seg = GLYPH[((x * 7 + y * 13) >> 2) % GLYPH.length];
-      g.beginPath(); g.moveTo(x + seg[0], y + seg[1]); g.lineTo(x + seg[2], y + seg[3]); g.stroke();
-    }
-  }
+  if (fx === 'arcane') stampFx(g, fx, 0, 0, W2, H2);              // one continuous field → drifts (animated)
+  else for (let cy = 0; cy < H2; cy += 64) for (let cx = 0; cx < W2; cx += 64) stampFx(g, fx, cx, cy, 64, 64);  // per-cell → fixed
   g.globalCompositeOperation = 'source-over';
   decoCache.set(key, c);
   return c;

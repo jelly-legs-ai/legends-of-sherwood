@@ -230,33 +230,38 @@ for (const L of LEATHERS) {
     vis: { layer: 'legs', sheet: 'pants', color: L.color, fx: L.fx } });
 }
 // ---------------------------------------------------------------------------
-// Premium ranger armour — the end-game kit an archer grinds for. A gold-trimmed
-// studded set, then the dragonhide line: dyed hide with an in-world glow and
-// vambraces that push ranged accuracy hard (the ranger's signature bonus).
-// Each set is coif + body + chaps + vambraces.
-// Dragonhide reads as SCALES in-world (fx pattern stitched over the hide);
-// the aethereal set adds a spectral aura on top of its glow.
+// Premium hybrid armour, each set coif + body + chaps + vambraces:
+//   • Sylvan-trimmed — a gold-trimmed studded ranger set (FIXED riveted studs).
+//   • Spellhide — the old dragonhide models, repurposed. Dragon leather woven
+//     through with living arcane runes (fx: 'arcane', a shimmer that drifts over
+//     the hide as the wearer moves). Spellhide is a crossover armour type: it
+//     gates on BOTH ranged AND magic levels and boosts both categories at once —
+//     the kit of a spellbow ranger who mixes archery with sorcery. The aethereal
+//     set adds a spectral aura on top of its glow.
 export const DHIDES = [
   { id: 'sylvan_trimmed', name: 'Sylvan-trimmed', lvl: 40, color: 'charcoal', glow: '#e8c84e', val: 3200, fx: 'studs' },
-  { id: 'blue_dragonhide', name: 'Blue dragonhide', lvl: 50, color: 'blue', glow: '#4aa0e0', val: 9000, hide: 'blue_dragon_leather', fx: 'scales' },
-  { id: 'green_dragonhide', name: 'Green dragonhide', lvl: 60, color: 'forest', glow: '#3fbf6a', val: 17000, hide: 'green_dragon_leather', fx: 'scales' },
-  { id: 'red_dragonhide', name: 'Red dragonhide', lvl: 72, color: 'red', glow: '#e0503a', val: 30000, hide: 'red_dragon_leather', fx: 'scales' },
-  { id: 'aethereal_dragonhide', name: 'Aethereal dragonhide', lvl: 85, color: 'white', glow: '#bfeaff', val: 68000, hide: 'aethereal_dragon_leather', unique: true, fx: 'scales', aura: true },
+  { id: 'blue_dragonhide', name: 'Azure spellhide', lvl: 50, color: 'blue', glow: '#7fb8ff', val: 9000, hide: 'blue_dragon_leather', fx: 'arcane', arcane: true, magicReq: 42 },
+  { id: 'green_dragonhide', name: 'Verdant spellhide', lvl: 60, color: 'forest', glow: '#8fe6b0', val: 17000, hide: 'green_dragon_leather', fx: 'arcane', arcane: true, magicReq: 52 },
+  { id: 'red_dragonhide', name: 'Ember spellhide', lvl: 72, color: 'red', glow: '#ff9a72', val: 30000, hide: 'red_dragon_leather', fx: 'arcane', arcane: true, magicReq: 63 },
+  { id: 'aethereal_dragonhide', name: 'Aethereal spellhide', lvl: 85, color: 'white', glow: '#c8b8ff', val: 68000, hide: 'aethereal_dragon_leather', unique: true, fx: 'arcane', arcane: true, magicReq: 76, aura: true },
 ];
 for (const D of DHIDES) {
-  const s = T(D.lvl), req = { ranged: D.lvl, defence: Math.max(1, D.lvl - 8) };
-  const gl = D.glow, u = D.unique, fx = D.fx;
+  const s = T(D.lvl), gl = D.glow, u = D.unique, fx = D.fx, arc = D.arcane;
+  const req = { ranged: D.lvl, defence: Math.max(1, D.lvl - 8) };
+  if (arc) req.magic = D.magicReq || Math.round(D.lvl * 0.85);      // spellhide gates on ranged AND magic
+  // spellhide's boosts are shared across the ranged and magic categories
+  const B = (def, racc, macc, mdmg = 0) => arc ? { def, racc, macc, mdmg } : { def, racc };
   def(`${D.id}_coif`, { name: `${D.name} coif`, slot: 'head', req, unique: u,
-    bonus: { def: s * 0.35 | 0, racc: s * 0.4 | 0 }, value: D.val,
+    bonus: B(s * 0.35 | 0, s * 0.4 | 0, s * 0.4 | 0), value: D.val,
     vis: { layer: 'head', sheet: 'hood', color: D.color, glow: gl, fx, aura: D.aura } });
   def(`${D.id}_body`, { name: `${D.name} body`, slot: 'torso', req, unique: u,
-    bonus: { def: s * 0.8 | 0, racc: s | 0 }, value: D.val * 3 | 0,
+    bonus: B(s * 0.8 | 0, arc ? s * 0.7 | 0 : s | 0, s * 0.7 | 0, s * 0.3 | 0), value: D.val * 3 | 0,
     vis: { layer: 'torso', sheet: 'leather', color: D.color, glow: gl, fx, aura: D.aura } });
   def(`${D.id}_chaps`, { name: `${D.name} chaps`, slot: 'legs', req, unique: u,
-    bonus: { def: s * 0.5 | 0, racc: s * 0.6 | 0 }, value: D.val * 2 | 0,
+    bonus: B(s * 0.5 | 0, s * 0.55 | 0, s * 0.55 | 0), value: D.val * 2 | 0,
     vis: { layer: 'legs', sheet: 'pants', color: D.color, glow: gl, fx, aura: D.aura } });
   def(`${D.id}_vambraces`, { name: `${D.name} vambraces`, slot: 'hands', req, unique: u,
-    bonus: { def: s * 0.22 | 0, racc: s * 0.75 | 0 }, value: D.val * 0.8 | 0,
+    bonus: B(s * 0.22 | 0, arc ? s * 0.55 | 0 : s * 0.75 | 0, s * 0.55 | 0), value: D.val * 0.8 | 0,
     vis: { layer: 'hands', sheet: 'gloves', color: D.color, glow: gl, fx, aura: D.aura } });
 }
 // ---------------------------------------------------------------------------
@@ -266,24 +271,26 @@ for (const D of DHIDES) {
 // dragon sets are stitched from their flight's leather (recipes in
 // skills.js). Progression per design: blue mid, red higher-mid, green high,
 // aethereal beyond.
+// The dragon sets read as SCALES in-world: a FIXED dragon-scale texture stitched
+// over the hide (fx: 'scales', stamped per-frame so it sits still on the armour).
 export const RANGER_SETS = [
   { id: 'hide_ranger', name: 'Hide ranger', lvl: 10, color: 'hide', val: 260 },
-  { id: 'blue_ranger', name: 'Blue dragon ranger', lvl: 45, color: 'blue', glow: '#4aa0e0', val: 8200, hide: 'blue_dragon_leather' },
-  { id: 'red_ranger', name: 'Red dragon ranger', lvl: 62, color: 'red', glow: '#e0503a', val: 21000, hide: 'red_dragon_leather' },
-  { id: 'green_ranger', name: 'Green dragon ranger', lvl: 75, color: 'green', glow: '#3fbf6a', val: 42000, hide: 'green_dragon_leather' },
-  { id: 'aethereal_ranger', name: 'Aethereal ranger', lvl: 88, color: 'aethereal', glow: '#bfeaff', val: 86000, hide: 'aethereal_dragon_leather', unique: true, aura: true },
+  { id: 'blue_ranger', name: 'Blue dragon ranger', lvl: 45, color: 'blue', glow: '#4aa0e0', val: 8200, hide: 'blue_dragon_leather', fx: 'scales' },
+  { id: 'red_ranger', name: 'Red dragon ranger', lvl: 62, color: 'red', glow: '#e0503a', val: 21000, hide: 'red_dragon_leather', fx: 'scales' },
+  { id: 'green_ranger', name: 'Green dragon ranger', lvl: 75, color: 'green', glow: '#3fbf6a', val: 42000, hide: 'green_dragon_leather', fx: 'scales' },
+  { id: 'aethereal_ranger', name: 'Aethereal ranger', lvl: 88, color: 'aethereal', glow: '#bfeaff', val: 86000, hide: 'aethereal_dragon_leather', unique: true, aura: true, fx: 'scales' },
 ];
 for (const R of RANGER_SETS) {
-  const s = T(R.lvl), req = { ranged: R.lvl, defence: Math.max(1, R.lvl - 8) }, u = R.unique;
+  const s = T(R.lvl), req = { ranged: R.lvl, defence: Math.max(1, R.lvl - 8) }, u = R.unique, fx = R.fx;
   def(`${R.id}_hat`, { name: `${R.name} hat`, slot: 'head', req, unique: u,
     bonus: { def: s * 0.35 | 0, racc: s * 0.45 | 0 }, value: R.val,
-    vis: { layer: 'head', sheet: 'ranger_hat', color: R.color, glow: R.glow, aura: R.aura } });
+    vis: { layer: 'head', sheet: 'ranger_hat', color: R.color, glow: R.glow, aura: R.aura, fx } });
   def(`${R.id}_body`, { name: `${R.name} body`, slot: 'torso', req, unique: u,
     bonus: { def: s * 0.85 | 0, racc: s | 0 }, value: R.val * 3 | 0,
-    vis: { layer: 'torso', sheet: 'wulax_ranger', color: R.color, glow: R.glow, aura: R.aura } });
+    vis: { layer: 'torso', sheet: 'wulax_ranger', color: R.color, glow: R.glow, aura: R.aura, fx } });
   def(`${R.id}_chaps`, { name: `${R.name} chaps`, slot: 'legs', req, unique: u,
     bonus: { def: s * 0.5 | 0, racc: s * 0.55 | 0 }, value: R.val * 2 | 0,
-    vis: { layer: 'legs', sheet: 'ranger', color: R.color, glow: R.glow, aura: R.aura } });
+    vis: { layer: 'legs', sheet: 'ranger', color: R.color, glow: R.glow, aura: R.aura, fx } });
 }
 
 // Dragon leathers: tanned into hide only the mightiest beasts yield.
