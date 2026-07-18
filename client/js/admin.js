@@ -790,13 +790,6 @@ const MS_CATALOG = () => {
     'Cave & dungeon decor': [...grid('undeadDecor'), ...grid('geo_objects'), ...grid('geo_rocks')],
     'Abyssal dungeon tiles': grid('geo_tiles'),
     'Isometric tileset': grid('iso_tiles'),
-    'Raou iso tileset': grid('raou_tiles'),
-    'Building materials': grid('megakit_materials'),
-    'Castle': grid('lpc_castle'),
-    'Victorian mansion': grid('victorian_mansion'),
-    'Victorian tenement': grid('victorian_tenement'),
-    'Victorian windows & doors': grid('victorian_windows_doors'),
-    'Victorian accessories': grid('victorian_accessories'),
   };
   const rest = T.filter(k => !used.has(k) && !/(^|_)tree$/.test(k) && !NODES[k]);
   if (rest.length) cat['More props'] = rest;

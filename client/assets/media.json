@@ -3760,15 +3760,6 @@
    "h": 352,
    "cell": 32
   },
-  "raou_tiles": {
-   "file": "dungeon/raou_tiles.png",
-   "w": 576,
-   "h": 816,
-   "cellW": 48,
-   "cellH": 48,
-   "cols": 12,
-   "rows": 17
-  },
   "undeadDecor": [
    {
     "file": "dungeon/undead/grave.png",
@@ -4089,76 +4080,7 @@
    "env/water_sparkle_1.png",
    "env/water_sparkle_2.png",
    "env/water_sparkle_3.png"
-  ],
-  "megakit_materials": {
-   "file": "env/megakit_materials.png",
-   "w": 512,
-   "h": 64,
-   "cellW": 64,
-   "cellH": 64,
-   "cols": 8,
-   "rows": 1,
-   "labels": [
-    "Brick",
-    "Red brick",
-    "Uneven brick",
-    "Plaster",
-    "Rock trim",
-    "Wood trim",
-    "Roof tiles",
-    "Metal ornament"
-   ]
-  },
-  "lpc_castle": {
-   "file": "env/buildings/lpc_castle.png",
-   "w": 480,
-   "h": 320,
-   "cellW": 32,
-   "cellH": 32,
-   "cols": 15,
-   "rows": 10,
-   "label": "Castle"
-  },
-  "victorian_mansion": {
-   "file": "env/buildings/victorian_mansion.png",
-   "w": 1024,
-   "h": 2048,
-   "cellW": 128,
-   "cellH": 128,
-   "cols": 8,
-   "rows": 16,
-   "label": "Victorian mansion"
-  },
-  "victorian_tenement": {
-   "file": "env/buildings/victorian_tenement.png",
-   "w": 1024,
-   "h": 3072,
-   "cellW": 128,
-   "cellH": 128,
-   "cols": 8,
-   "rows": 24,
-   "label": "Victorian tenement"
-  },
-  "victorian_windows_doors": {
-   "file": "env/buildings/victorian_windows_doors.png",
-   "w": 1024,
-   "h": 5120,
-   "cellW": 128,
-   "cellH": 128,
-   "cols": 8,
-   "rows": 40,
-   "label": "Victorian windows/doors"
-  },
-  "victorian_accessories": {
-   "file": "env/buildings/victorian_accessories.png",
-   "w": 1024,
-   "h": 2560,
-   "cellW": 128,
-   "cellH": 128,
-   "cols": 8,
-   "rows": 20,
-   "label": "Victorian accessories"
-  }
+  ]
  },
  "packed": {},
  "trees": {
