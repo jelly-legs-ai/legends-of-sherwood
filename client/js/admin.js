@@ -1635,6 +1635,11 @@ const GS = {
   img: null, imgName: '', body: null, gen: null, refs: {},
   x: 0, y: 0, scale: 1, rot: 0, trackRot: true, flipX: false, flipY: false,
   sizeLock: true,    // keep the weapon a constant size across all frames/directions
+  // per-facing fine-tune layered ON TOP of the auto placement. South is the base
+  // (your step-3 line-up); N/W/E each get an optional rotation nudge (deg) + screen
+  // offset (px) so you can dial each side profile to a perfect fit without touching
+  // south. All zero = pure auto placement (unchanged behaviour).
+  adj: { N: { r: 0, x: 0, y: 0 }, W: { r: 0, x: 0, y: 0 }, E: { r: 0, x: 0, y: 0 } },
   target: 'carry',   // which sheet we're compiling (see GS_TEMPLATES)
   sheets: {},        // captured PNG dataURLs per target, for deploy
   deploy: { open: false, kind: 'sword', level: 10, drops: [] },   // deployment-table state
@@ -1770,13 +1775,17 @@ function gsGenerate() {
     // size-lock keeps a constant size across frames; unlocked, it matches the
     // reference blade's per-frame length
     const dScale = GS.sizeLock ? 1 : cell.ext / (align.ext || 1);
+    // per-facing fine-tune: block rows go N/W/S/E, so row%4 picks the facing; S is
+    // the untouched base, N/W/E add the user's dial-in nudge on top of the auto turn
+    const facing = ['N', 'W', 'S', 'E'][cell.row % 4];
+    const adj = GS.adj[facing] || { r: 0, x: 0, y: 0 };
     g.save();
     // clip to THIS frame's cell so a stamp can never bleed into a neighbour
     g.beginPath(); g.rect(cell.col * fs, cell.row * fs, fs, fs); g.clip();
-    // anchor at the reference HAND (grip) so the weapon hangs from the hand in
-    // every facing; the art is drawn centred + your GS.x/y/scale/rot line-up
-    g.translate(cell.col * fs + cell.gx, cell.row * fs + cell.gy);
-    g.rotate(dRot); g.scale(dScale, dScale);
+    // anchor at the reference HAND (grip) + the facing's screen nudge, so the weapon
+    // hangs from the hand in every facing; the art is drawn centred + your line-up
+    g.translate(cell.col * fs + cell.gx + adj.x, cell.row * fs + cell.gy + adj.y);
+    g.rotate(dRot + adj.r * Math.PI / 180); g.scale(dScale, dScale);
     g.translate(GS.x, GS.y); g.rotate(GS.rot * Math.PI / 180); g.scale(GS.scale, GS.scale);
     g.scale(GS.flipX ? -1 : 1, GS.flipY ? -1 : 1);   // mirror the input art
     g.drawImage(GS.img, -iw / 2, -ih / 2);
@@ -1809,6 +1818,14 @@ function renderGearSheet() {
         <label style="font-size:11.5px"><input type="checkbox" id="gs-flipy" ${GS.flipY ? 'checked' : ''}> flip ↕</label>
         <label style="font-size:11.5px"><input type="checkbox" id="gs-track" ${GS.trackRot ? 'checked' : ''}> track swing</label>
         <label style="font-size:11.5px" title="keep the weapon the same size in every frame &amp; direction"><input type="checkbox" id="gs-lock" ${GS.sizeLock ? 'checked' : ''}> 🔒 size lock</label></div>
+      <details style="margin-top:8px" ${(GS.adj.N.r || GS.adj.N.x || GS.adj.N.y || GS.adj.W.r || GS.adj.W.x || GS.adj.W.y || GS.adj.E.r || GS.adj.E.x || GS.adj.E.y) ? 'open' : ''}>
+        <summary style="color:var(--gold);font-size:12px;cursor:pointer">Per-direction fine-tune</summary>
+        <div style="font-size:11px;color:var(--dim);margin:4px 0">South is your base line-up. If a side profile isn't a perfect fit, nudge <b>just that facing</b> here — a rotation and a screen offset on top of the auto turn. Watch the preview; leave a facing at 0 to keep pure auto.</div>
+        ${['N', 'W', 'E'].map((f) => `<div class="ms-row" style="gap:6px;align-items:center;font-size:11px"><b style="width:14px">${f}</b>
+          rot <input id="gs-adj-${f}-r" type="range" min="-45" max="45" step="0.5" value="${GS.adj[f].r}" style="width:70px">
+          x <input id="gs-adj-${f}-x" type="range" min="-20" max="20" step="0.5" value="${GS.adj[f].x}" style="width:52px">
+          y <input id="gs-adj-${f}-y" type="range" min="-20" max="20" step="0.5" value="${GS.adj[f].y}" style="width:52px"></div>`).join('')}
+      </details>
       <div class="ms-row"><button class="act" id="gs-gen" style="flex:1">⚙ Generate sheet</button>
         <button class="act" id="gs-dl">⬇ PNG</button></div>
     </div>
@@ -1837,6 +1854,7 @@ function renderGearSheet() {
   $('#gs-lock').onchange = (e) => { GS.sizeLock = e.target.checked; gsGenerate(); };
   $('#gs-flipx').onchange = (e) => { GS.flipX = e.target.checked; gsGenerate(); };
   $('#gs-flipy').onchange = (e) => { GS.flipY = e.target.checked; gsGenerate(); };
+  for (const f of ['N', 'W', 'E']) for (const k of ['r', 'x', 'y']) { const el = $(`#gs-adj-${f}-${k}`); if (el) el.oninput = (e) => { GS.adj[f][k] = +e.target.value; gsGenerate(); }; }
   $('#gs-gen').onclick = () => { gsGenerate(); gsCapture(); gsCaps(); $('#gs-status').textContent = GS.gen ? 'sheet generated & captured — see the preview' : 'import an image first'; };
   $('#gs-dl').onclick = () => { if (!GS.gen) return; gsCapture(); gsCaps(); const a = document.createElement('a'); a.download = (GS.imgName || 'weapon') + '_' + GS.target + '_lpc.png'; a.href = GS.gen.toDataURL(); a.click(); };
   // switching targets captures the outgoing sheet first, so a multi-animation
