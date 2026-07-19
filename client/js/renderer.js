@@ -410,6 +410,33 @@ function foamFrames() {
   return _foam;
 }
 
+// ---- castle masonry: real grey-ashlar stone lifted from the OGA "Copings"
+// sheet, baked once into a 64px repeating pattern. The source has an opaque
+// black background and dark mortar gaps, so any near-black pixel is clamped up
+// to mid grey — the tile then repeats seamlessly across the curtain with no
+// black showing. Used to fill the castle curtain + turret faces (the bounded,
+// regular square where a sprite treatment is safe); villages keep procedural.
+let _castleStone = null;               // CanvasPattern once built, 'pending' while the image streams
+function castleStonePattern(g) {
+  if (_castleStone && _castleStone !== 'pending') return _castleStone;
+  const im = mimg('overhaul/copings_stone_128.png');
+  if (!im || !im.complete || !im.naturalWidth) { _castleStone = 'pending'; return null; }
+  const S = 64, c = document.createElement('canvas'); c.width = S; c.height = S;
+  const cc = c.getContext('2d');
+  cc.drawImage(im, 300, 48, S, S, 0, 0, S, S);   // a dense stone window from the tall-wall band
+  const d = cc.getImageData(0, 0, S, S), p = d.data;
+  for (let i = 0; i < p.length; i += 4) {
+    const lum = 0.3 * p[i] + 0.59 * p[i + 1] + 0.11 * p[i + 2];
+    if (lum < 30) { p[i] = 96; p[i + 1] = 96; p[i + 2] = 100; }   // fill black bg / mortar holes
+    p[i + 3] = 255;
+  }
+  cc.putImageData(d, 0, 0);
+  const wasPending = _castleStone === 'pending';
+  _castleStone = g.createPattern(c, 'repeat');
+  if (wasPending) chunkCache.clear();  // re-bake chunks that baked before the stone arrived
+  return _castleStone;
+}
+
 // ---- waterfalls -------------------------------------------------------------------
 // A river tile standing above its downhill neighbour spills over the edge: the
 // cliff column below it is painted as falling water instead of earth, and the
@@ -823,21 +850,34 @@ function chunkCanvas(plane, cx, cy) {
         const cwh = tower ? 168 : (regionAt(x, y) === 'NOTTINGHAM' ? 96 : 64);
         const cFaceL = () => { g.beginPath(); g.moveTo(lx - TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - cwh); g.lineTo(lx - TW / 2, ly - cwh); g.closePath(); };
         const cFaceR = () => { g.beginPath(); g.moveTo(lx + TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - cwh); g.lineTo(lx + TW / 2, ly - cwh); g.closePath(); };
-        g.fillStyle = tint('#7c8387', wear); cFaceL(); g.fill();
-        g.fillStyle = tint('#9aa2a6', wear); cFaceR(); g.fill();
-        // big grey brick courses with staggered head joints (LPC castle kit look)
-        for (const spec of [[cFaceL, lx - TW / 2], [cFaceR, lx]]) {
-          g.save(); spec[0](); g.clip();
-          g.strokeStyle = '#545b5f'; g.lineWidth = 1.4;
-          for (let row = 1; row < 6; row++) {
-            const yy = ly - cwh + row * (cwh / 6);
-            g.beginPath(); g.moveTo(spec[1], yy); g.lineTo(spec[1] + TW / 2, yy + TH / 4); g.stroke();
-            for (const fx2 of row % 2 ? [0.28, 0.72] : [0.5]) {
-              const jx = spec[1] + (TW / 2) * fx2;
-              g.beginPath(); g.moveTo(jx, yy - cwh / 6 + fx2 * TH / 4 + 3); g.lineTo(jx, yy + fx2 * TH / 4 + 1); g.stroke();
+        // faces: real grey-ashlar stone (OGA Copings sheet) tiled down each face,
+        // with a translucent directional wash so the lit (right) / shade (left)
+        // read and per-tile weathering survive. Falls back to flat grey brick +
+        // procedural courses until the stone image streams in.
+        const cPat = castleStonePattern(g);
+        for (const [face, dark] of [[cFaceL, true], [cFaceR, false]]) {
+          if (cPat) {
+            g.save(); face(); g.clip();
+            face(); g.fillStyle = cPat; g.fill();
+            face(); g.fillStyle = dark ? `rgba(22,24,30,${(0.36 - shade * 0.16).toFixed(3)})`
+                                       : `rgba(255,255,255,${(0.07 + shade * 0.07).toFixed(3)})`;
+            g.fill();
+            g.restore();
+          } else {
+            g.fillStyle = tint(dark ? '#7c8387' : '#9aa2a6', wear); face(); g.fill();
+            g.save(); face(); g.clip();
+            g.strokeStyle = '#545b5f'; g.lineWidth = 1.4;
+            const ox2 = dark ? lx - TW / 2 : lx;
+            for (let row = 1; row < 6; row++) {
+              const yy = ly - cwh + row * (cwh / 6);
+              g.beginPath(); g.moveTo(ox2, yy); g.lineTo(ox2 + TW / 2, yy + TH / 4); g.stroke();
+              for (const fx2 of row % 2 ? [0.28, 0.72] : [0.5]) {
+                const jx = ox2 + (TW / 2) * fx2;
+                g.beginPath(); g.moveTo(jx, yy - cwh / 6 + fx2 * TH / 4 + 3); g.lineTo(jx, yy + fx2 * TH / 4 + 1); g.stroke();
+              }
             }
+            g.restore();
           }
-          g.restore();
         }
         // wall-walk cap + crenellated parapet along the two far edges
         g.fillStyle = tint('#aab2b6', wear);
