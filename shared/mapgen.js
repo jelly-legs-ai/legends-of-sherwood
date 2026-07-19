@@ -843,6 +843,13 @@ export function castleFloorTile(plane, x, y) {
   if (lx < 0 || ly < 0 || lx >= f.cols || ly >= f.rows) return TILE.WALL;
   return f.tiles[ly * f.cols + lx];
 }
+// is (x,y) inside the castle keep footprint on the overworld? — lets the renderer
+// draw the keep's walls as solid castle masonry (same as the floor planes) instead
+// of the thin building-wall slabs, and lets the zone label read "Nottingham Castle"
+export function inCastle(x, y) {
+  const lx = (x | 0) - CASTLE.ox, ly = (y | 0) - CASTLE.oy;
+  return lx >= 0 && ly >= 0 && lx < CASTLE.cols && ly < CASTLE.rows;
+}
 // ladder world positions for a floor plane: {down, up|null}
 export function castleLadders(plane) {
   const f = castleFloor(plane - PLANE.CASTLE_BASE);

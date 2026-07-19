@@ -1,6 +1,6 @@
 // Legends of Sherwood — client entry: login, game state, input, main loop.
 import { MSG, PLANE, WILDERNESS_Y, REGIONS, TILE, FX } from '/shared/constants.js';
-import { computeWorld, regionAt, dungeonFloor, worldTile, applyMapOverrides, customLevel, castleLadders, castleKeepLadder } from '/shared/mapgen.js';
+import { computeWorld, regionAt, dungeonFloor, worldTile, applyMapOverrides, customLevel, castleLadders, castleKeepLadder, inCastle } from '/shared/mapgen.js';
 import { QUESTS } from '/shared/data/quests.js';
 import { HOUSE, CASTLE } from '/shared/data/world.js';
 import { ITEMS, registerCustomItems } from '/shared/data/items.js';
@@ -580,6 +580,7 @@ function zoneName() {
   if (plane >= PLANE.CASTLE_BASE) { const fl = plane - PLANE.CASTLE_BASE; return fl >= CASTLE.topFloor ? '🏰 Nottingham Castle — Roof' : `🏰 Nottingham Castle — Floor ${fl}`; }
   if (plane >= PLANE.DUNGEON_BASE) return `⚒ Abyssal Depths — Floor ${plane - PLANE.DUNGEON_BASE}`;
   if (plane >= PLANE.HOUSE_BASE) return '🏠 Your Hideout';
+  if (inCastle(G.self.x | 0, G.self.y | 0)) return '🏰 Nottingham Castle';
   const reg = regionAt(G.self.x | 0, G.self.y | 0);
   const r = REGIONS[reg];
   return r ? (r.pvp ? '☠ ' + r.name + ' — PvP!' : r.name) : '';

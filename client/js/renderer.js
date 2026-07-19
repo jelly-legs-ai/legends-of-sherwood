@@ -2,7 +2,7 @@
 // LPC characters, procedural critters/nodes, day-night tint, northern snow.
 
 import { WORLD, TILE, PLANE, WILDERNESS_Y } from '/shared/constants.js';
-import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV, SHORTCUTS, wallStyleAt, customLevel, levelEntry, castleLadders } from '/shared/mapgen.js';
+import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV, SHORTCUTS, wallStyleAt, customLevel, levelEntry, castleLadders, inCastle } from '/shared/mapgen.js';
 import { dayPhase, weatherAt } from '/shared/daycycle.js';
 import { REGIONS } from '/shared/constants.js';
 import { HOUSE, TOWNS } from '/shared/data/world.js';
@@ -761,11 +761,12 @@ function chunkCanvas(plane, cx, cy) {
         }
       }
     }
-    // castle interior masonry: a short lit-stone prism (walls read as raised
-    // coursed stone against the flagstone floor, torch-lit by the plane gloom) —
-    // the void beyond the footprint is the same block, reading as thick keep wall
-    if (t === TILE.WALL && plane >= PLANE.CASTLE_BASE) {
-      const lit = 0.78 + shade * 0.3, wh = 24;
+    // castle masonry: a lit-stone prism (raised coursed stone) — used both on the
+    // upper floor planes AND for the keep on the overworld (same look inside and
+    // out, and it renders as one solid block per tile so there are no thin-slab
+    // gaps/"slits"). Taller on the overworld so the keep walls read as a castle.
+    if (t === TILE.WALL && (plane >= PLANE.CASTLE_BASE || (plane === PLANE.OVERWORLD && inCastle(x, y)))) {
+      const lit = 0.78 + shade * 0.3, wh = plane >= PLANE.CASTLE_BASE ? 24 : 46;
       const s = (r, gg, b) => `rgb(${Math.min(255, r * lit) | 0},${Math.min(255, gg * lit) | 0},${Math.min(255, b * lit) | 0})`;
       g.fillStyle = s(96, 100, 110); g.beginPath(); g.moveTo(lx - TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx - TW / 2, ly - wh); g.closePath(); g.fill();
       g.fillStyle = s(126, 131, 142); g.beginPath(); g.moveTo(lx + TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx + TW / 2, ly - wh); g.closePath(); g.fill();
