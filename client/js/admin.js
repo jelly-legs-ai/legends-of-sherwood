@@ -1633,17 +1633,19 @@ function renderCompAnims() {
 // ============================================================================
 const GS = {
   img: null, imgName: '', body: null, hair: null, gen: null, refs: {},
-  trackRot: true, flipX: false, flipY: false,
+  trackRot: true,
   sizeLock: true,    // keep the weapon a constant size across all frames/directions
-  // Each facing owns a FULL, independent pose (screen offset px, rotation deg, scale)
-  // laid on top of the automatic body-turn. Because S/N/W/E are separate objects,
-  // lining up one facing and then adjusting another never disturbs the first — you
-  // dial South, lock it, then N/W/E, and each stays put. Seeded identical; the
-  // auto-turn already swings each side to roughly the right orientation, and the
-  // rotate slider now covers a full ±180° so any facing can be spun freely.
+  // Each facing owns a FULL, independent pose — screen offset px, rotation deg,
+  // scale, its OWN mirror/flip flags, and its OWN layer (whether the weapon draws
+  // over or under the body for that facing). Because S/N/W/E are separate objects,
+  // lining up / flipping / re-layering one facing never disturbs another. Default
+  // layers mirror how a held blade actually sits: SOUTH (facing camera) the weapon
+  // is in front of the body ('over'); N/W/E it's behind ('under').
   pose: {
-    S: { x: 0, y: -12, rot: 0, scale: 1 }, N: { x: 0, y: -12, rot: 0, scale: 1 },
-    W: { x: 0, y: -12, rot: 0, scale: 1 }, E: { x: 0, y: -12, rot: 0, scale: 1 },
+    S: { x: 0, y: -12, rot: 0, scale: 1, flipX: false, flipY: false, layer: 'over' },
+    N: { x: 0, y: -12, rot: 0, scale: 1, flipX: false, flipY: false, layer: 'under' },
+    W: { x: 0, y: -12, rot: 0, scale: 1, flipX: false, flipY: false, layer: 'under' },
+    E: { x: 0, y: -12, rot: 0, scale: 1, flipX: false, flipY: false, layer: 'under' },
   },
   dir: 'S',          // which facing the guideline + preview are showing / tuning
   picked: '',        // the weapon chosen in the import dropdown (kept selected across re-renders)
@@ -1653,12 +1655,42 @@ const GS = {
 };
 // the pose for the facing currently being tuned
 function gsPose() { return GS.pose[GS.dir] || GS.pose.S; }
-// (re)seed all four facings to the same starting line-up (fresh import)
-function gsSeedPose(lift) { for (const f of ['S', 'N', 'W', 'E']) GS.pose[f] = { x: 0, y: lift, rot: 0, scale: 1 }; }
+// which facing a sheet row belongs to (LPC 4-row blocks run N, W, S, E)
+function gsRowFacing(row) { return ['N', 'W', 'S', 'E'][row % 4]; }
+// (re)seed all four facings to the same starting line-up (fresh import); layers keep
+// their natural defaults (south over, the rest under)
+function gsSeedPose(lift) {
+  const mk = (layer) => ({ x: 0, y: lift, rot: 0, scale: 1, flipX: false, flipY: false, layer });
+  GS.pose = { S: mk('over'), N: mk('under'), W: mk('under'), E: mk('under') };
+}
 // push the current facing's pose values back onto the sliders (after a seed / facing switch)
 function gsSyncSliders() { const p = gsPose(); for (const k of ['x', 'y', 'scale', 'rot']) { const el = $(`#gs-${k}`); if (el) el.value = p[k]; } }
-// capture the current target's generated sheet as a PNG, ready to deploy
-function gsCapture() { if (GS.gen) GS.sheets[GS.target] = GS.gen.toDataURL(); }
+// split a generated sheet into over-body (fg) and under-body (bg) copies by the
+// per-facing layer, clearing the rows that don't belong to each — so in-world the
+// weapon draws in front of the body for 'over' facings and behind it for 'under'
+function gsSplitLayers(gen) {
+  const ref = gsRef(); const fs = ref ? ref.fs : 64;
+  const rows = Math.round(gen.height / fs);
+  const mk = () => { const c = document.createElement('canvas'); c.width = gen.width; c.height = gen.height; c.getContext('2d').drawImage(gen, 0, 0); return c; };
+  const fg = mk(), bg = mk();
+  const fgg = fg.getContext('2d'), bgg = bg.getContext('2d');
+  let anyBg = false;
+  for (let r = 0; r < rows; r++) {
+    const over = (GS.pose[gsRowFacing(r)]?.layer || 'over') === 'over';
+    (over ? bgg : fgg).clearRect(0, r * fs, gen.width, fs);   // strip the row from the sheet it isn't in
+    if (!over) anyBg = true;
+  }
+  return { fg, bg, anyBg };
+}
+// capture the current target's generated sheet, split by layer, ready to deploy. The
+// carry sheet ships an fg (over) + bg (under) pair so held weapons layer per facing.
+function gsCapture() {
+  if (!GS.gen) return;
+  const { fg, bg, anyBg } = gsSplitLayers(GS.gen);
+  GS.sheets[GS.target] = fg.toDataURL();
+  if (anyBg) GS.sheets[GS.target + '_bg'] = bg.toDataURL();
+  else delete GS.sheets[GS.target + '_bg'];
+}
 // The maker anchors the weapon at the reference HAND and draws it centred, so an
 // upright blade wants a small upward lift to seat its handle at the hand. Seed
 // GS.y with that (~28% of the art height, clamped to the slider range); the user
@@ -1690,7 +1722,7 @@ function gsImportWeapon(type) {
     crop.getContext('2d').drawImage(cv, ox + mnx, oy + mny, w, h, pad, pad, w, h);
     GS.img = crop; GS.imgName = type;
     // seat an upright blade's handle at the hand on every facing; user fine-tunes each
-    gsSeedPose(gsDefaultLift(crop.height)); GS.flipX = false; GS.flipY = false;
+    gsSeedPose(gsDefaultLift(crop.height));
     gsSyncSliders();
     gsGenerate(); gsCapture(); gsCaps();
   };
@@ -1804,9 +1836,9 @@ function gsGenerate() {
     // reference blade's per-frame length
     const dScale = GS.sizeLock ? 1 : cell.ext / (align.ext || 1);
     // block rows go N/W/S/E, so row%4 picks the facing; each facing applies its OWN
-    // independent pose on top of the auto turn, so tuning one never moves another
-    const facing = ['N', 'W', 'S', 'E'][cell.row % 4];
-    const pose = GS.pose[facing] || GS.pose.S;
+    // independent pose (offset/rotation/scale AND mirror/flip) on top of the auto
+    // turn, so tuning or flipping one never moves another
+    const pose = GS.pose[gsRowFacing(cell.row)] || GS.pose.S;
     g.save();
     // clip to THIS frame's exact cell so a stamp can't bleed onto a neighbour
     g.beginPath(); g.rect(cell.col * fs, cell.row * fs, fs, fs); g.clip();
@@ -1815,7 +1847,7 @@ function gsGenerate() {
     g.translate(cell.col * fs + cell.gx, cell.row * fs + cell.gy);
     g.rotate(dRot); g.scale(dScale, dScale);
     g.translate(pose.x, pose.y); g.rotate(pose.rot * Math.PI / 180); g.scale(pose.scale, pose.scale);
-    g.scale(GS.flipX ? -1 : 1, GS.flipY ? -1 : 1);   // mirror the input art
+    g.scale(pose.flipX ? -1 : 1, pose.flipY ? -1 : 1);   // this facing's own mirror / flip
     g.drawImage(GS.img, -iw / 2, -ih / 2);
     g.restore();
   }
@@ -1848,8 +1880,10 @@ function renderGearSheet() {
       <div class="ms-row">scale <input id="gs-scale" type="range" min="0.2" max="3" step="0.02" value="${gsPose().scale}" style="flex:1"></div>
       <div class="ms-row">rotate <input id="gs-rot" type="range" min="-180" max="180" step="1" value="${gsPose().rot}" style="flex:1"></div>
       <div class="ms-row" style="gap:12px;flex-wrap:wrap">
-        <label style="font-size:11.5px"><input type="checkbox" id="gs-flipx" ${GS.flipX ? 'checked' : ''}> mirror ↔</label>
-        <label style="font-size:11.5px"><input type="checkbox" id="gs-flipy" ${GS.flipY ? 'checked' : ''}> flip ↕</label>
+        <label style="font-size:11.5px" title="mirror only this facing"><input type="checkbox" id="gs-flipx" ${gsPose().flipX ? 'checked' : ''}> mirror ↔</label>
+        <label style="font-size:11.5px" title="flip only this facing"><input type="checkbox" id="gs-flipy" ${gsPose().flipY ? 'checked' : ''}> flip ↕</label>
+        <label style="font-size:11.5px" title="draw the weapon BEHIND the body for this facing (leave off for in-front, e.g. South)"><input type="checkbox" id="gs-layer" ${gsPose().layer === 'under' ? 'checked' : ''}> 🧍 behind body</label></div>
+      <div class="ms-row" style="gap:12px;flex-wrap:wrap">
         <label style="font-size:11.5px"><input type="checkbox" id="gs-track" ${GS.trackRot ? 'checked' : ''}> track swing</label>
         <label style="font-size:11.5px" title="keep the weapon the same size in every frame &amp; direction"><input type="checkbox" id="gs-lock" ${GS.sizeLock ? 'checked' : ''}> 🔒 size lock</label></div>
       <div class="ms-row"><button class="act" id="gs-gen" style="flex:1">⚙ Generate sheet</button>
@@ -1881,8 +1915,10 @@ function renderGearSheet() {
   for (const k of ['x', 'y', 'scale', 'rot']) $(`#gs-${k}`).oninput = (e) => { gsPose()[k] = +e.target.value; gsGenerate(); };
   $('#gs-track').onchange = (e) => { GS.trackRot = e.target.checked; gsGenerate(); };
   $('#gs-lock').onchange = (e) => { GS.sizeLock = e.target.checked; gsGenerate(); };
-  $('#gs-flipx').onchange = (e) => { GS.flipX = e.target.checked; gsGenerate(); };
-  $('#gs-flipy').onchange = (e) => { GS.flipY = e.target.checked; gsGenerate(); };
+  // mirror / flip / layer apply ONLY to the facing being tuned
+  $('#gs-flipx').onchange = (e) => { gsPose().flipX = e.target.checked; gsGenerate(); };
+  $('#gs-flipy').onchange = (e) => { gsPose().flipY = e.target.checked; gsGenerate(); };
+  $('#gs-layer').onchange = (e) => { gsPose().layer = e.target.checked ? 'under' : 'over'; };
   $('#gs-gen').onclick = () => { gsGenerate(); gsCapture(); gsCaps(); $('#gs-status').textContent = GS.gen ? 'sheet generated & captured — see the preview' : 'import an image first'; };
   $('#gs-dl').onclick = () => { if (!GS.gen) return; gsCapture(); gsCaps(); const a = document.createElement('a'); a.download = (GS.imgName || 'weapon') + '_' + GS.target + '_lpc.png'; a.href = GS.gen.toDataURL(); a.click(); };
   // switching targets captures the outgoing sheet first, so a multi-animation
@@ -2046,24 +2082,30 @@ function gsLoop() {
       ag.translate(offx + guide.gx * z, offy + guide.gy * z);   // hand, re-centred, matching gsGenerate
       ag.rotate(dRot); ag.scale(dScale, dScale);
       ag.translate(pose.x * z, pose.y * z); ag.rotate(pose.rot * Math.PI / 180); ag.scale(pose.scale * z, pose.scale * z);
-      ag.scale(GS.flipX ? -1 : 1, GS.flipY ? -1 : 1);
+      ag.scale(pose.flipX ? -1 : 1, pose.flipY ? -1 : 1);
       ag.drawImage(GS.img, -GS.img.width / 2, -GS.img.height / 2);
       ag.restore();
     }
   }
   // --- preview: body (+ hair, so the facing is obvious) performing the target
   // animation + the generated weapon, facing the direction you're tuning. Sits high
-  // in a tall canvas so legs and blade tip are never clipped. ---
+  // in a tall canvas so legs and blade tip are never clipped. The weapon draws in
+  // FRONT of or BEHIND the body per this facing's layer, mirroring how it ships. ---
   const pg = pc.getContext('2d'); pg.imageSmoothingEnabled = false; pg.clearRect(0, 0, 220, 290);
   const nf = t.frames, fi = Math.floor(now / t.ms) % nf;
   const pk = 190 / t.fs, cx = 110, feet = 235;   // shared body+weapon scale (mimics in-game geometry)
   const S = 64 * pk, bx = cx - S / 2, by = feet - S + 12 * pk;
-  if (GS.body) pg.drawImage(GS.body, fi * 64, (t.bodyRow + dir) * 64, 64, 64, bx, by, S, S);
-  if (GS.hair) pg.drawImage(GS.hair, fi * 64, (t.bodyRow + dir) * 64, 64, 64, bx, by, S, S);
-  if (GS.gen) {
+  const drawBody = () => {
+    if (GS.body) pg.drawImage(GS.body, fi * 64, (t.bodyRow + dir) * 64, 64, 64, bx, by, S, S);
+    if (GS.hair) pg.drawImage(GS.hair, fi * 64, (t.bodyRow + dir) * 64, 64, 64, bx, by, S, S);
+  };
+  const drawWeapon = () => {
+    if (!GS.gen) return;
     if (t.over) { const Sw = t.fs * pk; pg.drawImage(GS.gen, fi * t.fs, dir * t.fs, t.fs, t.fs, cx - Sw / 2, feet - (t.fs / 2 + 20) * pk, Sw, Sw); }
     else pg.drawImage(GS.gen, fi * 64, (t.bodyRow + dir) * 64, 64, 64, bx, by, S, S);
-  }
+  };
+  if (pose.layer === 'under') { drawWeapon(); drawBody(); }
+  else { drawBody(); drawWeapon(); }
   raf = requestAnimationFrame(gsLoop);
 }
 

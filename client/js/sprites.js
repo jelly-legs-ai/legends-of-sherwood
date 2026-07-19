@@ -37,7 +37,11 @@ export function registerCustomWeaponArt(defs) {
     const g = d?.gear;
     if (!g || (g.slot && g.slot !== 'weapon') || !g.sheets?.carry) continue;
     const color = g.color || 'steel';
+    // carry ships an fg (over-body facings) and, when the maker marked any facing
+    // 'behind body', a bg (under-body facings) — so a held weapon layers per facing
+    // (e.g. in front facing south, behind the body facing north)
     const w = { grid: 64, fg: { [color]: g.sheets.carry } };
+    if (g.sheets.carry_bg) w.bg = { [color]: g.sheets.carry_bg };
     const per = {};
     if (g.sheets.slash) per.slash = { bg: { [color]: g.sheets.slash }, fg: {} };
     if (g.sheets.thrust) per.thrust = { bg: { [color]: g.sheets.thrust }, fg: {} };
