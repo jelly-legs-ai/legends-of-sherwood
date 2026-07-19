@@ -1969,8 +1969,14 @@ export class Renderer {
         // OGA roof texture per building: stone keeps grey slate, the Exchange a
         // golden yellow, houses (unnamed) thatch, and shops get a tiled roof whose
         // colour varies by position. Adobe stays the flat sun-baked procedural slab.
-        const roofColor = adobeTown ? null : stone ? 'gray' : gilded ? 'yellow'
-          : b.name ? ['red', 'brown', 'blue'][(((b.x * 7 + b.y * 13) % 3) + 3) % 3] : 'thatch';
+        const cKeep = TOWNS.nottingham_castle;
+        const inCastleGrounds = cKeep && Math.max(Math.abs(cxw - cKeep.cx), Math.abs(cyw - cKeep.cy)) <= cKeep.r + 3;
+        // Roof colour: the castle + anything inside the castle grounds gets grey slate;
+        // the Exchange keeps its gilded gold; town/village shops get weathered orange
+        // terracotta, houses thatch. Desert adobe stays the flat procedural slab.
+        const roofColor = adobeTown ? null : gilded ? 'yellow'
+          : (stone || inCastleGrounds) ? 'gray'
+          : b.name ? ['red', 'brown'][(b.x + b.y) & 1] : 'thatch';
         const roofPat = roofColor ? roofPattern(ctx, roofColor) : null;
         const rgb = (hex) => [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
         const tint = (hex, f) => { const [r, g, bl] = rgb(hex); return `rgb(${Math.min(255, r * f) | 0},${Math.min(255, g * f) | 0},${Math.min(255, bl * f) | 0})`; };
@@ -1983,6 +1989,10 @@ export class Renderer {
           ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineTo(apex[0], apex[1]); ctx.closePath();
           ctx.fillStyle = col; ctx.fill(); ctx.clip();
           if (roofPat) {
+            // world-anchor this slope's tiles to its own eave corner so the shingles
+            // stick to the roof (per-slope) instead of swimming as the camera scrolls
+            const S = 88, ph = (v) => ((v % S) + S) % S;
+            roofPat.setTransform(new DOMMatrix([1, 0, 0, 1, ph(a[0]), ph(a[1])]));
             ctx.fillStyle = roofPat; ctx.fill();
             ctx.fillStyle = dark > 0 ? `rgba(18,14,9,${dark})` : 'rgba(255,250,235,0.08)'; ctx.fill();
             ctx.strokeStyle = '#00000033'; ctx.lineWidth = 1;   // eave line
