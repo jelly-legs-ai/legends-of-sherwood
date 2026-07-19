@@ -2,7 +2,7 @@
 // LPC characters, procedural critters/nodes, day-night tint, northern snow.
 
 import { WORLD, TILE, PLANE, WILDERNESS_Y } from '/shared/constants.js';
-import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV, SHORTCUTS, wallStyleAt, customLevel, levelEntry, castleLadders, inCastle, castleTowerAt, isCastleBridge } from '/shared/mapgen.js';
+import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV, SHORTCUTS, wallStyleAt, customLevel, levelEntry, castleLadders, inCastle, castleTowerAt, isCastleBridge, castleBridgeAnchorAt } from '/shared/mapgen.js';
 import { dayPhase, weatherAt } from '/shared/daycycle.js';
 import { REGIONS } from '/shared/constants.js';
 import { HOUSE, TOWNS, ANCHORS } from '/shared/data/world.js';
@@ -736,7 +736,7 @@ function chunkCanvas(plane, cx, cy) {
       // water is re-drawn live (with the deck relaid over it) so the river keeps
       // flowing under the crossing instead of freezing to a static texture.
       g.drawImage(tileTexture(TILE.RIVER, (shade * 8) | 0), lx - TW / 2, ly - TH / 2 + 9);
-      drawBridge(g, lx, ly, x, y, plane);
+      if (!isCastleBridge(x, y)) drawBridge(g, lx, ly, x, y, plane);   // castle bridge is stamped live (the OGA model)
       water.push({ lx, ly, t: TILE.RIVER, x, y, ph: (x * 7 + y * 13) % 64, bridge: true });
     } else if (!WALLS.has(t)) {
       const isWater = WATERS.has(t);
@@ -1162,7 +1162,22 @@ export class Renderer {
           if (sx < -TW || sy < -TH - (w.drop || 0) * ESTEP || sx > W || sy > H) continue;
           if (w.bridge) {   // flowing channel water, with the deck relaid on top
             ctx.drawImage(waterAnim(TILE.RIVER)[((now / 260 + w.ph) | 0) & 3], sx, sy + 9);
-            drawBridge(ctx, cox + w.lx, coy + w.ly, w.x, w.y, plane);
+            if (isCastleBridge(w.x, w.y)) {
+              // the castle causeway is the single OGA arched stone-bridge model,
+              // stamped once on the mid tile so it spans the whole 3-wide crossing.
+              // Until the image streams in, fall back to the procedural stone deck.
+              const bim = mimg('overhaul/bridge_stone.png');
+              if (bim && bim.complete && bim.naturalWidth) {
+                if (castleBridgeAnchorAt(w.x, w.y)) {
+                  const bw = 270, bh = bw * bim.naturalHeight / bim.naturalWidth;
+                  ctx.drawImage(bim, cox + w.lx - bw / 2, coy + w.ly - bh * 0.66, bw, bh);
+                }
+              } else {
+                drawBridge(ctx, cox + w.lx, coy + w.ly, w.x, w.y, plane);
+              }
+            } else {
+              drawBridge(ctx, cox + w.lx, coy + w.ly, w.x, w.y, plane);
+            }
             continue;
           }
           ctx.drawImage(waterAnim(w.t)[((now / 260 + w.ph) | 0) & 3], sx, sy);

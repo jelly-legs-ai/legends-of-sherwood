@@ -285,9 +285,10 @@ function castleCompoundTile(t, x, y) {
     const dot = (tdx * (toCx / len) + tdy * (toCy / len)) / (td || 1);
     return dot > 0.55 ? TILE.FLOOR_STONE : TILE.WALL;
   }
-  const southGate = (dy > 0 && Math.abs(dx) <= gw);   // the one gate + drawbridge, due south
+  const southGate = (dy > 0 && Math.abs(dx) <= gw);   // the gate opening in the wall, due south
+  const causeway = (dy > 0 && Math.abs(dx) <= 1);     // the narrow stone bridge over the moat (3 wide)
   if (cheb >= R - 0.5 && cheb <= R + 0.5) return southGate ? TILE.PATH : TILE.WALL;   // curtain wall (+ gate opening)
-  if (cheb > R + 0.5 && cheb <= R + MOAT) return southGate ? TILE.BRIDGE : TILE.WATER;  // moat ring (+ drawbridge)
+  if (cheb > R + 0.5 && cheb <= R + MOAT) return causeway ? TILE.BRIDGE : TILE.WATER;  // moat ring (+ narrow bridge)
   if (cheb < R) {   // the bailey inside the walls (the keep sits in the middle via worldTile)
     if (townPath(x, y)) return TILE.PATH;
     return vnoise(x, y, 7, 83) > 0.74 ? TILE.MEADOW : TILE.GRASS;
@@ -301,7 +302,16 @@ export function isCastleBridge(x, y) {
   for (const key in TOWNS) {
     const t = TOWNS[key]; if (!t.castle) continue;
     const dx = x - t.cx, dy = y - t.cy, cheb = Math.max(Math.abs(dx), Math.abs(dy));
-    if (dy > 0 && Math.abs(dx) <= 4 && cheb > t.r + 0.5 && cheb <= t.r + 3) return true;
+    if (dy > 0 && Math.abs(dx) <= 1 && cheb > t.r + 0.5 && cheb <= t.r + 3) return true;
+  }
+  return false;
+}
+// the centre tile of a castle drawbridge (dx 0, mid-moat) — the renderer stamps the
+// single OGA arched-bridge model here, spanning the whole 3x3 causeway at once.
+export function castleBridgeAnchorAt(x, y) {
+  for (const key in TOWNS) {
+    const t = TOWNS[key]; if (!t.castle) continue;
+    if (x === t.cx && y === t.cy + t.r + 2) return true;   // mid of dy R+1..R+3, dx 0
   }
   return false;
 }
