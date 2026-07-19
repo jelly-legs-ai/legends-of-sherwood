@@ -20,7 +20,7 @@ export const TOWNS = {
     // The realm's capital: a sealed rampart with gatehouses west, south and
     // east (the castle crag closes the north), two barracks, a full high
     // street of skill shops, and a paved market square in the south-west.
-    name: 'Nottingham', cx: 330, cy: 330, r: 30, walled: true, moat: true, gates: ['W', 'S', 'E'],
+    name: 'Nottingham', cx: 330, cy: 330, r: 30, walled: true, moat: true, gates: ['W', 'S', 'E', 'N'],
     squares: [{ x: 312, y: 340, w: 9, h: 9 }],   // the Great Market (paved)
     buildings: [
       { x: 303, y: 322, w: 7, h: 6, door: 'S', name: 'Bank of Nottingham' },
@@ -30,7 +30,8 @@ export const TOWNS = {
       { x: 316, y: 311, w: 28, h: 18, door: 'S', name: 'Grand Exchange', ge: true, fortified: true },
       { x: 305, y: 340, w: 6, h: 5, door: 'N', name: 'The Trip to Jerusalem Inn' },
       { x: 337, y: 340, w: 7, h: 5, door: 'N', name: 'Museum of Antiquities' },
-      { x: 326, y: 302, w: 9, h: 7, door: 'S', name: 'Nottingham Castle', castle: true },
+      // (Nottingham Castle is now its own fortified compound north of the city —
+      //  see the nottingham_castle town below, reached via the north gate.)
       // -- garrisons: one gatehouse barracks by the west gate, one bastion SE --
       { x: 302, y: 332, w: 7, h: 6, door: 'E', name: 'Westgate Barracks', castle: true },
       { x: 341, y: 349, w: 8, h: 6, door: 'W', name: 'Southeast Barracks', castle: true },
@@ -51,6 +52,20 @@ export const TOWNS = {
       { x: 315, y: 350, w: 5, h: 4, door: 'E', name: 'Trent Tackle & Trap' },
       { x: 322, y: 340, w: 6, h: 5, door: 'E', name: 'The Old Cookhouse' },
       { x: 333, y: 334, w: 5, h: 4, door: 'S', name: 'The Green Vial' },
+    ],
+  },
+  // Nottingham Castle: a fortified crag directly north of the city, behind the
+  // Grand Exchange. Its own palisade rampart + moat, crossed by a single south
+  // drawbridge on the city axis (aligned to Nottingham's new north gate), two
+  // sentry towers flanking the gatehouse, and the great-hall keep at the back
+  // where the Sheriff of Nottingham holds court (first boss). The multi-floor
+  // labyrinth interior loads on its own floor planes via the keep's ladders.
+  nottingham_castle: {
+    name: 'Nottingham Castle', cx: 330, cy: 283, r: 13, walled: true, moat: true, gates: ['S'],
+    buildings: [
+      { x: 322, y: 278, w: 16, h: 11, door: 'S', name: 'The Great Hall', castle: true, keep: true },
+      { x: 320, y: 290, w: 3, h: 3, door: 'N', name: 'West Sentry Tower', castle: true, tower: true },
+      { x: 337, y: 290, w: 3, h: 3, door: 'N', name: 'East Sentry Tower', castle: true, tower: true },
     ],
   },
   bay: {
@@ -348,6 +363,10 @@ export const SPAWNS = [
   { mob: 'sheriffs_guard', x: 358, y: 330, r: 1, n: 2 },   // east gate
   { mob: 'sheriffs_guard', x: 305, y: 334, r: 2, n: 3 },   // Westgate Barracks muster
   { mob: 'sheriffs_guard', x: 344, y: 351, r: 2, n: 3 },   // Southeast Barracks muster
+  // -- Nottingham Castle garrison: bailey patrols, gatehouse & tower sentries --
+  { mob: 'sheriffs_guard', x: 330, y: 285, r: 7, n: 6, patrol: true },  // bailey & great-hall watch
+  { mob: 'sheriffs_guard', x: 330, y: 296, r: 1, n: 2 },   // south drawbridge gatehouse
+  { mob: 'sheriffs_guard', x: 321, y: 291, r: 1, n: 1 }, { mob: 'sheriffs_guard', x: 338, y: 291, r: 1, n: 1 }, // sentry towers
   { mob: 'sheriffs_guard', x: 330, y: 336, r: 26, n: 8, patrol: true }, // city patrol beats
   // Grand Exchange garrison — elite guards ring the fortified hall (passive unless attacked)
   { mob: 'ge_guard', x: 330, y: 331, r: 3, n: 4 },   // south approach & doors
@@ -455,7 +474,7 @@ export const BOSS_SPAWNS = [
   { mob: 'elder_treant', x: 255, y: 262 },
   { mob: 'fenwyrm', x: 470, y: 475 },
   { mob: 'guy_of_gisborne', x: 385, y: 150 },
-  { mob: 'sheriff_of_nottingham', x: 330, y: 305 },
+  { mob: 'sheriff_of_nottingham', x: 330, y: 283 },   // enthroned in the castle's Great Hall
   { mob: 'troll_king', x: 505, y: 220 },
   { mob: 'frost_giant', x: 300, y: 38 },
   // Sheet-animated boss lairs
