@@ -254,7 +254,30 @@ function dist(x1, y1, x2, y2) { const dx = x1 - x2, dy = y1 - y2; return Math.sq
 // Settlement grounds are organic blobs, not circles: the radius bulges outward
 // with noise (never inward, so buildings and walls always stay on town ground).
 function townRadius(t, x, y) {
+  if (t.castle) return t.r;   // a castle gets a clean, un-noised curtain — no organic wobble
   return t.r + Math.max(0, (vnoise(x, y, 13, 71) - 0.42)) * t.r * 0.8;
+}
+// A proper CASTLE compound (square curtain wall, round corner turret towers, a square
+// moat and a straight south drawbridge) instead of the organic town blob — so the
+// walls read as a fortress, not a wavy hedge. cheb = Chebyshev (square) distance from
+// the centre; the keep itself is drawn separately (worldTile override) inside this.
+function castleCompoundTile(t, x, y) {
+  const R = t.r, dx = x - t.cx, dy = y - t.cy;
+  const cheb = Math.max(Math.abs(dx), Math.abs(dy));
+  const MOAT = 3, gw = 4, towerR = 5;   // moat thickness, gate/bridge half-width, turret radius
+  // round drum turrets projecting from each corner of the square curtain
+  for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    const td = Math.hypot(x - (t.cx + sx * R), y - (t.cy + sy * R));
+    if (td <= towerR) return td > towerR - 1.7 ? TILE.WALL : TILE.FLOOR_STONE;   // ring wall + tower floor
+  }
+  const southGate = (dy > 0 && Math.abs(dx) <= gw);   // the one gate + drawbridge, due south
+  if (cheb >= R - 0.5 && cheb <= R + 0.5) return southGate ? TILE.PATH : TILE.WALL;   // curtain wall (+ gate opening)
+  if (cheb > R + 0.5 && cheb <= R + MOAT) return southGate ? TILE.BRIDGE : TILE.WATER;  // moat ring (+ drawbridge)
+  if (cheb < R) {   // the bailey inside the walls (the keep sits in the middle via worldTile)
+    if (townPath(x, y)) return TILE.PATH;
+    return vnoise(x, y, 7, 83) > 0.74 ? TILE.MEADOW : TILE.GRASS;
+  }
+  return -1;   // beyond the moat → open country
 }
 
 // ---- streets & town furniture ---------------------------------------------------
@@ -400,7 +423,8 @@ function townTile(x, y) {
   }
   for (const key in TOWNS) {
     const t = TOWNS[key];
-    if (Math.abs(x - t.cx) > t.r * 1.5 + 6 || Math.abs(y - t.cy) > t.r * 1.5 + 6) continue;
+    if (Math.abs(x - t.cx) > t.r * 1.5 + 8 || Math.abs(y - t.cy) > t.r * 1.5 + 8) continue;
+    if (t.castle) { const ct = castleCompoundTile(t, x, y); if (ct >= 0) return ct; continue; }
     const d = dist(x, y, t.cx, t.cy);
     const rr = townRadius(t, x, y);
     // Castle moat (#126): a water ring hugs the outside of the rampart. Each gate
@@ -465,6 +489,12 @@ export function wallStyleAt(x, y) {
     const t = TOWNS[key];
     if (!t.walled) continue;
     if (Math.abs(x - t.cx) > t.r * 1.5 + 8 || Math.abs(y - t.cy) > t.r * 1.5 + 8) continue;
+    if (t.castle) {
+      // the square curtain + the round corner turrets all read as tall castle stone
+      const cheb = Math.max(Math.abs(x - t.cx), Math.abs(y - t.cy));
+      if (cheb <= t.r + 6) return 'castle';
+      continue;
+    }
     if (dist(x, y, t.cx, t.cy) >= townRadius(t, x, y)) continue;
     for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) {
       if (!ox && !oy) continue;
