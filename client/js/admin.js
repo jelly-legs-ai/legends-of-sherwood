@@ -1649,14 +1649,26 @@ const GS = {
   },
   dir: 'S',          // which facing the guideline + preview are showing / tuning
   picked: '',        // the weapon chosen in the import dropdown (kept selected across re-renders)
+  previewAnim: 'walk',  // preview animation for the carry sheet: 'walk' or 'idle'
+  previewSlow: 1,       // preview speed divisor (1 = live, higher = slower for close inspection)
   target: 'carry',   // which sheet we're compiling (see GS_TEMPLATES)
   sheets: {},        // captured PNG dataURLs per target, for deploy
   deploy: { open: false, kind: 'sword', level: 10, drops: [] },   // deployment-table state
 };
 // the pose for the facing currently being tuned
 function gsPose() { return GS.pose[GS.dir] || GS.pose.S; }
-// which facing a sheet row belongs to (LPC 4-row blocks run N, W, S, E)
-function gsRowFacing(row) { return ['N', 'W', 'S', 'E'][row % 4]; }
+// which facing a sheet row belongs to. LPC 4-row blocks run N, W, S, E and align to
+// row%4 for the classic anims (spellcast/thrust/walk/slash/shoot at rows 0/4/8/12/16).
+// But the expanded IDLE block starts at row 22 — OFF the 4-row grid (22%4===2) — so
+// row%4 mislabels every idle row by two (idle-N reads as South, etc). Map the idle
+// block from its own start so idle facings get the RIGHT pose/flip/layer.
+const GS_IDLE_ROW = 22;
+function gsRowFacing(row) {
+  if (row >= GS_IDLE_ROW) return ['N', 'W', 'S', 'E'][(row - GS_IDLE_ROW) % 4];
+  return ['N', 'W', 'S', 'E'][row % 4];
+}
+// the SOUTH row of a row's animation block (the auto-turn's rotation anchor)
+function gsSouthRow(row) { return row >= GS_IDLE_ROW ? GS_IDLE_ROW + 2 : (Math.floor(row / 4) * 4) + 2; }
 // (re)seed all four facings to the same starting line-up (fresh import); layers keep
 // their natural defaults (south over, the rest under)
 function gsSeedPose(lift) {
@@ -1682,15 +1694,47 @@ function gsSplitLayers(gen) {
   }
   return { fg, bg, anyBg };
 }
-// capture the current target's generated sheet, split by layer, ready to deploy. The
-// carry sheet ships an fg (over) + bg (under) pair so held weapons layer per facing.
+// capture the current target's generated sheet, ready to deploy. ONLY the carry
+// (held/walk/idle) sheet is split by layer into an fg (over-body facings) + bg
+// (behind-body facings) pair — that's the sheet drawn 1:1 over the body. The attack
+// overlays (slash/thrust) ship whole; their depth is handled by the oversize perAnim
+// path, and splitting them would drop their N/W/E art.
 function gsCapture() {
   if (!GS.gen) return;
-  const { fg, bg, anyBg } = gsSplitLayers(GS.gen);
-  GS.sheets[GS.target] = fg.toDataURL();
-  if (anyBg) GS.sheets[GS.target + '_bg'] = bg.toDataURL();
-  else delete GS.sheets[GS.target + '_bg'];
+  if (GS.target === 'carry') {
+    const { fg, bg, anyBg } = gsSplitLayers(GS.gen);
+    GS.sheets.carry = fg.toDataURL();
+    if (anyBg) GS.sheets.carry_bg = bg.toDataURL();
+    else delete GS.sheets.carry_bg;
+  } else {
+    GS.sheets[GS.target] = GS.gen.toDataURL();
+  }
 }
+// ---- tuning presets --------------------------------------------------------
+// A preset captures EVERY manipulation (all four facings' pose: offset, rotation,
+// scale, mirror/flip, layer) plus the track-swing / size-lock flags — but NOT the
+// image. Loading it onto a fresh import re-applies the exact same tuning, so a new
+// weapon of the SAME design/size/position as the preset's original input lines up
+// perfectly with no re-dialing. Stored in localStorage so they persist.
+function gsPresets() { try { return JSON.parse(localStorage.getItem('gs_presets') || '{}'); } catch { return {}; } }
+function gsSavePreset(name) {
+  name = (name || '').trim(); if (!name) return false;
+  const all = gsPresets();
+  all[name] = { pose: JSON.parse(JSON.stringify(GS.pose)), trackRot: GS.trackRot, sizeLock: GS.sizeLock };
+  localStorage.setItem('gs_presets', JSON.stringify(all));
+  return true;
+}
+function gsLoadPreset(name) {
+  const p = gsPresets()[name]; if (!p) return false;
+  GS.pose = JSON.parse(JSON.stringify(p.pose));
+  // tolerate presets saved before flip/layer existed
+  for (const f of ['S', 'N', 'W', 'E']) { const q = GS.pose[f] || (GS.pose[f] = { x: 0, y: -12, rot: 0, scale: 1 }); if (q.flipX == null) q.flipX = false; if (q.flipY == null) q.flipY = false; if (q.layer == null) q.layer = f === 'S' ? 'over' : 'under'; }
+  if (p.trackRot != null) GS.trackRot = p.trackRot;
+  if (p.sizeLock != null) GS.sizeLock = p.sizeLock;
+  if (GS.img) { gsGenerate(); gsCapture(); }
+  return true;
+}
+function gsDeletePreset(name) { const all = gsPresets(); delete all[name]; localStorage.setItem('gs_presets', JSON.stringify(all)); }
 // The maker anchors the weapon at the reference HAND and draws it centred, so an
 // upright blade wants a small upward lift to seat its handle at the hand. Seed
 // GS.y with that (~28% of the art height, clamped to the slider range); the user
@@ -1815,7 +1859,7 @@ function gsGenerate() {
   // model lines up the same and south always holds. Line your art up to the
   // diagonal guideline in the aligner and every facing follows the reference.
   const southRest = (r) => {
-    const sr = (Math.floor(r / 4) * 4) + 2;                    // the south row of r's 4-row block
+    const sr = gsSouthRow(r);                                  // the south row of r's animation block
     const c = ref.cells[sr * ref.cols + ac] || ref.cells[r * ref.cols + ac];
     return c ? c.angle : null;
   };
@@ -1886,12 +1930,23 @@ function renderGearSheet() {
       <div class="ms-row" style="gap:12px;flex-wrap:wrap">
         <label style="font-size:11.5px"><input type="checkbox" id="gs-track" ${GS.trackRot ? 'checked' : ''}> track swing</label>
         <label style="font-size:11.5px" title="keep the weapon the same size in every frame &amp; direction"><input type="checkbox" id="gs-lock" ${GS.sizeLock ? 'checked' : ''}> 🔒 size lock</label></div>
+      <details style="margin:6px 0" title="Save every manipulation (all four facings' offset/rotation/scale/mirror/layer) as a reusable preset. Load it onto a new weapon of the SAME design, size and starting position to line it up instantly.">
+        <summary style="color:var(--gold);font-size:12px;cursor:pointer">💾 Tuning presets</summary>
+        <div style="font-size:10.5px;color:var(--dim);margin:4px 0">Presets copy ALL your per-facing tuning (not the image). Load one onto a new import that's the <b>same size &amp; position</b> as this preset's original art and it fits with no re-dialing.</div>
+        <div class="ms-row" style="gap:4px"><input id="gs-preset-name" placeholder="name this tuning…" style="flex:1;font-size:11px"><button class="act" id="gs-preset-save" style="padding:2px 9px;font-size:11px">save</button></div>
+        <div class="ms-row" style="gap:4px"><select id="gs-preset-sel" style="flex:1;font-size:11px"><option value="">— saved presets —</option>${Object.keys(gsPresets()).map((n) => `<option>${n}</option>`).join('')}</select>
+          <button class="act" id="gs-preset-load" style="padding:2px 9px;font-size:11px">load</button>
+          <button class="act" id="gs-preset-del" style="padding:2px 7px;font-size:11px" title="delete selected preset">✕</button></div>
+      </details>
       <div class="ms-row"><button class="act" id="gs-gen" style="flex:1">⚙ Generate sheet</button>
         <button class="act" id="gs-dl">⬇ PNG</button></div>
     </div>
     <div style="min-width:270px">
       <h3 style="color:var(--gold);font-size:12px">4 · Preview on the character</h3>
       <canvas id="gs-preview" width="220" height="290" style="background:#23422a;border:1px solid var(--trim);border-radius:6px"></canvas>
+      <div class="ms-row" style="gap:8px;flex-wrap:wrap;font-size:11px;margin-top:5px">
+        ${GS.target === 'carry' ? `<span>anim:</span>${['walk', 'idle'].map((a) => `<button class="act ${GS.previewAnim === a ? 'on' : ''}" data-gsanim="${a}" style="padding:1px 8px;font-size:10.5px">${a}</button>`).join('')}` : `<span style="color:var(--dim)">previewing the ${gsTpl().label} attack</span>`}
+        <span style="margin-left:6px">speed</span><input id="gs-slow" type="range" min="1" max="6" step="0.5" value="${GS.previewSlow}" style="width:90px" title="slow the preview down to inspect each frame"></div>
       <div style="font-size:11px;color:var(--dim);margin-top:6px">The grip template is the game's own weapon sheet for this animation — your art inherits its exact per-frame hand positions. Align once; the maker fits it to every frame and clips each stamp to its cell.</div>
       <div id="gs-status" style="font-size:11px;color:var(--dim);margin-top:8px"></div>
       <div id="gs-caps" style="font-size:11px;color:var(--dim);margin-top:4px"></div>
@@ -1918,7 +1973,16 @@ function renderGearSheet() {
   // mirror / flip / layer apply ONLY to the facing being tuned
   $('#gs-flipx').onchange = (e) => { gsPose().flipX = e.target.checked; gsGenerate(); };
   $('#gs-flipy').onchange = (e) => { gsPose().flipY = e.target.checked; gsGenerate(); };
-  $('#gs-layer').onchange = (e) => { gsPose().layer = e.target.checked ? 'under' : 'over'; };
+  // layer changes no pixels, but it DOES change the fg/bg split — re-capture so a
+  // later deploy ships the current over/under choice
+  $('#gs-layer').onchange = (e) => { gsPose().layer = e.target.checked ? 'under' : 'over'; gsCapture(); };
+  // preview-only controls: walk↔idle animation + slow-motion for close inspection
+  for (const b of body.querySelectorAll('[data-gsanim]')) b.onclick = () => { GS.previewAnim = b.dataset.gsanim; renderGearSheet(); };
+  const slow = $('#gs-slow'); if (slow) slow.oninput = (e) => { GS.previewSlow = +e.target.value; };
+  // tuning presets: save/load/delete the full per-facing manipulation set
+  $('#gs-preset-save').onclick = () => { const n = $('#gs-preset-name').value; if (gsSavePreset(n)) renderGearSheet(); };
+  $('#gs-preset-load').onclick = () => { const n = $('#gs-preset-sel').value; if (n && gsLoadPreset(n)) { gsSyncSliders(); renderGearSheet(); } };
+  $('#gs-preset-del').onclick = () => { const n = $('#gs-preset-sel').value; if (n) { gsDeletePreset(n); renderGearSheet(); } };
   $('#gs-gen').onclick = () => { gsGenerate(); gsCapture(); gsCaps(); $('#gs-status').textContent = GS.gen ? 'sheet generated & captured — see the preview' : 'import an image first'; };
   $('#gs-dl').onclick = () => { if (!GS.gen) return; gsCapture(); gsCaps(); const a = document.createElement('a'); a.download = (GS.imgName || 'weapon') + '_' + GS.target + '_lpc.png'; a.href = GS.gen.toDataURL(); a.click(); };
   // switching targets captures the outgoing sheet first, so a multi-animation
@@ -2019,7 +2083,8 @@ function gsCompileAll() {
     let pending = targets.length;
     const done = () => {
       const save = GS.target;
-      for (const t of targets) { GS.target = t; gsGenerate(); if (GS.gen) GS.sheets[t] = GS.gen.toDataURL(); }
+      // gsCapture (not a raw toDataURL) so the carry sheet ships its fg/bg layer split
+      for (const t of targets) { GS.target = t; gsGenerate(); gsCapture(); }
       GS.target = save; gsGenerate();
       resolve();
     };
@@ -2092,17 +2157,23 @@ function gsLoop() {
   // in a tall canvas so legs and blade tip are never clipped. The weapon draws in
   // FRONT of or BEHIND the body per this facing's layer, mirroring how it ships. ---
   const pg = pc.getContext('2d'); pg.imageSmoothingEnabled = false; pg.clearRect(0, 0, 220, 290);
-  const nf = t.frames, fi = Math.floor(now / t.ms) % nf;
+  // preview the walk sheet as either its walk cycle OR the idle breathing loop (idle
+  // is a separate 2-frame block at rows 22-25, so this is the only way to eyeball it)
+  const idlePrev = (!t.over && GS.previewAnim === 'idle');
+  const bodyRow = idlePrev ? GS_IDLE_ROW : t.bodyRow;
+  const nf = idlePrev ? 2 : t.frames;
+  const ms = (idlePrev ? 650 : t.ms) * (GS.previewSlow || 1);   // slow down for close inspection
+  const fi = Math.floor(now / ms) % nf;
   const pk = 190 / t.fs, cx = 110, feet = 235;   // shared body+weapon scale (mimics in-game geometry)
   const S = 64 * pk, bx = cx - S / 2, by = feet - S + 12 * pk;
   const drawBody = () => {
-    if (GS.body) pg.drawImage(GS.body, fi * 64, (t.bodyRow + dir) * 64, 64, 64, bx, by, S, S);
-    if (GS.hair) pg.drawImage(GS.hair, fi * 64, (t.bodyRow + dir) * 64, 64, 64, bx, by, S, S);
+    if (GS.body) pg.drawImage(GS.body, fi * 64, (bodyRow + dir) * 64, 64, 64, bx, by, S, S);
+    if (GS.hair) pg.drawImage(GS.hair, fi * 64, (bodyRow + dir) * 64, 64, 64, bx, by, S, S);
   };
   const drawWeapon = () => {
     if (!GS.gen) return;
     if (t.over) { const Sw = t.fs * pk; pg.drawImage(GS.gen, fi * t.fs, dir * t.fs, t.fs, t.fs, cx - Sw / 2, feet - (t.fs / 2 + 20) * pk, Sw, Sw); }
-    else pg.drawImage(GS.gen, fi * 64, (t.bodyRow + dir) * 64, 64, 64, bx, by, S, S);
+    else pg.drawImage(GS.gen, fi * 64, (bodyRow + dir) * 64, 64, 64, bx, by, S, S);
   };
   if (pose.layer === 'under') { drawWeapon(); drawBody(); }
   else { drawBody(); drawWeapon(); }
