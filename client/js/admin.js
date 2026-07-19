@@ -1640,6 +1640,7 @@ const GS = {
   // offset (px) so you can dial each side profile to a perfect fit without touching
   // south. All zero = pure auto placement (unchanged behaviour).
   adj: { N: { r: 0, x: 0, y: 0 }, W: { r: 0, x: 0, y: 0 }, E: { r: 0, x: 0, y: 0 } },
+  dir: 'S',          // which facing the guideline + preview are showing / tuning
   target: 'carry',   // which sheet we're compiling (see GS_TEMPLATES)
   sheets: {},        // captured PNG dataURLs per target, for deploy
   deploy: { open: false, kind: 'sword', level: 10, drops: [] },   // deployment-table state
@@ -1724,6 +1725,15 @@ function gsExtractCells(img, fs) {
   const rc = { cells, cols, rows, W, H, fs };
   return rc;
 }
+// LPC facing order within each 4-row block: North, West, South, East. The align
+// row is the SOUTH row (index +2 in its block), so a facing's reference cell is
+// the align column on (block start + facing index).
+const GS_DIRIDX = { N: 0, W: 1, S: 2, E: 3 };
+function gsDirCell(dir) {
+  const ref = gsRef(); if (!ref) return null; const t = gsTpl();
+  const row = (t.align.r - 2) + (GS_DIRIDX[dir] ?? 2);
+  return ref.cells[row * ref.cols + t.align.c] || gsAlignCell();
+}
 function gsAlignCell() {
   const ref = gsRef(); if (!ref) return null; const t = gsTpl();
   const at = ref.cells[t.align.r * ref.cols + t.align.c];
@@ -1765,8 +1775,13 @@ function gsGenerate() {
     const c = ref.cells[sr * ref.cols + ac] || ref.cells[r * ref.cols + ac];
     return c ? c.angle : null;
   };
-  const out = document.createElement('canvas'); out.width = ref.W; out.height = ref.H;
-  const g = out.getContext('2d'); g.imageSmoothingEnabled = false;
+  // SUPERSAMPLE: render the whole sheet at 2x with smoothing, then downscale once —
+  // rotated/scaled stamps come out anti-aliased instead of nearest-neighbour jagged
+  // (no dropped pixels along blade edges / tips). PAD widens each frame's clip so a
+  // long blade's tip isn't shaved off at the cell edge (still bounded, no bleed).
+  const SS = 2, PAD = Math.round(fs * 0.16);
+  const out = document.createElement('canvas'); out.width = ref.W * SS; out.height = ref.H * SS;
+  const g = out.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.scale(SS, SS);
   const iw = GS.img.width, ih = GS.img.height;
   for (const cell of ref.cells) {
     if (!cell) continue;
@@ -1780,8 +1795,8 @@ function gsGenerate() {
     const facing = ['N', 'W', 'S', 'E'][cell.row % 4];
     const adj = GS.adj[facing] || { r: 0, x: 0, y: 0 };
     g.save();
-    // clip to THIS frame's cell so a stamp can never bleed into a neighbour
-    g.beginPath(); g.rect(cell.col * fs, cell.row * fs, fs, fs); g.clip();
+    // clip to THIS frame's cell (padded) so a stamp can't bleed onto a neighbour
+    g.beginPath(); g.rect(cell.col * fs - PAD, cell.row * fs - PAD, fs + 2 * PAD, fs + 2 * PAD); g.clip();
     // anchor at the reference HAND (grip) + the facing's screen nudge, so the weapon
     // hangs from the hand in every facing; the art is drawn centred + your line-up
     g.translate(cell.col * fs + cell.gx + adj.x, cell.row * fs + cell.gy + adj.y);
@@ -1791,7 +1806,11 @@ function gsGenerate() {
     g.drawImage(GS.img, -iw / 2, -ih / 2);
     g.restore();
   }
-  GS.gen = out;
+  // resolve the 2x supersample down to the sheet's real size (one clean downscale)
+  const fin = document.createElement('canvas'); fin.width = ref.W; fin.height = ref.H;
+  const fg = fin.getContext('2d'); fg.imageSmoothingEnabled = true; fg.imageSmoothingQuality = 'high';
+  fg.drawImage(out, 0, 0, out.width, out.height, 0, 0, ref.W, ref.H);
+  GS.gen = fin;
 }
 function renderGearSheet() {
   const body = $('#comp-body');
@@ -1807,7 +1826,8 @@ function renderGearSheet() {
       <div class="ms-row" style="flex-wrap:wrap;gap:4px">${tgtBtns}</div>
       <div style="font-size:11px;color:var(--dim)">Carry is the base walk/idle sheet; slash &amp; thrust are the attack overlays. Compile whichever your weapon needs.</div>
       <h3 style="color:var(--gold);font-size:12px;margin-top:12px">3 · Overlay the guideline blade</h3>
-      <div style="font-size:11px;color:var(--dim);margin-bottom:5px">Lay your weapon <b>right over the cyan guideline blade</b> — match its <b>angle and grip</b>, not straight up. The guideline is how the real weapon is held facing south; the maker then turns your art to every other facing exactly like the built-in sheets.</div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:5px">Lay your weapon <b>right over the cyan guideline blade</b> — match its <b>angle and grip</b>. Start with <b>South</b> (your base line-up); then pick <b>N/W/E</b> to see that facing's template + live animation and dial each one in (drag the guide or use the fine-tune sliders).</div>
+      <div class="ms-row" style="gap:4px;margin-bottom:5px">${['S', 'N', 'W', 'E'].map((f) => `<button class="act ${GS.dir === f ? 'on' : ''}" data-gsdir="${f}" style="padding:2px 10px;font-size:11px">${{ S: 'South', N: 'North', W: 'West', E: 'East' }[f]}</button>`).join('')}</div>
       <canvas id="gs-align" width="256" height="256" style="background:#20331f;border:1px solid var(--trim);border-radius:6px;cursor:move"></canvas>
       <div class="ms-row">X <input id="gs-x" type="range" min="-40" max="40" step="0.5" value="${GS.x}" style="flex:1"></div>
       <div class="ms-row">Y <input id="gs-y" type="range" min="-40" max="40" step="0.5" value="${GS.y}" style="flex:1"></div>
@@ -1818,10 +1838,10 @@ function renderGearSheet() {
         <label style="font-size:11.5px"><input type="checkbox" id="gs-flipy" ${GS.flipY ? 'checked' : ''}> flip ↕</label>
         <label style="font-size:11.5px"><input type="checkbox" id="gs-track" ${GS.trackRot ? 'checked' : ''}> track swing</label>
         <label style="font-size:11.5px" title="keep the weapon the same size in every frame &amp; direction"><input type="checkbox" id="gs-lock" ${GS.sizeLock ? 'checked' : ''}> 🔒 size lock</label></div>
-      <details style="margin-top:8px" ${(GS.adj.N.r || GS.adj.N.x || GS.adj.N.y || GS.adj.W.r || GS.adj.W.x || GS.adj.W.y || GS.adj.E.r || GS.adj.E.x || GS.adj.E.y) ? 'open' : ''}>
+      <details style="margin-top:8px" ${(GS.dir !== 'S' || GS.adj.N.r || GS.adj.N.x || GS.adj.N.y || GS.adj.W.r || GS.adj.W.x || GS.adj.W.y || GS.adj.E.r || GS.adj.E.x || GS.adj.E.y) ? 'open' : ''}>
         <summary style="color:var(--gold);font-size:12px;cursor:pointer">Per-direction fine-tune</summary>
-        <div style="font-size:11px;color:var(--dim);margin:4px 0">South is your base line-up. If a side profile isn't a perfect fit, nudge <b>just that facing</b> here — a rotation and a screen offset on top of the auto turn. Watch the preview; leave a facing at 0 to keep pure auto.</div>
-        ${['N', 'W', 'E'].map((f) => `<div class="ms-row" style="gap:6px;align-items:center;font-size:11px"><b style="width:14px">${f}</b>
+        <div style="font-size:11px;color:var(--dim);margin:4px 0">South is your base line-up. If a side profile isn't a perfect fit, nudge <b>just that facing</b> here (or drag on the guide) — a rotation and screen offset on top of the auto turn. The highlighted row is the facing you're viewing; leave a facing at 0 to keep pure auto.</div>
+        ${['N', 'W', 'E'].map((f) => `<div class="ms-row" style="gap:6px;align-items:center;font-size:11px;${GS.dir === f ? 'background:rgba(230,200,90,0.14);border-radius:4px;padding:1px 2px' : ''}"><b style="width:14px">${f}</b>
           rot <input id="gs-adj-${f}-r" type="range" min="-45" max="45" step="0.5" value="${GS.adj[f].r}" style="width:70px">
           x <input id="gs-adj-${f}-x" type="range" min="-20" max="20" step="0.5" value="${GS.adj[f].x}" style="width:52px">
           y <input id="gs-adj-${f}-y" type="range" min="-20" max="20" step="0.5" value="${GS.adj[f].y}" style="width:52px"></div>`).join('')}
@@ -1860,13 +1880,22 @@ function renderGearSheet() {
   // switching targets captures the outgoing sheet first, so a multi-animation
   // weapon (carry + slash, say) keeps every compiled sheet ready to deploy
   for (const b of body.querySelectorAll('[data-gst]')) b.onclick = () => { gsCapture(); GS.target = b.dataset.gst; renderGearSheet(); };
+  // facing selector: switch the guide + preview to that direction to dial it in
+  for (const b of body.querySelectorAll('[data-gsdir]')) b.onclick = () => { GS.dir = b.dataset.gsdir; renderGearSheet(); };
   $('#gs-deploy-toggle').onclick = () => { GS.deploy.open = !GS.deploy.open; renderDeploy(); };
   if (!state.dropTables) send({ t: 'dropTables' });
   gsCaps(); renderDeploy();
-  // drag on the align canvas moves the base image
+  // drag on the align canvas moves the SELECTED facing: South drags the base
+  // line-up, N/W/E drag that facing's fine-tune offset
   const ac = $('#gs-align'); let drag = null;
-  ac.onmousedown = (e) => { drag = { mx: e.offsetX, my: e.offsetY, x: GS.x, y: GS.y }; };
-  window.addEventListener('mousemove', (e) => { if (!drag) return; const r = ac.getBoundingClientRect(); const z = 256 / gsTpl().fs; GS.x = drag.x + (e.clientX - r.left - drag.mx) / z; GS.y = drag.y + (e.clientY - r.top - drag.my) / z; $('#gs-x').value = GS.x; $('#gs-y').value = GS.y; gsGenerate(); });
+  ac.onmousedown = (e) => { const a = GS.adj[GS.dir]; drag = { mx: e.offsetX, my: e.offsetY, x: GS.dir === 'S' ? GS.x : a.x, y: GS.dir === 'S' ? GS.y : a.y }; };
+  window.addEventListener('mousemove', (e) => {
+    if (!drag) return; const r = ac.getBoundingClientRect(); const z = 256 / gsTpl().fs;
+    const nx = drag.x + (e.clientX - r.left - drag.mx) / z, ny = drag.y + (e.clientY - r.top - drag.my) / z;
+    if (GS.dir === 'S') { GS.x = nx; GS.y = ny; const ex = $('#gs-x'), ey = $('#gs-y'); if (ex) ex.value = nx; if (ey) ey.value = ny; }
+    else { GS.adj[GS.dir].x = nx; GS.adj[GS.dir].y = ny; const ex = $(`#gs-adj-${GS.dir}-x`), ey = $(`#gs-adj-${GS.dir}-y`); if (ex) ex.value = nx; if (ey) ey.value = ny; }
+    gsGenerate();
+  });
   window.addEventListener('mouseup', () => drag = null);
   gsLoop();
 }
@@ -1990,24 +2019,33 @@ function gsLoop() {
   if (!ac || !pc) return;
   const now = performance.now();
   const t = gsTpl(), ref = gsRef(), align = gsAlignCell();
-  // --- alignment canvas: reference grip guideline (cyan) + your art, zoomed ---
+  const dir = GS_DIRIDX[GS.dir] ?? 2;               // which facing we're viewing/tuning
+  const guide = gsDirCell(GS.dir) || align;          // that facing's reference cell
+  const gadj = GS.adj[GS.dir] || { r: 0, x: 0, y: 0 };
+  // --- alignment canvas: reference grip guideline (cyan) + your art for the SELECTED
+  // facing, zoomed — so N/W/E each show their own template + fit, not just south ---
   const ag = ac.getContext('2d'); ag.imageSmoothingEnabled = false; ag.clearRect(0, 0, 256, 256);
-  if (ref && align) {
+  if (ref && guide) {
     const z = 256 / ref.fs;
     ag.save(); ag.globalAlpha = 0.5; ag.filter = 'hue-rotate(160deg) saturate(3)';
-    ag.drawImage(ref.canvas, align.col * ref.fs, align.row * ref.fs, ref.fs, ref.fs, 0, 0, 256, 256);
+    ag.drawImage(ref.canvas, guide.col * ref.fs, guide.row * ref.fs, ref.fs, ref.fs, 0, 0, 256, 256);
     ag.restore();
     if (GS.img) {
-      ag.save(); ag.translate(align.gx * z, align.gy * z);   // anchor at the hand (grip), matching gsGenerate
+      const dRot = GS.trackRot ? guide.angle - (align ? align.angle : guide.angle) : 0;   // auto turn vs south
+      const dScale = GS.sizeLock ? 1 : guide.ext / ((align && align.ext) || 1);
+      ag.save();
+      ag.translate((guide.gx + gadj.x) * z, (guide.gy + gadj.y) * z);   // hand + facing nudge, matching gsGenerate
+      ag.rotate(dRot + gadj.r * Math.PI / 180); ag.scale(dScale, dScale);
       ag.translate(GS.x * z, GS.y * z); ag.rotate(GS.rot * Math.PI / 180); ag.scale(GS.scale * z, GS.scale * z);
       ag.scale(GS.flipX ? -1 : 1, GS.flipY ? -1 : 1);
       ag.drawImage(GS.img, -GS.img.width / 2, -GS.img.height / 2);
       ag.restore();
     }
   }
-  // --- preview: body performing the target animation + the generated weapon ---
+  // --- preview: body performing the target animation + the generated weapon,
+  // facing the direction you're tuning ---
   const pg = pc.getContext('2d'); pg.imageSmoothingEnabled = false; pg.clearRect(0, 0, 220, 240);
-  const nf = t.frames, fi = Math.floor(now / t.ms) % nf, dir = 2;   // south-facing
+  const nf = t.frames, fi = Math.floor(now / t.ms) % nf;
   const pk = 190 / t.fs, cx = 110, feet = 216;   // shared body+weapon scale (mimics in-game geometry)
   if (GS.body) { const S = 64 * pk; pg.drawImage(GS.body, fi * 64, (t.bodyRow + dir) * 64, 64, 64, cx - S / 2, feet - S + 12 * pk, S, S); }
   if (GS.gen) {
