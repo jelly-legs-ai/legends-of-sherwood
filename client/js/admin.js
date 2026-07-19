@@ -1632,19 +1632,31 @@ function renderCompAnims() {
 // the guideline on one frame; the maker propagates that fit across all frames.
 // ============================================================================
 const GS = {
-  img: null, imgName: '', body: null, gen: null, refs: {},
-  x: 0, y: 0, scale: 1, rot: 0, trackRot: true, flipX: false, flipY: false,
+  img: null, imgName: '', body: null, hair: null, gen: null, refs: {},
+  trackRot: true, flipX: false, flipY: false,
   sizeLock: true,    // keep the weapon a constant size across all frames/directions
-  // per-facing fine-tune layered ON TOP of the auto placement. South is the base
-  // (your step-3 line-up); N/W/E each get an optional rotation nudge (deg) + screen
-  // offset (px) so you can dial each side profile to a perfect fit without touching
-  // south. All zero = pure auto placement (unchanged behaviour).
-  adj: { N: { r: 0, x: 0, y: 0 }, W: { r: 0, x: 0, y: 0 }, E: { r: 0, x: 0, y: 0 } },
+  // Each facing owns a FULL, independent pose (screen offset px, rotation deg, scale)
+  // laid on top of the automatic body-turn. Because S/N/W/E are separate objects,
+  // lining up one facing and then adjusting another never disturbs the first — you
+  // dial South, lock it, then N/W/E, and each stays put. Seeded identical; the
+  // auto-turn already swings each side to roughly the right orientation, and the
+  // rotate slider now covers a full ±180° so any facing can be spun freely.
+  pose: {
+    S: { x: 0, y: -12, rot: 0, scale: 1 }, N: { x: 0, y: -12, rot: 0, scale: 1 },
+    W: { x: 0, y: -12, rot: 0, scale: 1 }, E: { x: 0, y: -12, rot: 0, scale: 1 },
+  },
   dir: 'S',          // which facing the guideline + preview are showing / tuning
+  picked: '',        // the weapon chosen in the import dropdown (kept selected across re-renders)
   target: 'carry',   // which sheet we're compiling (see GS_TEMPLATES)
   sheets: {},        // captured PNG dataURLs per target, for deploy
   deploy: { open: false, kind: 'sword', level: 10, drops: [] },   // deployment-table state
 };
+// the pose for the facing currently being tuned
+function gsPose() { return GS.pose[GS.dir] || GS.pose.S; }
+// (re)seed all four facings to the same starting line-up (fresh import)
+function gsSeedPose(lift) { for (const f of ['S', 'N', 'W', 'E']) GS.pose[f] = { x: 0, y: lift, rot: 0, scale: 1 }; }
+// push the current facing's pose values back onto the sliders (after a seed / facing switch)
+function gsSyncSliders() { const p = gsPose(); for (const k of ['x', 'y', 'scale', 'rot']) { const el = $(`#gs-${k}`); if (el) el.value = p[k]; } }
 // capture the current target's generated sheet as a PNG, ready to deploy
 function gsCapture() { if (GS.gen) GS.sheets[GS.target] = GS.gen.toDataURL(); }
 // The maker anchors the weapon at the reference HAND and draws it centred, so an
@@ -1677,9 +1689,9 @@ function gsImportWeapon(type) {
     const crop = document.createElement('canvas'); crop.width = w + pad * 2; crop.height = h + pad * 2;
     crop.getContext('2d').drawImage(cv, ox + mnx, oy + mny, w, h, pad, pad, w, h);
     GS.img = crop; GS.imgName = type;
-    // seat an upright blade's handle at the hand; the user fine-tunes from here
-    GS.x = 0; GS.y = gsDefaultLift(crop.height); GS.scale = 1; GS.rot = 0; GS.flipX = false; GS.flipY = false;
-    for (const k of ['x', 'y', 'scale', 'rot']) { const e = $(`#gs-${k}`); if (e) e.value = GS[k]; }
+    // seat an upright blade's handle at the hand on every facing; user fine-tunes each
+    gsSeedPose(gsDefaultLift(crop.height)); GS.flipX = false; GS.flipY = false;
+    gsSyncSliders();
     gsGenerate(); gsCapture(); gsCaps();
   };
   im.src = 'assets/lpc/' + file;
@@ -1777,9 +1789,10 @@ function gsGenerate() {
   };
   // SUPERSAMPLE: render the whole sheet at 2x with smoothing, then downscale once —
   // rotated/scaled stamps come out anti-aliased instead of nearest-neighbour jagged
-  // (no dropped pixels along blade edges / tips). PAD widens each frame's clip so a
-  // long blade's tip isn't shaved off at the cell edge (still bounded, no bleed).
-  const SS = 2, PAD = Math.round(fs * 0.16);
+  // (no dropped pixels along blade edges / tips). Each stamp is clipped to its EXACT
+  // cell so nothing bleeds into a neighbouring frame (a padded clip used to let a
+  // long blade poke into the frame above, showing up in the preview).
+  const SS = 2;
   const out = document.createElement('canvas'); out.width = ref.W * SS; out.height = ref.H * SS;
   const g = out.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.scale(SS, SS);
   const iw = GS.img.width, ih = GS.img.height;
@@ -1790,18 +1803,18 @@ function gsGenerate() {
     // size-lock keeps a constant size across frames; unlocked, it matches the
     // reference blade's per-frame length
     const dScale = GS.sizeLock ? 1 : cell.ext / (align.ext || 1);
-    // per-facing fine-tune: block rows go N/W/S/E, so row%4 picks the facing; S is
-    // the untouched base, N/W/E add the user's dial-in nudge on top of the auto turn
+    // block rows go N/W/S/E, so row%4 picks the facing; each facing applies its OWN
+    // independent pose on top of the auto turn, so tuning one never moves another
     const facing = ['N', 'W', 'S', 'E'][cell.row % 4];
-    const adj = GS.adj[facing] || { r: 0, x: 0, y: 0 };
+    const pose = GS.pose[facing] || GS.pose.S;
     g.save();
-    // clip to THIS frame's cell (padded) so a stamp can't bleed onto a neighbour
-    g.beginPath(); g.rect(cell.col * fs - PAD, cell.row * fs - PAD, fs + 2 * PAD, fs + 2 * PAD); g.clip();
-    // anchor at the reference HAND (grip) + the facing's screen nudge, so the weapon
-    // hangs from the hand in every facing; the art is drawn centred + your line-up
-    g.translate(cell.col * fs + cell.gx + adj.x, cell.row * fs + cell.gy + adj.y);
-    g.rotate(dRot + adj.r * Math.PI / 180); g.scale(dScale, dScale);
-    g.translate(GS.x, GS.y); g.rotate(GS.rot * Math.PI / 180); g.scale(GS.scale, GS.scale);
+    // clip to THIS frame's exact cell so a stamp can't bleed onto a neighbour
+    g.beginPath(); g.rect(cell.col * fs, cell.row * fs, fs, fs); g.clip();
+    // anchor at the reference HAND (grip), auto-turn to this facing, then apply the
+    // facing's own line-up (offset / rotation / scale); art is drawn centred
+    g.translate(cell.col * fs + cell.gx, cell.row * fs + cell.gy);
+    g.rotate(dRot); g.scale(dScale, dScale);
+    g.translate(pose.x, pose.y); g.rotate(pose.rot * Math.PI / 180); g.scale(pose.scale, pose.scale);
     g.scale(GS.flipX ? -1 : 1, GS.flipY ? -1 : 1);   // mirror the input art
     g.drawImage(GS.img, -iw / 2, -ih / 2);
     g.restore();
@@ -1821,37 +1834,30 @@ function renderGearSheet() {
       <div class="ms-row"><input type="file" id="gs-file" accept="image/*"></div>
       <div style="font-size:11px;color:var(--dim)">A single weapon image (PNG, transparent). Point the blade UP for best results.</div>
       <div class="ms-row" style="gap:4px;margin-top:5px">…or edit an existing weapon:
-        <select id="gs-import" style="flex:1"><option value="">— pick a weapon —</option>${weaponList().filter(weaponImportable).map((w) => `<option value="${w}">${w}</option>`).join('')}</select></div>
+        <select id="gs-import" style="flex:1"><option value="">— pick a weapon —</option>${weaponList().filter(weaponImportable).map((w) => `<option value="${w}" ${GS.picked === w ? 'selected' : ''}>${w}</option>`).join('')}</select></div>
       <h3 style="color:var(--gold);font-size:12px;margin-top:12px">2 · Choose the combat animation</h3>
       <div class="ms-row" style="flex-wrap:wrap;gap:4px">${tgtBtns}</div>
       <div style="font-size:11px;color:var(--dim)">Carry is the base walk/idle sheet; slash &amp; thrust are the attack overlays. Compile whichever your weapon needs.</div>
-      <h3 style="color:var(--gold);font-size:12px;margin-top:12px">3 · Overlay the guideline blade</h3>
-      <div style="font-size:11px;color:var(--dim);margin-bottom:5px">Lay your weapon <b>right over the cyan guideline blade</b> — match its <b>angle and grip</b>. Start with <b>South</b> (your base line-up); then pick <b>N/W/E</b> to see that facing's template + live animation and dial each one in (drag the guide or use the fine-tune sliders).</div>
+      <h3 style="color:var(--gold);font-size:12px;margin-top:12px">3 · Line up each facing (locks independently)</h3>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:5px">Lay your weapon <b>right over the cyan guideline blade</b> — match its <b>angle and grip</b>. Pick a facing, drag the guide or use the sliders below, then move to the next. <b>Each facing keeps its own line-up</b>, so tuning one never shifts the others — dial S, then N, W, E and every one stays locked.</div>
       <div class="ms-row" style="gap:4px;margin-bottom:5px">${['S', 'N', 'W', 'E'].map((f) => `<button class="act ${GS.dir === f ? 'on' : ''}" data-gsdir="${f}" style="padding:2px 10px;font-size:11px">${{ S: 'South', N: 'North', W: 'West', E: 'East' }[f]}</button>`).join('')}</div>
       <canvas id="gs-align" width="256" height="256" style="background:#20331f;border:1px solid var(--trim);border-radius:6px;cursor:move"></canvas>
-      <div class="ms-row">X <input id="gs-x" type="range" min="-40" max="40" step="0.5" value="${GS.x}" style="flex:1"></div>
-      <div class="ms-row">Y <input id="gs-y" type="range" min="-40" max="40" step="0.5" value="${GS.y}" style="flex:1"></div>
-      <div class="ms-row">scale <input id="gs-scale" type="range" min="0.2" max="3" step="0.02" value="${GS.scale}" style="flex:1"></div>
-      <div class="ms-row">rotate <input id="gs-rot" type="range" min="-180" max="180" step="1" value="${GS.rot}" style="flex:1"></div>
+      <div style="font-size:10.5px;color:var(--gold);margin:3px 0 1px">Tuning <b>${{ S: 'South', N: 'North', W: 'West', E: 'East' }[GS.dir]}</b> — these sliders move only this facing</div>
+      <div class="ms-row">X <input id="gs-x" type="range" min="-40" max="40" step="0.5" value="${gsPose().x}" style="flex:1"></div>
+      <div class="ms-row">Y <input id="gs-y" type="range" min="-40" max="40" step="0.5" value="${gsPose().y}" style="flex:1"></div>
+      <div class="ms-row">scale <input id="gs-scale" type="range" min="0.2" max="3" step="0.02" value="${gsPose().scale}" style="flex:1"></div>
+      <div class="ms-row">rotate <input id="gs-rot" type="range" min="-180" max="180" step="1" value="${gsPose().rot}" style="flex:1"></div>
       <div class="ms-row" style="gap:12px;flex-wrap:wrap">
         <label style="font-size:11.5px"><input type="checkbox" id="gs-flipx" ${GS.flipX ? 'checked' : ''}> mirror ↔</label>
         <label style="font-size:11.5px"><input type="checkbox" id="gs-flipy" ${GS.flipY ? 'checked' : ''}> flip ↕</label>
         <label style="font-size:11.5px"><input type="checkbox" id="gs-track" ${GS.trackRot ? 'checked' : ''}> track swing</label>
         <label style="font-size:11.5px" title="keep the weapon the same size in every frame &amp; direction"><input type="checkbox" id="gs-lock" ${GS.sizeLock ? 'checked' : ''}> 🔒 size lock</label></div>
-      <details style="margin-top:8px" ${(GS.dir !== 'S' || GS.adj.N.r || GS.adj.N.x || GS.adj.N.y || GS.adj.W.r || GS.adj.W.x || GS.adj.W.y || GS.adj.E.r || GS.adj.E.x || GS.adj.E.y) ? 'open' : ''}>
-        <summary style="color:var(--gold);font-size:12px;cursor:pointer">Per-direction fine-tune</summary>
-        <div style="font-size:11px;color:var(--dim);margin:4px 0">South is your base line-up. If a side profile isn't a perfect fit, nudge <b>just that facing</b> here (or drag on the guide) — a rotation and screen offset on top of the auto turn. The highlighted row is the facing you're viewing; leave a facing at 0 to keep pure auto.</div>
-        ${['N', 'W', 'E'].map((f) => `<div class="ms-row" style="gap:6px;align-items:center;font-size:11px;${GS.dir === f ? 'background:rgba(230,200,90,0.14);border-radius:4px;padding:1px 2px' : ''}"><b style="width:14px">${f}</b>
-          rot <input id="gs-adj-${f}-r" type="range" min="-45" max="45" step="0.5" value="${GS.adj[f].r}" style="width:70px">
-          x <input id="gs-adj-${f}-x" type="range" min="-20" max="20" step="0.5" value="${GS.adj[f].x}" style="width:52px">
-          y <input id="gs-adj-${f}-y" type="range" min="-20" max="20" step="0.5" value="${GS.adj[f].y}" style="width:52px"></div>`).join('')}
-      </details>
       <div class="ms-row"><button class="act" id="gs-gen" style="flex:1">⚙ Generate sheet</button>
         <button class="act" id="gs-dl">⬇ PNG</button></div>
     </div>
     <div style="min-width:270px">
       <h3 style="color:var(--gold);font-size:12px">4 · Preview on the character</h3>
-      <canvas id="gs-preview" width="220" height="240" style="background:#23422a;border:1px solid var(--trim);border-radius:6px"></canvas>
+      <canvas id="gs-preview" width="220" height="290" style="background:#23422a;border:1px solid var(--trim);border-radius:6px"></canvas>
       <div style="font-size:11px;color:var(--dim);margin-top:6px">The grip template is the game's own weapon sheet for this animation — your art inherits its exact per-frame hand positions. Align once; the maker fits it to every frame and clips each stamp to its cell.</div>
       <div id="gs-status" style="font-size:11px;color:var(--dim);margin-top:8px"></div>
       <div id="gs-caps" style="font-size:11px;color:var(--dim);margin-top:4px"></div>
@@ -1866,15 +1872,17 @@ function renderGearSheet() {
     if (s && ref) s.textContent = `${gsTpl().label} template ready: ${ref.cols}×${ref.rows} frames @ ${ref.fs}px`;
     if (GS.img) gsGenerate();
   });
+  // body + a hair layer for the preview, so it's obvious which way the model faces
   if (!GS.body) { const b = new Image(); b.onload = () => { GS.body = b; }; b.src = 'assets/lpc/body_male_light.png'; }
-  $('#gs-file').onchange = (e) => { const f = e.target.files[0]; if (!f) return; const im = new Image(); im.onload = () => { GS.img = im; GS.imgName = f.name.replace(/\.\w+$/, ''); GS.x = 0; GS.y = gsDefaultLift(im.height); GS.scale = 1; GS.rot = 0; for (const k of ['x', 'y', 'scale', 'rot']) { const el = $(`#gs-${k}`); if (el) el.value = GS[k]; } gsGenerate(); }; im.src = URL.createObjectURL(f); };
-  $('#gs-import').onchange = (e) => { if (e.target.value) gsImportWeapon(e.target.value); };
-  for (const k of ['x', 'y', 'scale', 'rot']) $(`#gs-${k}`).oninput = (e) => { GS[k] = +e.target.value; gsGenerate(); };
+  if (!GS.hair) { const h = new Image(); h.onload = () => { GS.hair = h; }; h.src = 'assets/lpc/hair_bangs_male_dark_brown.png'; }
+  $('#gs-file').onchange = (e) => { const f = e.target.files[0]; if (!f) return; const im = new Image(); im.onload = () => { GS.img = im; GS.imgName = f.name.replace(/\.\w+$/, ''); GS.picked = ''; gsSeedPose(gsDefaultLift(im.height)); gsSyncSliders(); gsGenerate(); }; im.src = URL.createObjectURL(f); };
+  $('#gs-import').onchange = (e) => { if (e.target.value) { GS.picked = e.target.value; gsImportWeapon(e.target.value); } };
+  // the X/Y/scale/rotate sliders drive ONLY the facing currently selected
+  for (const k of ['x', 'y', 'scale', 'rot']) $(`#gs-${k}`).oninput = (e) => { gsPose()[k] = +e.target.value; gsGenerate(); };
   $('#gs-track').onchange = (e) => { GS.trackRot = e.target.checked; gsGenerate(); };
   $('#gs-lock').onchange = (e) => { GS.sizeLock = e.target.checked; gsGenerate(); };
   $('#gs-flipx').onchange = (e) => { GS.flipX = e.target.checked; gsGenerate(); };
   $('#gs-flipy').onchange = (e) => { GS.flipY = e.target.checked; gsGenerate(); };
-  for (const f of ['N', 'W', 'E']) for (const k of ['r', 'x', 'y']) { const el = $(`#gs-adj-${f}-${k}`); if (el) el.oninput = (e) => { GS.adj[f][k] = +e.target.value; gsGenerate(); }; }
   $('#gs-gen').onclick = () => { gsGenerate(); gsCapture(); gsCaps(); $('#gs-status').textContent = GS.gen ? 'sheet generated & captured — see the preview' : 'import an image first'; };
   $('#gs-dl').onclick = () => { if (!GS.gen) return; gsCapture(); gsCaps(); const a = document.createElement('a'); a.download = (GS.imgName || 'weapon') + '_' + GS.target + '_lpc.png'; a.href = GS.gen.toDataURL(); a.click(); };
   // switching targets captures the outgoing sheet first, so a multi-animation
@@ -1885,15 +1893,14 @@ function renderGearSheet() {
   $('#gs-deploy-toggle').onclick = () => { GS.deploy.open = !GS.deploy.open; renderDeploy(); };
   if (!state.dropTables) send({ t: 'dropTables' });
   gsCaps(); renderDeploy();
-  // drag on the align canvas moves the SELECTED facing: South drags the base
-  // line-up, N/W/E drag that facing's fine-tune offset
+  // drag on the align canvas moves ONLY the selected facing's own line-up
   const ac = $('#gs-align'); let drag = null;
-  ac.onmousedown = (e) => { const a = GS.adj[GS.dir]; drag = { mx: e.offsetX, my: e.offsetY, x: GS.dir === 'S' ? GS.x : a.x, y: GS.dir === 'S' ? GS.y : a.y }; };
+  ac.onmousedown = (e) => { const p = gsPose(); drag = { mx: e.offsetX, my: e.offsetY, x: p.x, y: p.y }; };
   window.addEventListener('mousemove', (e) => {
     if (!drag) return; const r = ac.getBoundingClientRect(); const z = 256 / gsTpl().fs;
     const nx = drag.x + (e.clientX - r.left - drag.mx) / z, ny = drag.y + (e.clientY - r.top - drag.my) / z;
-    if (GS.dir === 'S') { GS.x = nx; GS.y = ny; const ex = $('#gs-x'), ey = $('#gs-y'); if (ex) ex.value = nx; if (ey) ey.value = ny; }
-    else { GS.adj[GS.dir].x = nx; GS.adj[GS.dir].y = ny; const ex = $(`#gs-adj-${GS.dir}-x`), ey = $(`#gs-adj-${GS.dir}-y`); if (ex) ex.value = nx; if (ey) ey.value = ny; }
+    const p = gsPose(); p.x = nx; p.y = ny;
+    const ex = $('#gs-x'), ey = $('#gs-y'); if (ex) ex.value = nx; if (ey) ey.value = ny;
     gsGenerate();
   });
   window.addEventListener('mouseup', () => drag = null);
@@ -2021,36 +2028,41 @@ function gsLoop() {
   const t = gsTpl(), ref = gsRef(), align = gsAlignCell();
   const dir = GS_DIRIDX[GS.dir] ?? 2;               // which facing we're viewing/tuning
   const guide = gsDirCell(GS.dir) || align;          // that facing's reference cell
-  const gadj = GS.adj[GS.dir] || { r: 0, x: 0, y: 0 };
+  const pose = gsPose();
   // --- alignment canvas: reference grip guideline (cyan) + your art for the SELECTED
-  // facing, zoomed — so N/W/E each show their own template + fit, not just south ---
+  // facing, zoomed — so N/W/E each show their own template + fit, not just south. The
+  // guide blade is re-centred in the box so the template sits in the middle. ---
   const ag = ac.getContext('2d'); ag.imageSmoothingEnabled = false; ag.clearRect(0, 0, 256, 256);
   if (ref && guide) {
     const z = 256 / ref.fs;
+    const offx = 128 - guide.cx * z, offy = 128 - guide.cy * z;   // centre the guide blade in the box
     ag.save(); ag.globalAlpha = 0.5; ag.filter = 'hue-rotate(160deg) saturate(3)';
-    ag.drawImage(ref.canvas, guide.col * ref.fs, guide.row * ref.fs, ref.fs, ref.fs, 0, 0, 256, 256);
+    ag.drawImage(ref.canvas, guide.col * ref.fs, guide.row * ref.fs, ref.fs, ref.fs, offx, offy, 256, 256);
     ag.restore();
     if (GS.img) {
       const dRot = GS.trackRot ? guide.angle - (align ? align.angle : guide.angle) : 0;   // auto turn vs south
       const dScale = GS.sizeLock ? 1 : guide.ext / ((align && align.ext) || 1);
       ag.save();
-      ag.translate((guide.gx + gadj.x) * z, (guide.gy + gadj.y) * z);   // hand + facing nudge, matching gsGenerate
-      ag.rotate(dRot + gadj.r * Math.PI / 180); ag.scale(dScale, dScale);
-      ag.translate(GS.x * z, GS.y * z); ag.rotate(GS.rot * Math.PI / 180); ag.scale(GS.scale * z, GS.scale * z);
+      ag.translate(offx + guide.gx * z, offy + guide.gy * z);   // hand, re-centred, matching gsGenerate
+      ag.rotate(dRot); ag.scale(dScale, dScale);
+      ag.translate(pose.x * z, pose.y * z); ag.rotate(pose.rot * Math.PI / 180); ag.scale(pose.scale * z, pose.scale * z);
       ag.scale(GS.flipX ? -1 : 1, GS.flipY ? -1 : 1);
       ag.drawImage(GS.img, -GS.img.width / 2, -GS.img.height / 2);
       ag.restore();
     }
   }
-  // --- preview: body performing the target animation + the generated weapon,
-  // facing the direction you're tuning ---
-  const pg = pc.getContext('2d'); pg.imageSmoothingEnabled = false; pg.clearRect(0, 0, 220, 240);
+  // --- preview: body (+ hair, so the facing is obvious) performing the target
+  // animation + the generated weapon, facing the direction you're tuning. Sits high
+  // in a tall canvas so legs and blade tip are never clipped. ---
+  const pg = pc.getContext('2d'); pg.imageSmoothingEnabled = false; pg.clearRect(0, 0, 220, 290);
   const nf = t.frames, fi = Math.floor(now / t.ms) % nf;
-  const pk = 190 / t.fs, cx = 110, feet = 216;   // shared body+weapon scale (mimics in-game geometry)
-  if (GS.body) { const S = 64 * pk; pg.drawImage(GS.body, fi * 64, (t.bodyRow + dir) * 64, 64, 64, cx - S / 2, feet - S + 12 * pk, S, S); }
+  const pk = 190 / t.fs, cx = 110, feet = 235;   // shared body+weapon scale (mimics in-game geometry)
+  const S = 64 * pk, bx = cx - S / 2, by = feet - S + 12 * pk;
+  if (GS.body) pg.drawImage(GS.body, fi * 64, (t.bodyRow + dir) * 64, 64, 64, bx, by, S, S);
+  if (GS.hair) pg.drawImage(GS.hair, fi * 64, (t.bodyRow + dir) * 64, 64, 64, bx, by, S, S);
   if (GS.gen) {
     if (t.over) { const Sw = t.fs * pk; pg.drawImage(GS.gen, fi * t.fs, dir * t.fs, t.fs, t.fs, cx - Sw / 2, feet - (t.fs / 2 + 20) * pk, Sw, Sw); }
-    else { const S = 64 * pk; pg.drawImage(GS.gen, fi * 64, (t.bodyRow + dir) * 64, 64, 64, cx - S / 2, feet - S + 12 * pk, S, S); }
+    else pg.drawImage(GS.gen, fi * 64, (t.bodyRow + dir) * 64, 64, 64, bx, by, S, S);
   }
   raf = requestAnimationFrame(gsLoop);
 }
