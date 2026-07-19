@@ -146,8 +146,11 @@ export function castSpellAt(world, p, spellId, target) {
     world.send(p, { t: MSG.MSGBOX, m: 'You need to wield a staff to channel that spell.' });
     return false;
   }
-  for (const [r, q] of Object.entries(s.runes)) if (p.countItem(r) < q) { world.send(p, { t: MSG.MSGBOX, m: 'Not enough runes.' }); return false; }
-  for (const [r, q] of Object.entries(s.runes)) p.removeItem(r, q);
+  const freeCall = s.teleport === 'loxley';   // the call home to Loxley never costs runes
+  if (!freeCall) {
+    for (const [r, q] of Object.entries(s.runes)) if (p.countItem(r) < q) { world.send(p, { t: MSG.MSGBOX, m: 'Not enough runes.' }); return false; }
+    for (const [r, q] of Object.entries(s.runes)) p.removeItem(r, q);
+  }
   // Staff wielders jab-cast (the LPC staff sheets carry thrust art, not spellcast)
   p.anim = ITEMS[p.equip.weapon?.id]?.kind === 'staff' ? 'thrust' : 'spellcast';
   p.animSeq++; p.lastAttack = now;

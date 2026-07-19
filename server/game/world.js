@@ -540,6 +540,18 @@ export class World {
         return; // stay put while channelling
       }
     }
+    // Lodestones: stand near a town's teleport anchor to attune it. Once attuned you
+    // can call there with no magic-level requirement (Loxley is always free besides).
+    if (p.plane === PLANE.OVERWORLD) {
+      for (const key of ['loxley', 'nottingham', 'bay', 'frosthollow']) {
+        if (p.lodestones.includes(key)) continue;
+        const a = ANCHORS[key]; if (!a) continue;
+        if (Math.abs(p.x - (a.x + 0.5)) <= 2 && Math.abs(p.y - (a.y + 0.5)) <= 2) {
+          p.lodestones.push(key);
+          this.send(p, { t: MSG.MSGBOX, m: `⚷ You attune to the ${key[0].toUpperCase() + key.slice(1)} lodestone — you can now call here with no magic-level requirement.` });
+        }
+      }
+    }
     tickCombat(this, p, now);
     // movement: follow path or velocity
     let moved = false;

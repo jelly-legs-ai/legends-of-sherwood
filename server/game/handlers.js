@@ -1081,7 +1081,9 @@ function onBury(world, p, msg) {
 function onCast(world, p, msg) {
   const s = SPELLS[String(msg.spell)];
   if (!s) return;
-  if (p.level('magic') < s.lvl) return world.send(p, { t: MSG.MSGBOX, m: `You need magic level ${s.lvl}.` });
+  // attuning a town's lodestone lets you call to it with NO magic-level requirement
+  const attuned = s.teleport && (s.teleport === 'loxley' || p.lodestones?.includes(s.teleport));
+  if (p.level('magic') < s.lvl && !attuned) return world.send(p, { t: MSG.MSGBOX, m: `You need magic level ${s.lvl} — or attune this town's lodestone to call here freely.` });
   const t = msg.target ? world.entities.get(msg.target | 0) : null;
   if (t && t.kind === 'player' && !pvpAllowed(world, p, t)) return;
   if (t && t.kind === 'npc') return;

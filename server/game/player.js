@@ -30,6 +30,7 @@ export class Player {
     this.quests = {};                             // id -> {step, n, done}
     this.kills = {};                              // mobType -> count
     this.milestonesPaid = {};                     // skill -> [levels]
+    this.lodestones = [];                         // town keys whose lodestone you've attuned (free/no-level teleport)
     this.boosts = {};                             // skill -> {amt, until}
     this.prayersOn = new Set();
     this.prayerPts = this.level('prayer');
@@ -265,6 +266,7 @@ export class Player {
     return {
       hp: this.hp, mhp: this.maxHp, pray: +this.prayerPts.toFixed(1), energy: this.energy | 0,
       x: +this.x.toFixed(2), y: +this.y.toFixed(2), plane: this.plane, pouch: this.pouch,
+      lodestones: this.lodestones,   // attuned town lodestones (client unlocks their calls)
     };
   }
 
@@ -327,7 +329,7 @@ export class Player {
       bank: this.bank, quests: this.quests, kills: this.kills, milestonesPaid: this.milestonesPaid,
       pouch: this.pouch, coinPouch: this.coinPouch, farm: this.farm, house: this.house, relics: this.relics, dungeonBest: this.dungeonBest,
       task: this.task, x: this.x, y: this.y, hp: this.hp, style: this.style,
-      pets: this.pets, activePet: this.activePet, wallet: this.wallet, social: this.social,
+      pets: this.pets, activePet: this.activePet, wallet: this.wallet, social: this.social, lodestones: this.lodestones,
     };
   }
   load(s) {
@@ -338,6 +340,7 @@ export class Player {
       pouch: s.pouch ?? 0, coinPouch: s.coinPouch ?? 0, farm: s.farm ?? {}, house: s.house ?? { furniture: {} }, relics: s.relics ?? {},
       dungeonBest: s.dungeonBest ?? 0, task: s.task ?? null, hp: s.hp, style: s.style ?? 'balanced',
       pets: Array.isArray(s.pets) ? s.pets : [], activePet: s.activePet ?? null,
+      lodestones: Array.isArray(s.lodestones) ? s.lodestones : [],
       wallet: s.wallet ?? this.wallet,
       social: s.social && typeof s.social === 'object' ? { friends: [], blocked: [], guild: null, ...s.social } : { friends: [], blocked: [], guild: null },
     });

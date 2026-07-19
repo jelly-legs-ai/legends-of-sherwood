@@ -538,12 +538,15 @@ function renderMagic(p) {
   const grid = document.createElement('div');
   grid.className = 'spell-strip';
   const mlvl = levelForXp(G.xp.magic || 0);
+  // attuning a town lodestone (or Loxley, always) lets you call there ignoring the level
+  const attuned = (s) => s.teleport && (s.teleport === 'loxley' || (G.self?.lodestones || []).includes(s.teleport));
   for (const [id, s] of Object.entries(SPELLS)) {
+    const castable = mlvl >= s.lvl || attuned(s);
     const b = document.createElement('button');
-    b.className = 'spell-cell' + (G.selSpell === id ? ' on' : '') + (mlvl < s.lvl ? ' locked' : '');
+    b.className = 'spell-cell' + (G.selSpell === id ? ' on' : '') + (!castable ? ' locked' : '') + (attuned(s) && mlvl < s.lvl ? ' attuned' : '');
     b.appendChild(spellIconCanvas(id));
-    b.insertAdjacentHTML('beforeend', `<span class="sc-lvl">${s.lvl}</span>`);
-    if (mlvl >= s.lvl) {
+    b.insertAdjacentHTML('beforeend', `<span class="sc-lvl">${attuned(s) && mlvl < s.lvl ? '⚷' : s.lvl}</span>`);
+    if (castable) {
       b.draggable = true;
       b.ondragstart = (e) => e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'spell', id }));
       b.onclick = () => {
