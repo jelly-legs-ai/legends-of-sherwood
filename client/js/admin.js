@@ -1671,6 +1671,10 @@ function gsRowFacing(row) {
 }
 // the SOUTH row of a row's animation block (the auto-turn's rotation anchor)
 function gsSouthRow(row) { return row >= GS_IDLE_ROW ? GS_IDLE_ROW + 2 : (Math.floor(row / 4) * 4) + 2; }
+// Every animation the game plays from the 64px carry sheet — all compiled from the
+// one alignment (slash & thrust are the separate oversize overlays). Previewable so
+// you can cycle each like the ULPC generator's preview and confirm it transfers.
+const GS_CARRY_ANIMS = ['walk', 'idle', 'spellcast', 'shoot', 'hurt'];
 // (re)seed all four facings to the same starting line-up (fresh import); layers keep
 // their natural defaults (south over, the rest under)
 function gsSeedPose(lift) {
@@ -1990,9 +1994,10 @@ function renderGearSheet() {
     <div style="min-width:270px">
       <h3 style="color:var(--gold);font-size:12px">4 · Preview on the character</h3>
       <canvas id="gs-preview" width="220" height="290" style="background:#23422a;border:1px solid var(--trim);border-radius:6px"></canvas>
-      <div class="ms-row" style="gap:8px;flex-wrap:wrap;font-size:11px;margin-top:5px">
-        ${GS.target === 'carry' ? `<span>anim:</span>${['walk', 'idle'].map((a) => `<button class="act ${GS.previewAnim === a ? 'on' : ''}" data-gsanim="${a}" style="padding:1px 8px;font-size:10.5px">${a}</button>`).join('')}` : `<span style="color:var(--dim)">previewing the ${gsTpl().label} attack</span>`}
-        <span style="margin-left:6px">speed</span><input id="gs-slow" type="range" min="1" max="6" step="0.5" value="${GS.previewSlow}" style="width:90px" title="slow the preview down to inspect each frame"></div>
+      <div class="ms-row" style="gap:6px;flex-wrap:wrap;font-size:11px;margin-top:5px">
+        ${GS.target === 'carry' ? `<span>anim:</span>${GS_CARRY_ANIMS.map((a) => `<button class="act ${GS.previewAnim === a ? 'on' : ''}" data-gsanim="${a}" style="padding:1px 7px;font-size:10.5px">${a}</button>`).join('')}` : `<span style="color:var(--dim)">previewing the ${gsTpl().label} attack</span>`}
+        <span style="margin-left:6px">speed</span><input id="gs-slow" type="range" min="1" max="6" step="0.5" value="${GS.previewSlow}" style="width:80px" title="slow the preview down to inspect each frame"></div>
+      ${GS.target === 'carry' ? '<div style="font-size:10px;color:var(--dim)">All of these ride the SAME carry sheet — the maker stamps every LPC animation row, so the whole set ships from one alignment (slash &amp; thrust are the separate oversize overlays above).</div>' : ''}
       <div style="font-size:11px;color:var(--dim);margin-top:6px">The grip template is the game's own weapon sheet for this animation — your art inherits its exact per-frame hand positions. Align once; the maker fits it to every frame and clips each stamp to its cell.</div>
       <div id="gs-status" style="font-size:11px;color:var(--dim);margin-top:8px"></div>
       <div id="gs-caps" style="font-size:11px;color:var(--dim);margin-top:4px"></div>
@@ -2216,26 +2221,31 @@ function gsLoop() {
   const pg = pc.getContext('2d'); pg.imageSmoothingEnabled = false; pg.clearRect(0, 0, 220, 290);
   // preview the walk sheet as either its walk cycle OR the idle breathing loop (idle
   // is a separate 2-frame block at rows 22-25, so this is the only way to eyeball it)
-  const idlePrev = (!t.over && GS.previewAnim === 'idle');
-  const bodyRow = idlePrev ? GS_IDLE_ROW : t.bodyRow;
-  const nf = idlePrev ? 2 : t.frames;
-  const ms = (idlePrev ? 650 : t.ms) * (GS.previewSlow || 1);   // slow down for close inspection
+  // carry preview can be ANY animation the game plays from the 64px sheet (walk, idle,
+  // spellcast, shoot, hurt); attack targets play their own overlay animation
+  const pa = t.over ? null : (ANIMS[GS.previewAnim] || ANIMS.walk);
+  const bodyRow = pa ? pa.row : t.bodyRow;
+  const nf = pa ? pa.frames : t.frames;
+  const ms = (pa ? pa.ms : t.ms) * (GS.previewSlow || 1);   // slow down for close inspection
   const fi = Math.floor(now / ms) % nf;
-  const oversized = (!t.over && GS.oversizeHeld && !!GS.genOver);   // 128px held overlay in play
-  const pk = oversized ? 160 / 128 : 190 / t.fs, cx = 110, feet = 235;   // shrink so the big overlay fits
+  const bodyRowDir = (pa && pa.nodir) ? bodyRow : bodyRow + dir;   // hurt is directionless
+  // 128px held overlay only exists for the walk cycle (idle reuses walk frame 0);
+  // an oversize weapon shows nothing during spellcast/shoot/hurt (same as in-game)
+  const showOver = !t.over && GS.oversizeHeld && !!GS.genOver && (GS.previewAnim === 'walk' || GS.previewAnim === 'idle');
+  const pk = showOver ? 160 / 128 : 190 / t.fs, cx = 110, feet = 235;   // shrink so the big overlay fits
   const S = 64 * pk, bx = cx - S / 2, by = feet - S + 12 * pk;
   const drawBody = () => {
-    if (GS.body) pg.drawImage(GS.body, fi * 64, (bodyRow + dir) * 64, 64, 64, bx, by, S, S);
-    if (GS.hair) pg.drawImage(GS.hair, fi * 64, (bodyRow + dir) * 64, 64, 64, bx, by, S, S);
+    if (GS.body) pg.drawImage(GS.body, fi * 64, bodyRowDir * 64, 64, 64, bx, by, S, S);
+    if (GS.hair) pg.drawImage(GS.hair, fi * 64, bodyRowDir * 64, 64, 64, bx, by, S, S);
   };
   const drawWeapon = () => {
-    if (t.over) { if (!GS.gen) return; const Sw = t.fs * pk; pg.drawImage(GS.gen, fi * t.fs, dir * t.fs, t.fs, t.fs, cx - Sw / 2, feet - (t.fs / 2 + 20) * pk, Sw, Sw); }
-    else if (oversized) { const OV = 128, Sw = OV * pk, ov = idlePrev ? 0 : fi; pg.drawImage(GS.genOver, ov * OV, dir * OV, OV, OV, cx - Sw / 2, feet - (OV / 2 + 20) * pk, Sw, Sw); }
-    else if (GS.gen) pg.drawImage(GS.gen, fi * 64, (bodyRow + dir) * 64, 64, 64, bx, by, S, S);
+    if (t.over) { if (!GS.gen) return; const Sw = t.fs * pk; pg.drawImage(GS.gen, fi * t.fs, dir * t.fs, t.fs, t.fs, cx - Sw / 2, feet - (t.fs / 2 + 20) * pk, Sw, Sw); return; }
+    if (GS.oversizeHeld) { if (showOver) { const OV = 128, Sw = OV * pk, ov = GS.previewAnim === 'idle' ? 0 : fi; pg.drawImage(GS.genOver, ov * OV, dir * OV, OV, OV, cx - Sw / 2, feet - (OV / 2 + 20) * pk, Sw, Sw); } return; }
+    if (GS.gen) pg.drawImage(GS.gen, fi * 64, bodyRowDir * 64, 64, 64, bx, by, S, S);
   };
   // oversize held always draws over the body (drawOversize runs after the body); the
   // 64px path honours the facing's over/under layer
-  if (oversized || pose.layer !== 'under') { drawBody(); drawWeapon(); }
+  if (showOver || pose.layer !== 'under') { drawBody(); drawWeapon(); }
   else { drawWeapon(); drawBody(); }
   raf = requestAnimationFrame(gsLoop);
 }
