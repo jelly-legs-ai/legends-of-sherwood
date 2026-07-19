@@ -61,12 +61,12 @@ export const TOWNS = {
   // where the Sheriff of Nottingham holds court (first boss). The multi-floor
   // labyrinth interior loads on its own floor planes via the keep's ladders.
   nottingham_castle: {
-    name: 'Nottingham Castle', cx: 330, cy: 283, r: 13, walled: true, moat: true, gates: ['S'],
-    buildings: [
-      { x: 322, y: 278, w: 16, h: 11, door: 'S', name: 'The Great Hall', castle: true, keep: true },
-      { x: 320, y: 290, w: 3, h: 3, door: 'N', name: 'West Sentry Tower', castle: true, tower: true },
-      { x: 337, y: 290, w: 3, h: 3, door: 'N', name: 'East Sentry Tower', castle: true, tower: true },
-    ],
+    // The fortified bailey: a palisade rampart + moat ring with a single south
+    // drawbridge. The keep itself fills the middle and is drawn from the castle
+    // ground-floor plan (see CASTLE + worldTile), so it's a full 60x60 castle
+    // rather than a building rectangle. buildings is empty on purpose.
+    name: 'Nottingham Castle', cx: 330, cy: 270, r: 24, walled: true, moat: true, gates: ['S'],
+    buildings: [],
   },
   bay: {
     name: "Robin Hood's Bay", cx: 48, cy: 420, r: 13,
@@ -363,10 +363,9 @@ export const SPAWNS = [
   { mob: 'sheriffs_guard', x: 358, y: 330, r: 1, n: 2 },   // east gate
   { mob: 'sheriffs_guard', x: 305, y: 334, r: 2, n: 3 },   // Westgate Barracks muster
   { mob: 'sheriffs_guard', x: 344, y: 351, r: 2, n: 3 },   // Southeast Barracks muster
-  // -- Nottingham Castle garrison: bailey patrols, gatehouse & tower sentries --
-  { mob: 'sheriffs_guard', x: 330, y: 285, r: 7, n: 6, patrol: true },  // bailey & great-hall watch
-  { mob: 'sheriffs_guard', x: 330, y: 296, r: 1, n: 2 },   // south drawbridge gatehouse
-  { mob: 'sheriffs_guard', x: 321, y: 291, r: 1, n: 1 }, { mob: 'sheriffs_guard', x: 338, y: 291, r: 1, n: 1 }, // sentry towers
+  // -- Nottingham Castle garrison: hall/bailey patrols + the gatehouse watch --
+  { mob: 'sheriffs_guard', x: 330, y: 270, r: 16, n: 10, patrol: true },  // castle halls & bailey watch
+  { mob: 'sheriffs_guard', x: 330, y: 294, r: 1, n: 2 },   // south drawbridge gatehouse
   { mob: 'sheriffs_guard', x: 330, y: 336, r: 26, n: 8, patrol: true }, // city patrol beats
   // Grand Exchange garrison — elite guards ring the fortified hall (passive unless attacked)
   { mob: 'ge_guard', x: 330, y: 331, r: 3, n: 4 },   // south approach & doors
@@ -474,7 +473,7 @@ export const BOSS_SPAWNS = [
   { mob: 'elder_treant', x: 255, y: 262 },
   { mob: 'fenwyrm', x: 470, y: 475 },
   { mob: 'guy_of_gisborne', x: 385, y: 150 },
-  { mob: 'sheriff_of_nottingham', x: 330, y: 283 },   // enthroned in the castle's Great Hall
+  { mob: 'sheriff_of_nottingham', x: 330, y: 275 },   // enthroned in the castle's Great Hall
   { mob: 'troll_king', x: 505, y: 220 },
   { mob: 'frost_giant', x: 300, y: 38 },
   // Sheet-animated boss lairs
@@ -529,7 +528,7 @@ export const DUNGEON_MAP = { size: 48 };
 // plan mirrors the building on the world map. topFloor is the open roof.
 // ox/oy (the keep's scaled origin) are filled in the scaling footer below;
 // keepLadder is the keep-local tile of the great hall's up-ladder to floor 2.
-export const CASTLE = { cols: 30, rows: 22, topFloor: 4, ox: 0, oy: 0, keepLadder: { x: 8, y: 8 } };
+export const CASTLE = { cols: 60, rows: 60, topFloor: 4, ox: 0, oy: 0, keepLadder: { x: 30, y: 30 } };
 
 // World events
 export const EVENTS = [
@@ -574,5 +573,6 @@ if (K !== 1) {
   for (const a of Object.values(ANCHORS)) { a.x = Math.round(a.x * K); a.y = Math.round(a.y * K); }
   for (const ev of EVENTS) { ev.x = Math.round(ev.x * K); ev.y = Math.round(ev.y * K); }
 }
-// pin the castle floor-plane footprint to the (now-scaled) great-hall keep
-{ const keep = TOWNS.nottingham_castle.buildings[0]; CASTLE.ox = keep.x; CASTLE.oy = keep.y; }
+// centre the castle footprint (all floors + the overworld ground floor) on the
+// scaled bailey, so the keep sits inside its rampart and moat
+{ const c = TOWNS.nottingham_castle; CASTLE.ox = c.cx - (CASTLE.cols >> 1); CASTLE.oy = c.cy - (CASTLE.rows >> 1); }

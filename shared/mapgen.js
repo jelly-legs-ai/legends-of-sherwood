@@ -705,6 +705,11 @@ export function computeWorld() {
 export function worldTile(x, y) {
   const { tiles } = computeWorld();
   if (x < 0 || y < 0 || x >= W || y >= H) return TILE.OCEAN;
+  // Nottingham Castle stands on the overworld as its own ground floor (F1) — the
+  // SAME generated plan as the upper floors, so the exterior footprint is
+  // identical to what you walk when you climb the ladders.
+  const lx = (x | 0) - CASTLE.ox, ly = (y | 0) - CASTLE.oy;
+  if (lx >= 0 && ly >= 0 && lx < CASTLE.cols && ly < CASTLE.rows) return castleFloor(1).tiles[ly * CASTLE.cols + lx];
   return tiles[(y | 0) * W + (x | 0)];
 }
 
@@ -794,9 +799,12 @@ export function castleFloor(floor) {
 
   // A proper castle floor: a grid of chambers inside a thick curtain wall, linked
   // by doorways (so it reads as rooms + corridors, not one cave), a great hall
-  // knocked through the middle, and a drum tower punched into each corner. The
-  // doorway spanning-grid guarantees every chamber is reachable.
-  const RC = 4, RR = 3, m = 2;                       // chambers wide/tall, wall margin
+  // knocked through the middle, drum towers at the corners, and a south gatehouse
+  // opening (the ground-floor entrance from the bailey). The doorway spanning-grid
+  // guarantees every chamber — and the gate — is reachable.
+  const m = 2;                                        // curtain-wall margin
+  const RC = Math.max(3, Math.round((W - 2 * m) / 9));    // ~9-tile chambers
+  const RR = Math.max(3, Math.round((H - 2 * m) / 9));
   const cw = (W - 2 * m) / RC, ch = (H - 2 * m) / RR;
   const rooms = [];
   for (let ry = 0; ry < RR; ry++) for (let rx = 0; rx < RC; rx++) {
@@ -811,13 +819,19 @@ export function castleFloor(floor) {
     if (rx < RC - 1) { const b = at(rx + 1, ry), yy = Math.max(a.y0, b.y0); for (let x = a.x1; x <= b.x0; x++) set(x, yy); }
     if (ry < RR - 1) { const b = at(rx, ry + 1), xx = Math.max(a.x0, b.x0); for (let y = a.y1; y <= b.y0; y++) set(xx, y); }
   }
-  // great hall: merge two central chambers (which pair shifts by floor)
-  { const hc = 1 + (floor % 2), hr = floor % RR, a = at(hc, hr), b = at(hc + 1, hr); rect(a.x0, a.y0, b.x1, b.y1); }
+  // great hall: merge a 2x2 block of central chambers (which block shifts by floor)
+  { const hc = 1 + (floor % Math.max(1, RC - 2)), hr = Math.max(0, ((RR - 2) >> 1) + (floor % 2));
+    const a = at(Math.min(hc, RC - 2), Math.min(hr, RR - 2)), b = at(Math.min(hc + 1, RC - 1), Math.min(hr + 1, RR - 1));
+    rect(a.x0, a.y0, b.x1, b.y1); }
   // corner drum towers linked back into the interior
   for (const [cx, cy, sx, sy] of [[m, m, 1, 1], [W - 1 - m, m, -1, 1], [m, H - 1 - m, 1, -1], [W - 1 - m, H - 1 - m, -1, -1]]) {
     rect(Math.min(cx, cx + sx * 2), Math.min(cy, cy + sy * 2), Math.max(cx, cx + sx * 2), Math.max(cy, cy + sy * 2));
     for (let i = 0; i <= 3; i++) { set(cx + sx * i, cy + sy); set(cx + sx, cy + sy * i); }
   }
+  // south gatehouse: a 2-wide passage from the outer wall up into the bottom-centre
+  // chamber (the way in from the bailey on the ground floor)
+  const gx = W >> 1, gate = at(RC >> 1, RR - 1);
+  for (let y = H - 1; y >= gate.cy; y--) { set(gx, y); set(gx + 1, y); }
   const down = { x: rooms[0].cx, y: rooms[0].cy };
   const up = { x: rooms[rooms.length - 1].cx, y: rooms[rooms.length - 1].cy };
   const out = { tiles: g, cols: W, rows: H, down, up };
@@ -837,8 +851,9 @@ export function castleLadders(plane) {
     up: f.up ? { x: CASTLE.ox + f.up.x, y: CASTLE.oy + f.up.y } : null,
   };
 }
-// the great hall's (overworld) up-ladder into floor 2
-export function castleKeepLadder() { return { x: CASTLE.ox + CASTLE.keepLadder.x, y: CASTLE.oy + CASTLE.keepLadder.y }; }
+// the great hall's (overworld ground floor) up-ladder into floor 2 — the F1 plan's
+// far chamber, so it sits deep inside the castle you enter through the gatehouse
+export function castleKeepLadder() { const u = castleFloor(1).up; return { x: CASTLE.ox + u.x, y: CASTLE.oy + u.y }; }
 
 export function tileAtPlane(plane, x, y) {
   if (plane === PLANE.OVERWORLD) return worldTile(x, y);
