@@ -1819,6 +1819,31 @@ function gsExtractCells(img, fs) {
     const bladeDir = Math.atan2(tip[1] - grip[1], tip[0] - grip[0]);
     cells.push({ row: r, col, cx, cy, gx: grip[0], gy: grip[1], angle: bladeDir, ext: Math.hypot(tip[0] - grip[0], tip[1] - grip[1]) });
   }
+  // STABILISE the 180°-ambiguous blade axis. The per-cell grip/tip guess above
+  // (nearest-the-body = grip) sometimes resolves the wrong end, so the anchor jumps
+  // and the weapon appears to swap hands frame-to-frame. Worst case: the 2-frame IDLE
+  // loop, whose frames can land on opposite ends (e.g. idle-N reads 175° then 20°) and
+  // flicker. Fix: pick a reference DIRECTION and flip any frame pointing the opposite
+  // way. For most rows the row's own clearest (longest) blade is a fine reference; for
+  // the IDLE rows (22-25) — too few frames to self-disambiguate — use the reliable
+  // multi-frame WALK row of the SAME facing so the idle can't half-flip.
+  const idleWalkRow = (r) => (r >= 22 && r <= 25) ? 8 + ((r - 22) % 4) : r;
+  for (let r = 0; r < rows; r++) {
+    const refRow = idleWalkRow(r);
+    let ref = null;
+    for (let col = 0; col < cols; col++) { const cell = cells[refRow * cols + col]; if (cell && (!ref || cell.ext > ref.ext)) ref = cell; }
+    if (!ref && refRow !== r) for (let col = 0; col < cols; col++) { const cell = cells[r * cols + col]; if (cell && (!ref || cell.ext > ref.ext)) ref = cell; }
+    if (!ref) continue;
+    const rx = Math.cos(ref.angle), ry = Math.sin(ref.angle);
+    for (let col = 0; col < cols; col++) {
+      const cell = cells[r * cols + col]; if (!cell) continue;
+      if (Math.cos(cell.angle) * rx + Math.sin(cell.angle) * ry < 0) {   // opposite way → grip/tip were swapped
+        cell.gx += cell.ext * Math.cos(cell.angle);   // move the anchor to the true grip end
+        cell.gy += cell.ext * Math.sin(cell.angle);
+        cell.angle += Math.PI;
+      }
+    }
+  }
   const rc = { cells, cols, rows, W, H, fs };
   return rc;
 }
@@ -1967,10 +1992,10 @@ function renderGearSheet() {
       <div style="font-size:11px;color:var(--dim);margin-bottom:5px">Lay your weapon <b>right over the cyan guideline blade</b> — match its <b>angle and grip</b>. Pick a facing, drag the guide or use the sliders below, then move to the next. <b>Each facing keeps its own line-up</b>, so tuning one never shifts the others — dial S, then N, W, E and every one stays locked.</div>
       <div class="ms-row" style="gap:4px;margin-bottom:5px">${['S', 'N', 'W', 'E'].map((f) => `<button class="act ${GS.dir === f ? 'on' : ''}" data-gsdir="${f}" style="padding:2px 10px;font-size:11px">${{ S: 'South', N: 'North', W: 'West', E: 'East' }[f]}</button>`).join('')}</div>
       <canvas id="gs-align" width="256" height="256" style="background:#20331f;border:1px solid var(--trim);border-radius:6px;cursor:move"></canvas>
-      <div style="font-size:10.5px;color:var(--gold);margin:3px 0 1px">Tuning <b>${{ S: 'South', N: 'North', W: 'West', E: 'East' }[GS.dir]}</b> — these sliders move only this facing</div>
+      <div style="font-size:10.5px;color:var(--gold);margin:3px 0 1px">Tuning <b>${{ S: 'South', N: 'North', W: 'West', E: 'East' }[GS.dir]}</b> — X/Y/rotate move only this facing; scale is shared across all four</div>
       <div class="ms-row">X <input id="gs-x" type="range" min="-40" max="40" step="0.5" value="${gsPose().x}" style="flex:1"></div>
       <div class="ms-row">Y <input id="gs-y" type="range" min="-40" max="40" step="0.5" value="${gsPose().y}" style="flex:1"></div>
-      <div class="ms-row">scale <input id="gs-scale" type="range" min="0.2" max="3" step="0.02" value="${gsPose().scale}" style="flex:1"></div>
+      <div class="ms-row" title="the weapon's size — shared across every facing">scale <input id="gs-scale" type="range" min="0.2" max="3" step="0.02" value="${gsPose().scale}" style="flex:1"><span style="font-size:9px;color:var(--dim)">all</span></div>
       <div class="ms-row">rotate <input id="gs-rot" type="range" min="-180" max="180" step="1" value="${gsPose().rot}" style="flex:1"></div>
       <div class="ms-row" style="gap:12px;flex-wrap:wrap">
         <label style="font-size:11.5px" title="mirror only this facing"><input type="checkbox" id="gs-flipx" ${gsPose().flipX ? 'checked' : ''}> mirror ↔</label>
@@ -2027,8 +2052,11 @@ function renderGearSheet() {
   $('#gs-import').onchange = gsDoImport;
   $('#gs-import').onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); gsDoImport(); } };
   $('#gs-import-go').onclick = gsDoImport;
-  // the X/Y/scale/rotate sliders drive ONLY the facing currently selected
-  for (const k of ['x', 'y', 'scale', 'rot']) $(`#gs-${k}`).oninput = (e) => { gsPose()[k] = +e.target.value; gsGenerate(); };
+  // X / Y / rotate are per-facing (each side lines its grip up differently); SCALE is
+  // the weapon's real size, so it's shared across ALL facings — set it once and every
+  // viewpoint matches (a sword is one size whichever way you face)
+  for (const k of ['x', 'y', 'rot']) $(`#gs-${k}`).oninput = (e) => { gsPose()[k] = +e.target.value; gsGenerate(); };
+  $('#gs-scale').oninput = (e) => { const v = +e.target.value; for (const f of ['S', 'N', 'W', 'E']) GS.pose[f].scale = v; gsGenerate(); };
   $('#gs-track').onchange = (e) => { GS.trackRot = e.target.checked; gsGenerate(); };
   $('#gs-lock').onchange = (e) => { GS.sizeLock = e.target.checked; gsGenerate(); };
   $('#gs-oversize').onchange = (e) => { GS.oversizeHeld = e.target.checked; gsGenerate(); gsCapture(); };
