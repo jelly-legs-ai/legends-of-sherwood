@@ -1993,7 +1993,7 @@ export class Renderer {
             // stick to the roof per-slope instead of swimming) and rotate the courses
             // to run down THIS pitch: a hip roof has two perpendicular slope axes, so
             // faces whose eave runs "\" take 45° and faces whose eave runs "/" take 135°.
-            const rot = ((b[0] - a[0]) * (b[1] - a[1]) >= 0) ? 45 : 135;
+            const rot = ((b[0] - a[0]) * (b[1] - a[1]) >= 0) ? 55 : 145;
             roofPat.setTransform(new DOMMatrix().translateSelf(a[0], a[1]).rotateSelf(rot));
             ctx.fillStyle = roofPat; ctx.fill();
             ctx.fillStyle = dark > 0 ? `rgba(18,14,9,${dark})` : 'rgba(255,250,235,0.08)'; ctx.fill();
