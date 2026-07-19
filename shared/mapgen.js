@@ -775,31 +775,53 @@ export function dungeonFloor(floor) {
 const _castleFloors = new Map();
 export function castleFloor(floor) {
   if (_castleFloors.has(floor)) return _castleFloors.get(floor);
-  const W = CASTLE.cols, H = CASTLE.rows;
-  const g = new Uint8Array(W * H).fill(TILE.WALL);
+  const W = CASTLE.cols, H = CASTLE.rows, F = TILE.FLOOR_STONE, WL = TILE.WALL;
+  const g = new Uint8Array(W * H).fill(WL);
   const roof = floor >= CASTLE.topFloor;
-  let rng = (WORLD.SEED * 2654435761 + floor * 40503) & 0x7fffffff;
-  const rnd = () => { rng = (rng * 1103515245 + 12345) & 0x7fffffff; return rng / 0x7fffffff; };
-  const carve = (cx, cy) => { if (cx > 0 && cy > 0 && cx < W - 1 && cy < H - 1) g[cy * W + cx] = TILE.FLOOR_STONE; };
-  let x = 1 + (rnd() * (W - 2) | 0), y = 1 + (rnd() * (H - 2) | 0);
-  const down = { x, y };
-  let far = { x, y, d: 0 };
-  const steps = roof ? 700 : 300;
-  for (let i = 0; i < steps; i++) {
-    carve(x, y);
-    if (roof) for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) carve(x + dx, y + dy); // open battlements
-    const r = rnd();
-    if (r < 0.25) x++; else if (r < 0.5) x--; else if (r < 0.75) y++; else y--;
-    x = Math.max(1, Math.min(W - 2, x)); y = Math.max(1, Math.min(H - 2, y));
-    const d = Math.abs(x - down.x) + Math.abs(y - down.y);
-    if (d > far.d) far = { x, y, d };
+  const set = (x, y) => { if (x >= 0 && y >= 0 && x < W && y < H) g[y * W + x] = F; };
+  const rect = (x0, y0, x1, y1) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) set(x, y); };
+
+  if (roof) {
+    // the open roof / battlement deck: a walkable lead surrounded by a
+    // crenellated parapet (alternating merlons) so the silhouette isn't a box
+    rect(2, 2, W - 3, H - 3);
+    for (let x = 2; x < W - 2; x += 2) { g[1 * W + x] = WL; g[(H - 2) * W + x] = WL; }
+    for (let y = 2; y < H - 2; y += 2) { g[y * W + 1] = WL; g[y * W + W - 2] = WL; }
+    const down = { x: W >> 1, y: H >> 1 };
+    const out = { tiles: g, cols: W, rows: H, down, up: null };
+    _castleFloors.set(floor, out); return out;
   }
-  carve(down.x, down.y);
-  const up = roof ? null : { x: far.x, y: far.y };
-  if (up) carve(up.x, up.y);
+
+  // A proper castle floor: a grid of chambers inside a thick curtain wall, linked
+  // by doorways (so it reads as rooms + corridors, not one cave), a great hall
+  // knocked through the middle, and a drum tower punched into each corner. The
+  // doorway spanning-grid guarantees every chamber is reachable.
+  const RC = 4, RR = 3, m = 2;                       // chambers wide/tall, wall margin
+  const cw = (W - 2 * m) / RC, ch = (H - 2 * m) / RR;
+  const rooms = [];
+  for (let ry = 0; ry < RR; ry++) for (let rx = 0; rx < RC; rx++) {
+    const x0 = m + Math.round(rx * cw) + 1, x1 = m + Math.round((rx + 1) * cw) - 1;
+    const y0 = m + Math.round(ry * ch) + 1, y1 = m + Math.round((ry + 1) * ch) - 1;
+    rect(x0, y0, x1, y1);
+    rooms.push({ x0, y0, x1, y1, cx: (x0 + x1) >> 1, cy: (y0 + y1) >> 1 });
+  }
+  const at = (rx, ry) => rooms[ry * RC + rx];
+  for (let ry = 0; ry < RR; ry++) for (let rx = 0; rx < RC; rx++) {
+    const a = at(rx, ry);
+    if (rx < RC - 1) { const b = at(rx + 1, ry), yy = Math.max(a.y0, b.y0); for (let x = a.x1; x <= b.x0; x++) set(x, yy); }
+    if (ry < RR - 1) { const b = at(rx, ry + 1), xx = Math.max(a.x0, b.x0); for (let y = a.y1; y <= b.y0; y++) set(xx, y); }
+  }
+  // great hall: merge two central chambers (which pair shifts by floor)
+  { const hc = 1 + (floor % 2), hr = floor % RR, a = at(hc, hr), b = at(hc + 1, hr); rect(a.x0, a.y0, b.x1, b.y1); }
+  // corner drum towers linked back into the interior
+  for (const [cx, cy, sx, sy] of [[m, m, 1, 1], [W - 1 - m, m, -1, 1], [m, H - 1 - m, 1, -1], [W - 1 - m, H - 1 - m, -1, -1]]) {
+    rect(Math.min(cx, cx + sx * 2), Math.min(cy, cy + sy * 2), Math.max(cx, cx + sx * 2), Math.max(cy, cy + sy * 2));
+    for (let i = 0; i <= 3; i++) { set(cx + sx * i, cy + sy); set(cx + sx, cy + sy * i); }
+  }
+  const down = { x: rooms[0].cx, y: rooms[0].cy };
+  const up = { x: rooms[rooms.length - 1].cx, y: rooms[rooms.length - 1].cy };
   const out = { tiles: g, cols: W, rows: H, down, up };
-  _castleFloors.set(floor, out);
-  return out;
+  _castleFloors.set(floor, out); return out;
 }
 export function castleFloorTile(plane, x, y) {
   const f = castleFloor(plane - PLANE.CASTLE_BASE);

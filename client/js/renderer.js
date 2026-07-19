@@ -761,9 +761,22 @@ function chunkCanvas(plane, cx, cy) {
         }
       }
     }
+    // castle interior masonry: a short lit-stone prism (walls read as raised
+    // coursed stone against the flagstone floor, torch-lit by the plane gloom) —
+    // the void beyond the footprint is the same block, reading as thick keep wall
+    if (t === TILE.WALL && plane >= PLANE.CASTLE_BASE) {
+      const lit = 0.78 + shade * 0.3, wh = 24;
+      const s = (r, gg, b) => `rgb(${Math.min(255, r * lit) | 0},${Math.min(255, gg * lit) | 0},${Math.min(255, b * lit) | 0})`;
+      g.fillStyle = s(96, 100, 110); g.beginPath(); g.moveTo(lx - TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx - TW / 2, ly - wh); g.closePath(); g.fill();
+      g.fillStyle = s(126, 131, 142); g.beginPath(); g.moveTo(lx + TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx + TW / 2, ly - wh); g.closePath(); g.fill();
+      g.fillStyle = s(158, 164, 176); g.beginPath(); g.moveTo(lx, ly - TH / 2 - wh); g.lineTo(lx + TW / 2, ly - wh); g.lineTo(lx, ly + TH / 2 - wh); g.lineTo(lx - TW / 2, ly - wh); g.closePath(); g.fill();
+      g.strokeStyle = 'rgba(40,42,48,0.6)'; g.lineWidth = 1;                       // a coursing line down each face
+      g.beginPath(); g.moveTo(lx - TW / 2, ly - wh / 2); g.lineTo(lx, ly + TH / 2 - wh / 2); g.lineTo(lx + TW / 2, ly - wh / 2); g.stroke();
+      continue;
+    }
     // dungeon rock: flat dark tile (no tall prism, so corridors stay readable),
     // studded with abyssal rocks and glowing crystal veins
-    if (t === TILE.WALL && plane >= PLANE.DUNGEON_BASE) {
+    if (t === TILE.WALL && plane >= PLANE.DUNGEON_BASE && plane < PLANE.CASTLE_BASE) {
       g.fillStyle = shade > 0.5 ? '#1e1a24' : '#171420';
       g.beginPath();
       g.moveTo(lx, ly - TH / 2); g.lineTo(lx + TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx - TW / 2, ly);

@@ -529,7 +529,7 @@ export const DUNGEON_MAP = { size: 48 };
 // plan mirrors the building on the world map. topFloor is the open roof.
 // ox/oy (the keep's scaled origin) are filled in the scaling footer below;
 // keepLadder is the keep-local tile of the great hall's up-ladder to floor 2.
-export const CASTLE = { cols: 16, rows: 11, topFloor: 4, ox: 0, oy: 0, keepLadder: { x: 8, y: 8 } };
+export const CASTLE = { cols: 30, rows: 22, topFloor: 4, ox: 0, oy: 0, keepLadder: { x: 8, y: 8 } };
 
 // World events
 export const EVENTS = [
