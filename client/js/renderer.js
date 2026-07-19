@@ -1428,6 +1428,19 @@ export class Renderer {
         return;
       }
     }
+    // town-square fountain: a live 16-frame stone fountain, water spilling over
+    // two tiers. Cell is 384² (fountain in the upper half, streams below); we draw
+    // it ~2 tiles wide, anchored so the basin foot sits on the plaza.
+    if (node.type === 'fountain' && MEDIA.sheets?.fountain) {
+      const f = MEDIA.sheets.fountain, im = mimg(f.file);
+      if (im && im.complete && im.naturalWidth) {
+        const fi = Math.floor(now / 90) % f.frames;
+        const col = fi % f.cols, row = (fi / f.cols) | 0;
+        const dw = 132, dh = 132;
+        ctx.drawImage(im, col * f.cellW, row * f.cellH, f.cellW, f.cellH, sx - dw / 2, sy - dh * 0.74, dw, dh);
+        return;
+      }
+    }
     if (node.type === 'ge_counter') { this.drawGEcounter(ctx, sx, sy, false, node.x, node.y); return; }
     if (node.type === 'ge_window') { this.drawGEcounter(ctx, sx, sy, true, node.x, node.y); return; }
     if (node.type === 'ge_rope') { this.drawGErope(ctx, sx, sy, node.x, node.y); return; }

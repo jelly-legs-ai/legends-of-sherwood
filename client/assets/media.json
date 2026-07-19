@@ -3989,6 +3989,14 @@
    "cols": 4,
    "frames": 4
   },
+  "fountain": {
+   "file": "env/fountain_anim.png",
+   "cell": 384,
+   "cellW": 384,
+   "cellH": 384,
+   "cols": 4,
+   "frames": 16
+  },
   "kiln": {
    "file": "env/st_kiln.png",
    "cell": 256,
