@@ -893,45 +893,56 @@ export function castleFloor(floor) {
     _castleFloors.set(floor, out); return out;
   }
 
-  // A proper castle floor: a grid of chambers inside a thick curtain wall, linked
-  // by doorways (so it reads as rooms + corridors, not one cave), a great hall
-  // knocked through the middle, drum towers at the corners, and a south gatehouse
-  // opening (the ground-floor entrance from the bailey). The doorway spanning-grid
-  // guarantees every chamber — and the gate — is reachable.
-  const m = 2;                                        // curtain-wall margin
-  const RC = Math.max(3, Math.round((W - 2 * m) / 9));    // ~9-tile chambers
-  const RR = Math.max(3, Math.round((H - 2 * m) / 9));
-  const cw = (W - 2 * m) / RC, ch = (H - 2 * m) / RR;
+  // A DESIGNED keep (not a uniform room grid). Oriented with SOUTH (high y) as the
+  // gatehouse entrance from the bailey. It reads as a real castle: a grand central
+  // Great Hall (the Sheriff's throne-room court on the ground floor), the lord's
+  // solar behind the dais, an entrance vestibule off the gatehouse, a west domestic
+  // wing (treasury / buttery / kitchen) and an east state wing (stair tower / chapel
+  // / guard room). Doorways knit every room to the hall. Upper floors keep the same
+  // footprint but subdivide the hall into private chambers (a residential storey).
+  const upper = floor >= 2;
+  const door = (x0, y0, x1, y1) => rect(x0, y0, x1, y1);   // a carved gap through a wall
   const rooms = [];
-  for (let ry = 0; ry < RR; ry++) for (let rx = 0; rx < RC; rx++) {
-    const x0 = m + Math.round(rx * cw) + 1, x1 = m + Math.round((rx + 1) * cw) - 1;
-    const y0 = m + Math.round(ry * ch) + 1, y1 = m + Math.round((ry + 1) * ch) - 1;
-    rect(x0, y0, x1, y1);
-    rooms.push({ x0, y0, x1, y1, cx: (x0 + x1) >> 1, cy: (y0 + y1) >> 1 });
+  const room = (x0, y0, x1, y1) => { rect(x0, y0, x1, y1); rooms.push({ cx: (x0 + x1) >> 1, cy: (y0 + y1) >> 1 }); };
+
+  // Great Hall — the big central space (throne/dais at the north end)
+  if (!upper) {
+    room(20, 14, 39, 41);
+    // a pillared colonnade down the hall for grandeur (single-tile stone columns)
+    for (let cy = 19; cy <= 37; cy += 6) for (const cx of [25, 34]) g[cy * W + cx] = WL;
+  } else {                                   // upper storeys: four private chambers + cross corridor
+    room(20, 14, 29, 26); room(31, 14, 39, 26); room(20, 29, 29, 41); room(31, 29, 39, 41);
+    door(30, 14, 30, 41); door(20, 27, 39, 28);
   }
-  const at = (rx, ry) => rooms[ry * RC + rx];
-  for (let ry = 0; ry < RR; ry++) for (let rx = 0; rx < RC; rx++) {
-    const a = at(rx, ry);
-    if (rx < RC - 1) { const b = at(rx + 1, ry), yy = Math.max(a.y0, b.y0); for (let x = a.x1; x <= b.x0; x++) set(x, yy); }
-    if (ry < RR - 1) { const b = at(rx, ry + 1), xx = Math.max(a.x0, b.x0); for (let y = a.y1; y <= b.y0; y++) set(xx, y); }
+  room(20, 3, 39, 12);   door(28, 13, 31, 13);              // lord's solar (north), door to hall
+  room(24, 45, 35, 55);  door(28, 42, 31, 44);              // entrance vestibule (south), door to hall
+  room(3, 12, 18, 25);   door(19, 18, 19, 20);              // treasury (NW), door to hall
+  room(3, 27, 18, 40);   door(19, 32, 19, 34);              // buttery (W), door to hall
+  room(3, 42, 18, 55);   door(9, 41, 11, 41);               // kitchen (SW), door up to buttery
+  room(41, 12, 56, 25);  door(40, 18, 40, 20);              // stair tower (NE), door to hall
+  room(41, 27, 56, 40);  door(40, 32, 40, 34);              // chapel (E), door to hall
+  room(41, 42, 56, 55);  door(48, 41, 50, 41);              // guard room (SE), door up to chapel
+  // south gatehouse: a 2-wide passage from the bailey up into the vestibule (F1 only)
+  if (!upper) for (let y = H - 1; y >= 45; y--) { set(29, y); set(30, y); }
+
+  // Stair shaft (the up/down ladders live in the NE stair tower so storeys stack)
+  const stairUp = { x: 48, y: 16 }, stairDown = { x: 48, y: 22 };
+  const down = upper ? stairDown : { x: 29, y: 50 };
+  const up = { x: stairUp.x, y: stairUp.y };
+
+  // Connectivity guarantee: flood from the entrance; any room centre not reached
+  // gets a straight L-corridor carved to the hall centre so nobody can be sealed in.
+  const isF = (x, y) => x >= 0 && y >= 0 && x < W && y < H && g[y * W + x] === F;
+  const seen = new Uint8Array(W * H);
+  const start = upper ? stairDown : { x: 29, y: 55 };
+  const q = [start.x + start.y * W]; seen[start.x + start.y * W] = 1;
+  while (q.length) { const i = q.pop(), x = i % W, y = (i / W) | 0;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy;
+      if (isF(nx, ny) && !seen[ny * W + nx]) { seen[ny * W + nx] = 1; q.push(nx + ny * W); } } }
+  for (const r of rooms) if (!seen[r.cy * W + r.cx]) {
+    for (let x = Math.min(r.cx, 30); x <= Math.max(r.cx, 30); x++) set(x, r.cy);
+    for (let y = Math.min(r.cy, 27); y <= Math.max(r.cy, 27); y++) set(30, y);
   }
-  // great hall: a large central throne room knocked through the middle chambers —
-  // the Sheriff holds court (and is fought) here on the ground floor. Spanning a
-  // 3-wide x 2-tall block of rooms gives a proper boss arena.
-  { const c0 = Math.max(0, (RC >> 1) - 2), c1 = Math.min(RC - 1, c0 + 2), r0 = Math.max(0, (RR >> 1) - 1), r1 = Math.min(RR - 1, r0 + 1);
-    const a = at(c0, r0), b = at(c1, r1);
-    rect(a.x0, a.y0, b.x1, b.y1); }
-  // corner drum towers linked back into the interior
-  for (const [cx, cy, sx, sy] of [[m, m, 1, 1], [W - 1 - m, m, -1, 1], [m, H - 1 - m, 1, -1], [W - 1 - m, H - 1 - m, -1, -1]]) {
-    rect(Math.min(cx, cx + sx * 2), Math.min(cy, cy + sy * 2), Math.max(cx, cx + sx * 2), Math.max(cy, cy + sy * 2));
-    for (let i = 0; i <= 3; i++) { set(cx + sx * i, cy + sy); set(cx + sx, cy + sy * i); }
-  }
-  // south gatehouse: a 2-wide passage from the outer wall up into the bottom-centre
-  // chamber (the way in from the bailey on the ground floor)
-  const gx = W >> 1, gate = at(RC >> 1, RR - 1);
-  for (let y = H - 1; y >= gate.cy; y--) { set(gx, y); set(gx + 1, y); }
-  const down = { x: rooms[0].cx, y: rooms[0].cy };
-  const up = { x: rooms[rooms.length - 1].cx, y: rooms[rooms.length - 1].cy };
   const out = { tiles: g, cols: W, rows: H, down, up };
   _castleFloors.set(floor, out); return out;
 }
