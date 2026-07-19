@@ -1989,10 +1989,10 @@ export class Renderer {
           ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineTo(apex[0], apex[1]); ctx.closePath();
           ctx.fillStyle = col; ctx.fill(); ctx.clip();
           if (roofPat) {
-            // world-anchor this slope's tiles to its own eave corner so the shingles
-            // stick to the roof (per-slope) instead of swimming as the camera scrolls
-            const S = 88, ph = (v) => ((v % S) + S) % S;
-            roofPat.setTransform(new DOMMatrix([1, 0, 0, 1, ph(a[0]), ph(a[1])]));
+            // world-anchor this slope's tiles to its own eave corner (so the shingles
+            // stick to the roof per-slope instead of swimming as the camera scrolls)
+            // and rotate the courses 45° to run down the iso pitch
+            roofPat.setTransform(new DOMMatrix().translateSelf(a[0], a[1]).rotateSelf(45));
             ctx.fillStyle = roofPat; ctx.fill();
             ctx.fillStyle = dark > 0 ? `rgba(18,14,9,${dark})` : 'rgba(255,250,235,0.08)'; ctx.fill();
             ctx.strokeStyle = '#00000033'; ctx.lineWidth = 1;   // eave line
