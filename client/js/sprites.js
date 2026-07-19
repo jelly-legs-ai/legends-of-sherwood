@@ -37,12 +37,20 @@ export function registerCustomWeaponArt(defs) {
     const g = d?.gear;
     if (!g || (g.slot && g.slot !== 'weapon') || !g.sheets?.carry) continue;
     const color = g.color || 'steel';
-    // carry ships an fg (over-body facings) and, when the maker marked any facing
-    // 'behind body', a bg (under-body facings) — so a held weapon layers per facing
-    // (e.g. in front facing south, behind the body facing north)
-    const w = { grid: 64, fg: { [color]: g.sheets.carry } };
-    if (g.sheets.carry_bg) w.bg = { [color]: g.sheets.carry_bg };
+    const w = { grid: 64 };
     const per = {};
+    if (g.sheets.carry_over) {
+      // OVERSIZE held: a big weapon ships its walk/idle art as a 128px overlay instead
+      // of a baked 64px carry, so a long blade isn't shaved off by the body cell. It
+      // plays via drawOversize.walk (idle falls back to walk frame 0), drawn over the body.
+      per.walk = { bg: {}, fg: { [color]: g.sheets.carry_over } };
+    } else {
+      // carry ships an fg (over-body facings) and, when the maker marked any facing
+      // 'behind body', a bg (under-body facings) — so a held weapon layers per facing
+      // (e.g. in front facing south, behind the body facing north)
+      w.fg = { [color]: g.sheets.carry };
+      if (g.sheets.carry_bg) w.bg = { [color]: g.sheets.carry_bg };
+    }
     if (g.sheets.slash) per.slash = { bg: { [color]: g.sheets.slash }, fg: {} };
     if (g.sheets.thrust) per.thrust = { bg: { [color]: g.sheets.thrust }, fg: {} };
     if (Object.keys(per).length) w.perAnim = per;

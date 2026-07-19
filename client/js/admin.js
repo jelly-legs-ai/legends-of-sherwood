@@ -1651,6 +1651,8 @@ const GS = {
   picked: '',        // the weapon chosen in the import dropdown (kept selected across re-renders)
   previewAnim: 'walk',  // preview animation for the carry sheet: 'walk' or 'idle'
   previewSlow: 1,       // preview speed divisor (1 = live, higher = slower for close inspection)
+  oversizeHeld: false,  // render the HELD (walk/idle) weapon as a 128px oversize overlay so
+  genOver: null,        // big weapons aren't clipped to the 64px body cell; genOver = its preview sheet
   target: 'carry',   // which sheet we're compiling (see GS_TEMPLATES)
   sheets: {},        // captured PNG dataURLs per target, for deploy
   deploy: { open: false, kind: 'sword', level: 10, drops: [] },   // deployment-table state
@@ -1706,6 +1708,9 @@ function gsCapture() {
     GS.sheets.carry = fg.toDataURL();
     if (anyBg) GS.sheets.carry_bg = bg.toDataURL();
     else delete GS.sheets.carry_bg;
+    // oversize held: ship the 128px walk overlay so big weapons aren't clipped
+    if (GS.oversizeHeld && GS.genOver) GS.sheets.carry_over = GS.genOver.toDataURL();
+    else delete GS.sheets.carry_over;
   } else {
     GS.sheets[GS.target] = GS.gen.toDataURL();
   }
@@ -1900,6 +1905,42 @@ function gsGenerate() {
   const fg = fin.getContext('2d'); fg.imageSmoothingEnabled = true; fg.imageSmoothingQuality = 'high';
   fg.drawImage(out, 0, 0, out.width, out.height, 0, 0, ref.W, ref.H);
   GS.gen = fin;
+  if (GS.oversizeHeld) gsGenerateOver(); else GS.genOver = null;
+}
+// OVERSIZE HELD: build a 4-row (N/W/S/E) × walk-frames overlay at 128px from the carry
+// reference's WALK block, so a large held weapon isn't shaved off by the 64px body cell.
+// The game plays it through drawOversize.walk (with idle falling back to walk frame 0),
+// drawn over the body. Geometry: drawOversize centres a 128px cell on the body, so the
+// 64px reference region sits at (32,32) inside it — the grip maps there.
+function gsGenerateOver() {
+  const ref = GS.refs.carry; if (!ref || !GS.img) { GS.genOver = null; return; }
+  const cols = ref.cols, fs = ref.fs, OV = 128, off = (OV - fs) / 2;
+  const ac = GS_TEMPLATES.carry.align.c, row0 = GS_TEMPLATES.carry.bodyRow, nf = GS_TEMPLATES.carry.frames;
+  const align = ref.cells[GS_TEMPLATES.carry.align.r * cols + ac];
+  const southAng = align ? align.angle : 0, southExt = (align && align.ext) || 1;
+  const SS = 2, iw = GS.img.width, ih = GS.img.height;
+  const out = document.createElement('canvas'); out.width = nf * OV * SS; out.height = 4 * OV * SS;
+  const g = out.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.scale(SS, SS);
+  for (let dir = 0; dir < 4; dir++) {
+    const facing = ['N', 'W', 'S', 'E'][dir], pose = GS.pose[facing] || GS.pose.S;
+    for (let f = 0; f < nf; f++) {
+      const cell = ref.cells[(row0 + dir) * cols + f]; if (!cell) continue;
+      const dRot = GS.trackRot ? cell.angle - southAng : 0;
+      const dScale = GS.sizeLock ? 1 : cell.ext / southExt;
+      g.save();
+      g.beginPath(); g.rect(f * OV, dir * OV, OV, OV); g.clip();
+      g.translate(f * OV + off + cell.gx, dir * OV + off + cell.gy);
+      g.rotate(dRot); g.scale(dScale, dScale);
+      g.translate(pose.x, pose.y); g.rotate(pose.rot * Math.PI / 180); g.scale(pose.scale, pose.scale);
+      g.scale(pose.flipX ? -1 : 1, pose.flipY ? -1 : 1);
+      g.drawImage(GS.img, -iw / 2, -ih / 2);
+      g.restore();
+    }
+  }
+  const fin = document.createElement('canvas'); fin.width = nf * OV; fin.height = 4 * OV;
+  const fc = fin.getContext('2d'); fc.imageSmoothingEnabled = true; fc.imageSmoothingQuality = 'high';
+  fc.drawImage(out, 0, 0, out.width, out.height, 0, 0, fin.width, fin.height);
+  GS.genOver = fin;
 }
 function renderGearSheet() {
   const body = $('#comp-body');
@@ -1909,8 +1950,12 @@ function renderGearSheet() {
       <h3 style="color:var(--gold);font-size:12px">1 · Import equipment art</h3>
       <div class="ms-row"><input type="file" id="gs-file" accept="image/*"></div>
       <div style="font-size:11px;color:var(--dim)">A single weapon image (PNG, transparent). Point the blade UP for best results.</div>
-      <div class="ms-row" style="gap:4px;margin-top:5px">…or edit an existing weapon:
-        <select id="gs-import" style="flex:1"><option value="">— pick a weapon —</option>${weaponList().filter(weaponImportable).map((w) => `<option value="${w}" ${GS.picked === w ? 'selected' : ''}>${w}</option>`).join('')}</select></div>
+      <div style="margin-top:5px;font-size:11px;color:var(--dim)">…or search &amp; edit any existing weapon:</div>
+      <div class="ms-row" style="gap:4px">
+        <input id="gs-import" list="gs-weapon-list" value="${GS.picked || ''}" placeholder="🔍 type to find a weapon…" style="flex:1" autocomplete="off">
+        <datalist id="gs-weapon-list">${weaponList().map((w) => `<option value="${w}">${weaponImportable(w) ? '' : ' (no editable sheet)'}</option>`).join('')}</datalist>
+        <button class="act" id="gs-import-go" style="padding:2px 9px">edit</button></div>
+      <div id="gs-import-note" style="font-size:10.5px;color:var(--dim)"></div>
       <h3 style="color:var(--gold);font-size:12px;margin-top:12px">2 · Choose the combat animation</h3>
       <div class="ms-row" style="flex-wrap:wrap;gap:4px">${tgtBtns}</div>
       <div style="font-size:11px;color:var(--dim)">Carry is the base walk/idle sheet; slash &amp; thrust are the attack overlays. Compile whichever your weapon needs.</div>
@@ -1929,7 +1974,8 @@ function renderGearSheet() {
         <label style="font-size:11.5px" title="draw the weapon BEHIND the body for this facing (leave off for in-front, e.g. South)"><input type="checkbox" id="gs-layer" ${gsPose().layer === 'under' ? 'checked' : ''}> 🧍 behind body</label></div>
       <div class="ms-row" style="gap:12px;flex-wrap:wrap">
         <label style="font-size:11.5px"><input type="checkbox" id="gs-track" ${GS.trackRot ? 'checked' : ''}> track swing</label>
-        <label style="font-size:11.5px" title="keep the weapon the same size in every frame &amp; direction"><input type="checkbox" id="gs-lock" ${GS.sizeLock ? 'checked' : ''}> 🔒 size lock</label></div>
+        <label style="font-size:11.5px" title="keep the weapon the same size in every frame &amp; direction"><input type="checkbox" id="gs-lock" ${GS.sizeLock ? 'checked' : ''}> 🔒 size lock</label>
+        <label style="font-size:11.5px" title="For BIG weapons: render the held walk/idle art as a 128px oversize overlay so a long blade isn't shaved off by the 64px body cell. (Drawn over the body — per-facing behind-body isn't applied to oversize.)"><input type="checkbox" id="gs-oversize" ${GS.oversizeHeld ? 'checked' : ''}> ⬛ oversize held</label></div>
       <details style="margin:6px 0" title="Save every manipulation (all four facings' offset/rotation/scale/mirror/layer) as a reusable preset. Load it onto a new weapon of the SAME design, size and starting position to line it up instantly.">
         <summary style="color:var(--gold);font-size:12px;cursor:pointer">💾 Tuning presets</summary>
         <div style="font-size:10.5px;color:var(--dim);margin:4px 0">Presets copy ALL your per-facing tuning (not the image). Load one onto a new import that's the <b>same size &amp; position</b> as this preset's original art and it fits with no re-dialing.</div>
@@ -1965,11 +2011,22 @@ function renderGearSheet() {
   if (!GS.body) { const b = new Image(); b.onload = () => { GS.body = b; }; b.src = 'assets/lpc/body_male_light.png'; }
   if (!GS.hair) { const h = new Image(); h.onload = () => { GS.hair = h; }; h.src = 'assets/lpc/hair_bangs_male_dark_brown.png'; }
   $('#gs-file').onchange = (e) => { const f = e.target.files[0]; if (!f) return; const im = new Image(); im.onload = () => { GS.img = im; GS.imgName = f.name.replace(/\.\w+$/, ''); GS.picked = ''; gsSeedPose(gsDefaultLift(im.height)); gsSyncSliders(); gsGenerate(); }; im.src = URL.createObjectURL(f); };
-  $('#gs-import').onchange = (e) => { if (e.target.value) { GS.picked = e.target.value; gsImportWeapon(e.target.value); } };
+  // search-to-edit any weapon: the datalist offers every weapon; edit on pick/Enter/button
+  const gsDoImport = () => {
+    const v = ($('#gs-import').value || '').trim(); const note = $('#gs-import-note');
+    if (!v) return;
+    if (!weaponList().includes(v)) { if (note) note.textContent = `No weapon named “${v}”.`; return; }
+    if (!weaponImportable(v)) { if (note) note.textContent = `“${v}” is icon/procedural only — no held sheet to trace.`; return; }
+    if (note) note.textContent = ''; GS.picked = v; gsImportWeapon(v);
+  };
+  $('#gs-import').onchange = gsDoImport;
+  $('#gs-import').onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); gsDoImport(); } };
+  $('#gs-import-go').onclick = gsDoImport;
   // the X/Y/scale/rotate sliders drive ONLY the facing currently selected
   for (const k of ['x', 'y', 'scale', 'rot']) $(`#gs-${k}`).oninput = (e) => { gsPose()[k] = +e.target.value; gsGenerate(); };
   $('#gs-track').onchange = (e) => { GS.trackRot = e.target.checked; gsGenerate(); };
   $('#gs-lock').onchange = (e) => { GS.sizeLock = e.target.checked; gsGenerate(); };
+  $('#gs-oversize').onchange = (e) => { GS.oversizeHeld = e.target.checked; gsGenerate(); gsCapture(); };
   // mirror / flip / layer apply ONLY to the facing being tuned
   $('#gs-flipx').onchange = (e) => { gsPose().flipX = e.target.checked; gsGenerate(); };
   $('#gs-flipy').onchange = (e) => { gsPose().flipY = e.target.checked; gsGenerate(); };
@@ -2164,19 +2221,22 @@ function gsLoop() {
   const nf = idlePrev ? 2 : t.frames;
   const ms = (idlePrev ? 650 : t.ms) * (GS.previewSlow || 1);   // slow down for close inspection
   const fi = Math.floor(now / ms) % nf;
-  const pk = 190 / t.fs, cx = 110, feet = 235;   // shared body+weapon scale (mimics in-game geometry)
+  const oversized = (!t.over && GS.oversizeHeld && !!GS.genOver);   // 128px held overlay in play
+  const pk = oversized ? 160 / 128 : 190 / t.fs, cx = 110, feet = 235;   // shrink so the big overlay fits
   const S = 64 * pk, bx = cx - S / 2, by = feet - S + 12 * pk;
   const drawBody = () => {
     if (GS.body) pg.drawImage(GS.body, fi * 64, (bodyRow + dir) * 64, 64, 64, bx, by, S, S);
     if (GS.hair) pg.drawImage(GS.hair, fi * 64, (bodyRow + dir) * 64, 64, 64, bx, by, S, S);
   };
   const drawWeapon = () => {
-    if (!GS.gen) return;
-    if (t.over) { const Sw = t.fs * pk; pg.drawImage(GS.gen, fi * t.fs, dir * t.fs, t.fs, t.fs, cx - Sw / 2, feet - (t.fs / 2 + 20) * pk, Sw, Sw); }
-    else pg.drawImage(GS.gen, fi * 64, (bodyRow + dir) * 64, 64, 64, bx, by, S, S);
+    if (t.over) { if (!GS.gen) return; const Sw = t.fs * pk; pg.drawImage(GS.gen, fi * t.fs, dir * t.fs, t.fs, t.fs, cx - Sw / 2, feet - (t.fs / 2 + 20) * pk, Sw, Sw); }
+    else if (oversized) { const OV = 128, Sw = OV * pk, ov = idlePrev ? 0 : fi; pg.drawImage(GS.genOver, ov * OV, dir * OV, OV, OV, cx - Sw / 2, feet - (OV / 2 + 20) * pk, Sw, Sw); }
+    else if (GS.gen) pg.drawImage(GS.gen, fi * 64, (bodyRow + dir) * 64, 64, 64, bx, by, S, S);
   };
-  if (pose.layer === 'under') { drawWeapon(); drawBody(); }
-  else { drawBody(); drawWeapon(); }
+  // oversize held always draws over the body (drawOversize runs after the body); the
+  // 64px path honours the facing's over/under layer
+  if (oversized || pose.layer !== 'under') { drawBody(); drawWeapon(); }
+  else { drawWeapon(); drawBody(); }
   raf = requestAnimationFrame(gsLoop);
 }
 
