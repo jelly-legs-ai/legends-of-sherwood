@@ -657,7 +657,14 @@ function chunkCanvas(plane, cx, cy) {
   g.imageSmoothingEnabled = false;
   const ox = CH * TW / 2, oy = top;
   const water = [];   // animated-water tiles recorded at bake time
-  for (let j = 0; j < CH; j++) for (let i = 0; i < CH; i++) {
+  // Bake tiles in back-to-front DIAGONAL (i+j) order — the true iso painter's
+  // order — so tall prisms (castle ramparts, cliffs, walls) occlude only what is
+  // genuinely BEHIND them and are overdrawn by whatever sits in front. A plain
+  // row-by-row (j,i) sweep mis-sorts adjacent diagonals, which let the tall moat
+  // rampart paint over the drawbridge deck crossing in front of it.
+  for (let dsum = 0; dsum <= 2 * (CH - 1); dsum++)
+    for (let i = Math.max(0, dsum - (CH - 1)); i <= Math.min(CH - 1, dsum); i++) {
+    const j = dsum - i;
     const x = cx * CH + i, y = cy * CH + j;
     const t = tileAtPlane(plane, x, y);
     const h = chunkElev(plane, x, y);
