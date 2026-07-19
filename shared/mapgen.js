@@ -819,9 +819,11 @@ export function castleFloor(floor) {
     if (rx < RC - 1) { const b = at(rx + 1, ry), yy = Math.max(a.y0, b.y0); for (let x = a.x1; x <= b.x0; x++) set(x, yy); }
     if (ry < RR - 1) { const b = at(rx, ry + 1), xx = Math.max(a.x0, b.x0); for (let y = a.y1; y <= b.y0; y++) set(xx, y); }
   }
-  // great hall: merge a 2x2 block of central chambers (which block shifts by floor)
-  { const hc = 1 + (floor % Math.max(1, RC - 2)), hr = Math.max(0, ((RR - 2) >> 1) + (floor % 2));
-    const a = at(Math.min(hc, RC - 2), Math.min(hr, RR - 2)), b = at(Math.min(hc + 1, RC - 1), Math.min(hr + 1, RR - 1));
+  // great hall: a large central throne room knocked through the middle chambers —
+  // the Sheriff holds court (and is fought) here on the ground floor. Spanning a
+  // 3-wide x 2-tall block of rooms gives a proper boss arena.
+  { const c0 = Math.max(0, (RC >> 1) - 2), c1 = Math.min(RC - 1, c0 + 2), r0 = Math.max(0, (RR >> 1) - 1), r1 = Math.min(RR - 1, r0 + 1);
+    const a = at(c0, r0), b = at(c1, r1);
     rect(a.x0, a.y0, b.x1, b.y1); }
   // corner drum towers linked back into the interior
   for (const [cx, cy, sx, sy] of [[m, m, 1, 1], [W - 1 - m, m, -1, 1], [m, H - 1 - m, 1, -1], [W - 1 - m, H - 1 - m, -1, -1]]) {

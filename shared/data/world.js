@@ -65,7 +65,7 @@ export const TOWNS = {
     // drawbridge. The keep itself fills the middle and is drawn from the castle
     // ground-floor plan (see CASTLE + worldTile), so it's a full 60x60 castle
     // rather than a building rectangle. buildings is empty on purpose.
-    name: 'Nottingham Castle', cx: 330, cy: 270, r: 24, walled: true, moat: true, gates: ['S'],
+    name: 'Nottingham Castle', cx: 330, cy: 268, r: 27, walled: true, moat: true, gates: ['S'],
     buildings: [],
   },
   bay: {
@@ -364,8 +364,8 @@ export const SPAWNS = [
   { mob: 'sheriffs_guard', x: 305, y: 334, r: 2, n: 3 },   // Westgate Barracks muster
   { mob: 'sheriffs_guard', x: 344, y: 351, r: 2, n: 3 },   // Southeast Barracks muster
   // -- Nottingham Castle garrison: hall/bailey patrols + the gatehouse watch --
-  { mob: 'sheriffs_guard', x: 330, y: 270, r: 16, n: 10, patrol: true },  // castle halls & bailey watch
-  { mob: 'sheriffs_guard', x: 330, y: 294, r: 1, n: 2 },   // south drawbridge gatehouse
+  { mob: 'sheriffs_guard', x: 330, y: 268, r: 16, n: 10, patrol: true },  // castle halls & bailey watch
+  { mob: 'sheriffs_guard', x: 330, y: 295, r: 1, n: 2 },   // south drawbridge gatehouse
   { mob: 'sheriffs_guard', x: 330, y: 336, r: 26, n: 8, patrol: true }, // city patrol beats
   // Grand Exchange garrison — elite guards ring the fortified hall (passive unless attacked)
   { mob: 'ge_guard', x: 330, y: 331, r: 3, n: 4 },   // south approach & doors
@@ -473,7 +473,7 @@ export const BOSS_SPAWNS = [
   { mob: 'elder_treant', x: 255, y: 262 },
   { mob: 'fenwyrm', x: 470, y: 475 },
   { mob: 'guy_of_gisborne', x: 385, y: 150 },
-  { mob: 'sheriff_of_nottingham', x: 330, y: 275 },   // enthroned in the castle's Great Hall
+  { mob: 'sheriff_of_nottingham', x: 330, y: 268 },   // enthroned in the castle's Great Hall (arena)
   { mob: 'troll_king', x: 505, y: 220 },
   { mob: 'frost_giant', x: 300, y: 38 },
   // Sheet-animated boss lairs
@@ -528,7 +528,7 @@ export const DUNGEON_MAP = { size: 48 };
 // plan mirrors the building on the world map. topFloor is the open roof.
 // ox/oy (the keep's scaled origin) are filled in the scaling footer below;
 // keepLadder is the keep-local tile of the great hall's up-ladder to floor 2.
-export const CASTLE = { cols: 60, rows: 60, topFloor: 4, ox: 0, oy: 0, keepLadder: { x: 30, y: 30 } };
+export const CASTLE = { cols: 60, rows: 60, topFloor: 6, ox: 0, oy: 0, keepLadder: { x: 30, y: 30 } };
 
 // World events
 export const EVENTS = [
