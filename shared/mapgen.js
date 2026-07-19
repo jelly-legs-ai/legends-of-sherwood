@@ -294,6 +294,17 @@ function castleCompoundTile(t, x, y) {
   }
   return -1;   // beyond the moat → open country
 }
+// is this tile part of a castle's south drawbridge (the wide stone crossing over
+// the moat)? mirrors the BRIDGE branch of castleCompoundTile (MOAT=3, gw=4) so the
+// renderer can lay a stone deck there while river bridges stay timber.
+export function isCastleBridge(x, y) {
+  for (const key in TOWNS) {
+    const t = TOWNS[key]; if (!t.castle) continue;
+    const dx = x - t.cx, dy = y - t.cy, cheb = Math.max(Math.abs(dx), Math.abs(dy));
+    if (dy > 0 && Math.abs(dx) <= 4 && cheb > t.r + 0.5 && cheb <= t.r + 3) return true;
+  }
+  return false;
+}
 // is this tile inside a castle turret? returns the turret's centre (for the renderer to
 // draw it as one big tower), else null
 export function castleTowerAt(x, y) {

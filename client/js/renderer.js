@@ -2,7 +2,7 @@
 // LPC characters, procedural critters/nodes, day-night tint, northern snow.
 
 import { WORLD, TILE, PLANE, WILDERNESS_Y } from '/shared/constants.js';
-import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV, SHORTCUTS, wallStyleAt, customLevel, levelEntry, castleLadders, inCastle, castleTowerAt } from '/shared/mapgen.js';
+import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV, SHORTCUTS, wallStyleAt, customLevel, levelEntry, castleLadders, inCastle, castleTowerAt, isCastleBridge } from '/shared/mapgen.js';
 import { dayPhase, weatherAt } from '/shared/daycycle.js';
 import { REGIONS } from '/shared/constants.js';
 import { HOUSE, TOWNS, ANCHORS } from '/shared/data/world.js';
@@ -612,29 +612,37 @@ function drawBridge(g, lx, ly, x, y, plane) {
   if (water(x - 1, y) || water(x, y + 1)) pier(W[0] + 6, W[1]);
   if (water(x + 1, y) || water(x, y + 1)) pier(E[0] - 6, E[1]);
   if (water(x, y + 1)) pier(lx, S[1] - 1);
+  // The castle drawbridge draws as a grey-ashlar STONE deck (matching the curtain
+  // walls, via the shared Copings pattern); river bridges keep their timber. Same
+  // geometry either way — only the surfacing changes.
+  const castle = isCastleBridge(x, y);
+  const cPat = castle ? castleStonePattern(g) : null;
+  const deck = () => { g.beginPath(); g.moveTo(N[0], N[1]); g.lineTo(E[0], E[1]); g.lineTo(S[0], S[1]); g.lineTo(W[0], W[1]); g.closePath(); };
   // deck thickness on the two camera-facing edges
   const faceQuad = (a, b, col) => { g.fillStyle = col; g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.lineTo(b[0], b[1] + TK); g.lineTo(a[0], a[1] + TK); g.closePath(); g.fill(); };
-  faceQuad(W, S, '#573a1c'); faceQuad(S, E, '#684622');
-  // deck top planks
-  g.fillStyle = '#7d5327';
-  g.beginPath(); g.moveTo(N[0], N[1]); g.lineTo(E[0], E[1]); g.lineTo(S[0], S[1]); g.lineTo(W[0], W[1]); g.closePath(); g.fill();
-  g.save(); g.beginPath(); g.moveTo(N[0], N[1]); g.lineTo(E[0], E[1]); g.lineTo(S[0], S[1]); g.lineTo(W[0], W[1]); g.closePath(); g.clip();
-  // plank seams run across the crossing so you walk over the boards
-  const alongX = tileT(x - 1, y) === TILE.BRIDGE || tileT(x + 1, y) === TILE.BRIDGE || land(x - 1, y) || land(x + 1, y);
-  g.strokeStyle = '#00000038'; g.lineWidth = 1;
-  for (let i = 1; i < 7; i++) {
-    const t2 = i / 7;
-    if (alongX) { g.beginPath(); g.moveTo(N[0] + (W[0] - N[0]) * t2, N[1] + (W[1] - N[1]) * t2); g.lineTo(E[0] + (S[0] - E[0]) * t2, E[1] + (S[1] - E[1]) * t2); g.stroke(); }
-    else { g.beginPath(); g.moveTo(N[0] + (E[0] - N[0]) * t2, N[1] + (E[1] - N[1]) * t2); g.lineTo(W[0] + (S[0] - W[0]) * t2, W[1] + (S[1] - W[1]) * t2); g.stroke(); }
+  faceQuad(W, S, castle ? '#4a4842' : '#573a1c'); faceQuad(S, E, castle ? '#5e5c54' : '#684622');
+  // deck top: stone slabs for the castle bridge, timber planks otherwise
+  g.fillStyle = castle ? '#8a8880' : '#7d5327'; deck(); g.fill();
+  if (cPat) { g.save(); deck(); g.clip(); deck(); g.fillStyle = cPat; g.fill(); deck(); g.fillStyle = 'rgba(250,252,255,0.06)'; g.fill(); g.restore(); }
+  if (!castle) {   // timber plank seams (the stone deck carries its own joints)
+    g.save(); deck(); g.clip();
+    const alongX = tileT(x - 1, y) === TILE.BRIDGE || tileT(x + 1, y) === TILE.BRIDGE || land(x - 1, y) || land(x + 1, y);
+    g.strokeStyle = '#00000038'; g.lineWidth = 1;
+    for (let i = 1; i < 7; i++) {
+      const t2 = i / 7;
+      if (alongX) { g.beginPath(); g.moveTo(N[0] + (W[0] - N[0]) * t2, N[1] + (W[1] - N[1]) * t2); g.lineTo(E[0] + (S[0] - E[0]) * t2, E[1] + (S[1] - E[1]) * t2); g.stroke(); }
+      else { g.beginPath(); g.moveTo(N[0] + (E[0] - N[0]) * t2, N[1] + (E[1] - N[1]) * t2); g.lineTo(W[0] + (S[0] - W[0]) * t2, W[1] + (S[1] - W[1]) * t2); g.stroke(); }
+    }
+    g.restore();
   }
-  g.restore();
-  g.strokeStyle = '#9a6a34'; g.lineWidth = 1;   // lit far edges
+  g.strokeStyle = castle ? '#b2b4ae' : '#9a6a34'; g.lineWidth = 1;   // lit far edges
   g.beginPath(); g.moveTo(W[0], W[1]); g.lineTo(N[0], N[1]); g.lineTo(E[0], E[1]); g.stroke();
   // guard rails run along EVERY edge that meets open water (both sides of the
   // span); edges that meet the bank get none, so land never has a rail beside it.
-  const railH = 9;
+  // The castle bridge gets a heavier grey stone parapet.
+  const railH = castle ? 10 : 9;
   const rail = (a, b) => {
-    g.strokeStyle = '#4a3016'; g.lineWidth = 2;
+    g.strokeStyle = castle ? '#726e64' : '#4a3016'; g.lineWidth = castle ? 3 : 2;
     g.beginPath(); g.moveTo(a[0], a[1] - railH); g.lineTo(b[0], b[1] - railH); g.stroke();
     for (let i = 0; i <= 3; i++) { const px = a[0] + (b[0] - a[0]) * (i / 3), py = a[1] + (b[1] - a[1]) * (i / 3); g.beginPath(); g.moveTo(px, py); g.lineTo(px, py - railH); g.stroke(); }
   };
