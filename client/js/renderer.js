@@ -2,7 +2,7 @@
 // LPC characters, procedural critters/nodes, day-night tint, northern snow.
 
 import { WORLD, TILE, PLANE, WILDERNESS_Y } from '/shared/constants.js';
-import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV, SHORTCUTS, wallStyleAt, customLevel, levelEntry, castleLadders, inCastle } from '/shared/mapgen.js';
+import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV, SHORTCUTS, wallStyleAt, customLevel, levelEntry, castleLadders, inCastle, castleTowerAt } from '/shared/mapgen.js';
 import { dayPhase, weatherAt } from '/shared/daycycle.js';
 import { REGIONS } from '/shared/constants.js';
 import { HOUSE, TOWNS } from '/shared/data/world.js';
@@ -650,7 +650,7 @@ function chunkCanvas(plane, cx, cy) {
   let maxH = 0;
   if (plane === PLANE.OVERWORLD)
     for (let j = 0; j < CH; j++) for (let i = 0; i < CH; i++) maxH = Math.max(maxH, heightAt(cx * CH + i, cy * CH + j));
-  const top = 80 + maxH * ESTEP;   // headroom for tall crenellated walls on the chunk's first rows
+  const top = 200 + maxH * ESTEP;   // headroom for tall crenellated walls + castle turrets on the first rows
   const canvas = document.createElement('canvas');
   canvas.width = CH * TW; canvas.height = CH * TH + top + 64;
   const g = canvas.getContext('2d');
@@ -817,7 +817,10 @@ function chunkCanvas(plane, cx, cy) {
       // buildings inside those walls build in rounded cobblestone
       const wallStyle = stone ? wallStyleAt(x, y) : null;
       if (wallStyle === 'castle') {
-        const cwh = regionAt(x, y) === 'NOTTINGHAM' ? 96 : 64;   // Nottingham's rampart stands a tile taller
+        // curtain wall height; the corner/gate TURRETS stand far taller (~5-6 tiles)
+        // as battlemented drums, their crenellated deck the roof a bowman would man
+        const tower = stone ? castleTowerAt(x, y) : null;
+        const cwh = tower ? 168 : (regionAt(x, y) === 'NOTTINGHAM' ? 96 : 64);
         const cFaceL = () => { g.beginPath(); g.moveTo(lx - TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - cwh); g.lineTo(lx - TW / 2, ly - cwh); g.closePath(); };
         const cFaceR = () => { g.beginPath(); g.moveTo(lx + TW / 2, ly); g.lineTo(lx, ly + TH / 2); g.lineTo(lx, ly + TH / 2 - cwh); g.lineTo(lx + TW / 2, ly - cwh); g.closePath(); };
         g.fillStyle = tint('#7c8387', wear); cFaceL(); g.fill();

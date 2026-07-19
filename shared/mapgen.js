@@ -257,18 +257,33 @@ function townRadius(t, x, y) {
   if (t.castle) return t.r;   // a castle gets a clean, un-noised curtain — no organic wobble
   return t.r + Math.max(0, (vnoise(x, y, 13, 71) - 0.42)) * t.r * 0.8;
 }
-// A proper CASTLE compound (square curtain wall, round corner turret towers, a square
-// moat and a straight south drawbridge) instead of the organic town blob — so the
-// walls read as a fortress, not a wavy hedge. cheb = Chebyshev (square) distance from
-// the centre; the keep itself is drawn separately (worldTile override) inside this.
+// the turret centres: four corner drums + two flanking the south gate. Shared by the
+// tile generator and the renderer (which draws them as huge towers).
+const CASTLE_TOWER_R = 5;
+function castleTowers(t) {
+  const R = t.r;
+  return [
+    [t.cx - R, t.cy - R], [t.cx + R, t.cy - R], [t.cx - R, t.cy + R], [t.cx + R, t.cy + R],  // corners
+    [t.cx - 10, t.cy + R], [t.cx + 10, t.cy + R],   // gatehouse towers flanking the south gate
+  ];
+}
+// A proper CASTLE compound (square curtain wall, big round turret towers, a square moat
+// and a straight south drawbridge) instead of the organic town blob — so the walls read
+// as a fortress, not a wavy hedge. cheb = Chebyshev (square) distance from the centre;
+// the keep itself is drawn separately (worldTile override) inside this. Each turret has
+// a doorway on its bailey side so it's walkable from the ground.
 function castleCompoundTile(t, x, y) {
   const R = t.r, dx = x - t.cx, dy = y - t.cy;
   const cheb = Math.max(Math.abs(dx), Math.abs(dy));
-  const MOAT = 3, gw = 4, towerR = 5;   // moat thickness, gate/bridge half-width, turret radius
-  // round drum turrets projecting from each corner of the square curtain
-  for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
-    const td = Math.hypot(x - (t.cx + sx * R), y - (t.cy + sy * R));
-    if (td <= towerR) return td > towerR - 1.7 ? TILE.WALL : TILE.FLOOR_STONE;   // ring wall + tower floor
+  const MOAT = 3, gw = 4, towerR = CASTLE_TOWER_R;
+  for (const [tcx, tcy] of castleTowers(t)) {
+    const tdx = x - tcx, tdy = y - tcy, td = Math.hypot(tdx, tdy);
+    if (td > towerR) continue;
+    if (td <= towerR - 1.7) return TILE.FLOOR_STONE;   // tower floor
+    // ring wall, but OPEN on the side facing the bailey (castle centre) so you can walk in
+    const toCx = t.cx - tcx, toCy = t.cy - tcy, len = Math.hypot(toCx, toCy) || 1;
+    const dot = (tdx * (toCx / len) + tdy * (toCy / len)) / (td || 1);
+    return dot > 0.55 ? TILE.FLOOR_STONE : TILE.WALL;
   }
   const southGate = (dy > 0 && Math.abs(dx) <= gw);   // the one gate + drawbridge, due south
   if (cheb >= R - 0.5 && cheb <= R + 0.5) return southGate ? TILE.PATH : TILE.WALL;   // curtain wall (+ gate opening)
@@ -278,6 +293,16 @@ function castleCompoundTile(t, x, y) {
     return vnoise(x, y, 7, 83) > 0.74 ? TILE.MEADOW : TILE.GRASS;
   }
   return -1;   // beyond the moat → open country
+}
+// is this tile inside a castle turret? returns the turret's centre (for the renderer to
+// draw it as one big tower), else null
+export function castleTowerAt(x, y) {
+  for (const key in TOWNS) {
+    const t = TOWNS[key]; if (!t.castle) continue;
+    if (Math.abs(x - t.cx) > t.r + 8 || Math.abs(y - t.cy) > t.r + 8) continue;
+    for (const [tcx, tcy] of castleTowers(t)) if (Math.hypot(x - tcx, y - tcy) <= CASTLE_TOWER_R) return { cx: tcx, cy: tcy };
+  }
+  return null;
 }
 
 // ---- streets & town furniture ---------------------------------------------------

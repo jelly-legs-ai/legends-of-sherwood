@@ -65,7 +65,7 @@ export const TOWNS = {
     // drawbridge. The keep itself fills the middle and is drawn from the castle
     // ground-floor plan (see CASTLE + worldTile), so it's a full 60x60 castle
     // rather than a building rectangle. buildings is empty on purpose.
-    name: 'Nottingham Castle', cx: 330, cy: 268, r: 24, walled: true, moat: true, gates: ['S'], castle: true,
+    name: 'Nottingham Castle', cx: 330, cy: 268, r: 20, walled: true, moat: true, gates: ['S'], castle: true,
     buildings: [],
   },
   bay: {
