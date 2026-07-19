@@ -403,18 +403,28 @@ function townTile(x, y) {
     if (Math.abs(x - t.cx) > t.r * 1.5 + 6 || Math.abs(y - t.cy) > t.r * 1.5 + 6) continue;
     const d = dist(x, y, t.cx, t.cy);
     const rr = townRadius(t, x, y);
-    // Castle moat (#126): a water ring hugs the outside of the rampart, with a
-    // timber drawbridge carrying each gate road over it (LPC castle kit look).
-    if (t.moat && t.walled && d >= rr && d < rr + 2.4) {
+    // Castle moat (#126): a water ring hugs the outside of the rampart. Each gate
+    // gets a timber drawbridge, but drawn as a DEAD-STRAIGHT square-on span rather
+    // than a slice of the wavy ring — we measure the moat depth on the gate's
+    // centre-line (perpendicular offset 0) and lay a uniform-width deck straight
+    // across it, so the crossing reads as a clean rectangular bridge instead of a
+    // jagged L that follows the organic bank.
+    if (t.moat && t.walled) {
       const gw = 3;
       for (const s of (t.gates || [])) {
-        if (s === 'W' && x < t.cx && Math.abs(y - t.cy) <= gw) return TILE.BRIDGE;
-        if (s === 'E' && x > t.cx && Math.abs(y - t.cy) <= gw) return TILE.BRIDGE;
-        if (s === 'S' && y > t.cy && Math.abs(x - t.cx) <= gw) return TILE.BRIDGE;
-        if (s === 'N' && y < t.cy && Math.abs(x - t.cx) <= gw) return TILE.BRIDGE;
+        let pd, od;   // pd: perpendicular offset from the gate axis; od: outward distance from centre
+        if (s === 'S') { pd = x - t.cx; od = y - t.cy; }
+        else if (s === 'N') { pd = x - t.cx; od = t.cy - y; }
+        else if (s === 'E') { pd = y - t.cy; od = x - t.cx; }
+        else { pd = y - t.cy; od = t.cx - x; }   // W
+        if (od <= 0 || Math.abs(pd) > gw) continue;
+        // wall radius sampled on the centre-line at this ring — the SAME value for
+        // every tile across the strip, so the deck's edges stay perfectly straight
+        const r0 = (s === 'S' || s === 'N') ? townRadius(t, t.cx, y) : townRadius(t, x, t.cy);
+        if (od >= r0 - 1 && od < r0 + 3.2) return TILE.BRIDGE;   // gate threshold → across the moat → far bank
       }
-      return TILE.WATER;
     }
+    if (t.moat && t.walled && d >= rr && d < rr + 2.4) return TILE.WATER;
     if (d < rr) {
       if (t.walled) {
         // Sealed rampart: a tile is wall if ANY of its 8 neighbours falls off
