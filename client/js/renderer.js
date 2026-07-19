@@ -5,7 +5,7 @@ import { WORLD, TILE, PLANE, WILDERNESS_Y } from '/shared/constants.js';
 import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV, SHORTCUTS, wallStyleAt, customLevel, levelEntry, castleLadders, inCastle, castleTowerAt } from '/shared/mapgen.js';
 import { dayPhase, weatherAt } from '/shared/daycycle.js';
 import { REGIONS } from '/shared/constants.js';
-import { HOUSE, TOWNS } from '/shared/data/world.js';
+import { HOUSE, TOWNS, ANCHORS } from '/shared/data/world.js';
 import { composite, drawChar, drawOversize, critterSprite, nodeSprite, ANIMS, itemIcon, proc } from './sprites.js';
 import { MOBS } from '/shared/data/mobs.js';
 import { drawCreature, drawChest, drawGeode, drawSheetCell, drawFxSprite, drawFxBand, MEDIA, mimg } from './media.js';
@@ -416,6 +416,7 @@ function foamFrames() {
 // to mid grey — the tile then repeats seamlessly across the curtain with no
 // black showing. Used to fill the castle curtain + turret faces (the bounded,
 // regular square where a sprite treatment is safe); villages keep procedural.
+const _lodeLit = new Map();            // town key -> timestamp the client first saw it attuned (drives the one-shot light-up)
 let _castleStone = null;               // CanvasPattern once built, 'pending' while the image streams
 function castleStonePattern(g) {
   if (_castleStone && _castleStone !== 'pending') return _castleStone;
@@ -1481,21 +1482,35 @@ export class Renderer {
         return;
       }
     }
-    // teleport lodestone: a solid stone waystone ring with a blue portal that
-    // pulses through 5 frames (128x64 frames stacked vertically). Marks each
-    // town's teleport anchor (see mapgen). A soft additive bloom underneath sells
-    // the arcane light without washing the stone ring itself.
+    // teleport lodestone: a stone waystone ring (frames 0..4 = dormant → lit blue
+    // portal, 128x64 stacked vertically). State-driven, NOT a loop: an UNVISITED
+    // stone is dark (frame 0, no glow); the FIRST time the player attunes it the
+    // portal lights up once (frames 0→4); an attuned stone then stays permanently
+    // lit. Attunement = this town's key in G.self.lodestones (set on proximity).
     if (node.type === 'lodestone') {
       const im = mimg('overhaul/lodestone.png');
       if (im && im.complete && im.naturalWidth) {
-        const fr = Math.floor(now / 140) % 5;
+        let key = null;
+        for (const k of ['loxley', 'nottingham', 'bay', 'frosthollow']) {
+          const a = ANCHORS[k];
+          if (a && Math.abs(a.x - node.x) <= 3 && Math.abs(a.y - node.y) <= 3) { key = k; break; }
+        }
+        const attuned = !!key && (window.G?.self?.lodestones || []).includes(key);
         const w = 92, h = 46, dy = sy - h * 0.6;
-        const glow = 0.25 + 0.22 * Math.sin(now / 320);        // gentle breathing bloom
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.fillStyle = `rgba(70,150,255,${glow.toFixed(3)})`;
-        ctx.beginPath(); ctx.ellipse(sx, dy + h * 0.45, w * 0.28, h * 0.28, 0, 0, 7); ctx.fill();
-        ctx.restore();
+        let fr = 0, glow = 0;
+        if (attuned) {
+          if (!_lodeLit.has(key)) _lodeLit.set(key, now);        // begin the one-shot light-up
+          const el = now - _lodeLit.get(key), STEP = 130;
+          fr = Math.min(4, Math.floor(el / STEP));               // play 0→4 once, then hold at 4
+          glow = fr < 4 ? 0.08 + fr * 0.08 : 0.26 + 0.16 * Math.sin(now / 340);  // steady breathing once lit
+        }
+        if (glow > 0) {   // dormant stones draw no arcane light at all
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.fillStyle = `rgba(70,150,255,${glow.toFixed(3)})`;
+          ctx.beginPath(); ctx.ellipse(sx, dy + h * 0.45, w * 0.28, h * 0.28, 0, 0, 7); ctx.fill();
+          ctx.restore();
+        }
         ctx.drawImage(im, 0, fr * 64, 128, 64, sx - w / 2, dy, w, h);
         return;
       }
