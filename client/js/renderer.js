@@ -438,6 +438,20 @@ function castleStonePattern(g) {
   return _castleStone;
 }
 
+// Roof shingle textures (OGA "rooftops" pack) baked into small repeating patterns,
+// one per colour name. Not cached until the image streams in (so it retries).
+const _roofPat = new Map();
+function roofPattern(g, color) {
+  if (_roofPat.has(color)) return _roofPat.get(color);
+  const im = mimg('overhaul/roofs/' + color + '.png');
+  if (!im || !im.complete || !im.naturalWidth) return null;
+  const S = 88, c = document.createElement('canvas'); c.width = S; c.height = S;
+  c.getContext('2d').drawImage(im, 0, 0, S, S);
+  const pat = g.createPattern(c, 'repeat');
+  _roofPat.set(color, pat);
+  return pat;
+}
+
 // ---- waterfalls -------------------------------------------------------------------
 // A river tile standing above its downhill neighbour spills over the edge: the
 // cliff column below it is painted as falling water instead of earth, and the
@@ -1951,17 +1965,30 @@ export class Renderer {
         const roofL = adobeTown ? '#c0ac82' : gilded ? '#a8842e' : stone ? '#6e6a5e' : '#8a4f2a';
         const roofR = adobeTown ? '#d0bc92' : gilded ? '#c09a3c' : stone ? '#7a766a' : '#9a5c32';
         const roofBack = adobeTown ? '#b09c74' : gilded ? '#8a6c24' : stone ? '#5e5a50' : '#733f22';
-        const kind = adobeTown ? 'tile' : gilded ? 'tile' : stone ? 'slate' : 'thatch';   // roof material
+        const kind = adobeTown ? 'tile' : gilded ? 'tile' : stone ? 'slate' : 'thatch';   // fallback roof material
+        // OGA roof texture per building: stone keeps grey slate, the Exchange a
+        // golden yellow, houses (unnamed) thatch, and shops get a tiled roof whose
+        // colour varies by position. Adobe stays the flat sun-baked procedural slab.
+        const roofColor = adobeTown ? null : stone ? 'gray' : gilded ? 'yellow'
+          : b.name ? ['red', 'brown', 'blue'][(((b.x * 7 + b.y * 13) % 3) + 3) % 3] : 'thatch';
+        const roofPat = roofColor ? roofPattern(ctx, roofColor) : null;
         const rgb = (hex) => [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
         const tint = (hex, f) => { const [r, g, bl] = rgb(hex); return `rgb(${Math.min(255, r * f) | 0},${Math.min(255, g * f) | 0},${Math.min(255, bl * f) | 0})`; };
         const L2 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
-        // A hip-roof face is a triangle (eave corner a, eave corner b, apex). We
-        // lay courses parallel to the eave and rake tile/thatch joints down each
-        // course so the roof reads as a textured surface, not a flat gradient.
-        const face = (a, b, col, near) => {
+        // A hip-roof face is a triangle (eave corner a, eave corner b, apex). With a
+        // shingle texture we fill it with the pattern + a per-face shade (dark);
+        // otherwise we fall back to procedural courses so nothing breaks pre-load.
+        const face = (a, b, col, near, dark) => {
           ctx.save();
           ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineTo(apex[0], apex[1]); ctx.closePath();
           ctx.fillStyle = col; ctx.fill(); ctx.clip();
+          if (roofPat) {
+            ctx.fillStyle = roofPat; ctx.fill();
+            ctx.fillStyle = dark > 0 ? `rgba(18,14,9,${dark})` : 'rgba(255,250,235,0.08)'; ctx.fill();
+            ctx.strokeStyle = '#00000033'; ctx.lineWidth = 1;   // eave line
+            ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+            ctx.restore(); return;
+          }
           const courses = kind === 'thatch' ? 7 : 5;
           for (let i = 0; i < courses; i++) {
             const t0 = i / courses, t1 = (i + 1) / courses;
@@ -1986,10 +2013,10 @@ export class Renderer {
           ctx.restore();
         };
         // draw far faces first, near faces last (painter's order in iso)
-        face(e01, e11, roofBack, false);   // north/back
-        face(e00, e01, roofL, false);      // west/left
-        face(e10, e11, roofR, false);      // east/right
-        face(e00, e10, roofTop, true);     // south/front (toward camera)
+        face(e01, e11, roofBack, false, 0.30);   // north/back (deep shade)
+        face(e00, e01, roofL, false, 0.15);      // west/left
+        face(e10, e11, roofR, false, 0.15);      // east/right
+        face(e00, e10, roofTop, true, 0);        // south/front (toward camera, catches light)
         // hip ridges from each eave corner up to the apex
         ctx.strokeStyle = gilded ? '#ffe9a8cc' : stone ? '#b4ae98aa' : '#d0925caa'; ctx.lineWidth = 1.5;
         for (const c of [e00, e10, e11, e01]) { ctx.beginPath(); ctx.moveTo(c[0], c[1]); ctx.lineTo(apex[0], apex[1]); ctx.stroke(); }
