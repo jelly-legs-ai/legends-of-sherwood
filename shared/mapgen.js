@@ -3,7 +3,7 @@
 // the map never crosses the network. Region layout is authored; detail is noise.
 
 import { WORLD, TILE, TILE_WALKABLE, PLANE } from './constants.js';
-import { TOWNS, POIS, SHORTCUTS, ARENA, HOUSE, DUNGEON_MAP } from './data/world.js';
+import { TOWNS, POIS, SHORTCUTS, ARENA, HOUSE, DUNGEON_MAP, CASTLE } from './data/world.js';
 
 const W = WORLD.W, H = WORLD.H;
 export const WORLD_W = W, WORLD_H = H;
@@ -767,10 +767,62 @@ export function dungeonFloor(floor) {
   return out;
 }
 
+// Nottingham Castle upper floors (planes CASTLE_BASE + floor). Each floor is a
+// deterministic labyrinth carved to fill the keep footprint (cols x rows), so
+// the plan mirrors the building; a drunkard walk from a start cell guarantees
+// every carved tile is connected. 'down' is where you arrive from below, 'up'
+// where you arrive from above (the top floor is an open roof with no up).
+const _castleFloors = new Map();
+export function castleFloor(floor) {
+  if (_castleFloors.has(floor)) return _castleFloors.get(floor);
+  const W = CASTLE.cols, H = CASTLE.rows;
+  const g = new Uint8Array(W * H).fill(TILE.WALL);
+  const roof = floor >= CASTLE.topFloor;
+  let rng = (WORLD.SEED * 2654435761 + floor * 40503) & 0x7fffffff;
+  const rnd = () => { rng = (rng * 1103515245 + 12345) & 0x7fffffff; return rng / 0x7fffffff; };
+  const carve = (cx, cy) => { if (cx > 0 && cy > 0 && cx < W - 1 && cy < H - 1) g[cy * W + cx] = TILE.FLOOR_STONE; };
+  let x = 1 + (rnd() * (W - 2) | 0), y = 1 + (rnd() * (H - 2) | 0);
+  const down = { x, y };
+  let far = { x, y, d: 0 };
+  const steps = roof ? 700 : 300;
+  for (let i = 0; i < steps; i++) {
+    carve(x, y);
+    if (roof) for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) carve(x + dx, y + dy); // open battlements
+    const r = rnd();
+    if (r < 0.25) x++; else if (r < 0.5) x--; else if (r < 0.75) y++; else y--;
+    x = Math.max(1, Math.min(W - 2, x)); y = Math.max(1, Math.min(H - 2, y));
+    const d = Math.abs(x - down.x) + Math.abs(y - down.y);
+    if (d > far.d) far = { x, y, d };
+  }
+  carve(down.x, down.y);
+  const up = roof ? null : { x: far.x, y: far.y };
+  if (up) carve(up.x, up.y);
+  const out = { tiles: g, cols: W, rows: H, down, up };
+  _castleFloors.set(floor, out);
+  return out;
+}
+export function castleFloorTile(plane, x, y) {
+  const f = castleFloor(plane - PLANE.CASTLE_BASE);
+  const lx = (x | 0) - CASTLE.ox, ly = (y | 0) - CASTLE.oy;
+  if (lx < 0 || ly < 0 || lx >= f.cols || ly >= f.rows) return TILE.WALL;
+  return f.tiles[ly * f.cols + lx];
+}
+// ladder world positions for a floor plane: {down, up|null}
+export function castleLadders(plane) {
+  const f = castleFloor(plane - PLANE.CASTLE_BASE);
+  return {
+    down: { x: CASTLE.ox + f.down.x, y: CASTLE.oy + f.down.y },
+    up: f.up ? { x: CASTLE.ox + f.up.x, y: CASTLE.oy + f.up.y } : null,
+  };
+}
+// the great hall's (overworld) up-ladder into floor 2
+export function castleKeepLadder() { return { x: CASTLE.ox + CASTLE.keepLadder.x, y: CASTLE.oy + CASTLE.keepLadder.y }; }
+
 export function tileAtPlane(plane, x, y) {
   if (plane === PLANE.OVERWORLD) return worldTile(x, y);
   if (plane <= -10) return customLevelTile(-10 - plane, x, y);   // Map Studio levels
   if (plane === PLANE.COLOSSEUM) return arenaTile(x, y);
+  if (plane >= PLANE.CASTLE_BASE) return castleFloorTile(plane, x, y);
   if (plane >= PLANE.DUNGEON_BASE) {
     const f = dungeonFloor(plane - PLANE.DUNGEON_BASE);
     if (x < 0 || y < 0 || x >= f.size || y >= f.size) return TILE.WALL; // solid rock void

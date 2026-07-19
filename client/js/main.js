@@ -1,8 +1,8 @@
 // Legends of Sherwood — client entry: login, game state, input, main loop.
 import { MSG, PLANE, WILDERNESS_Y, REGIONS, TILE, FX } from '/shared/constants.js';
-import { computeWorld, regionAt, dungeonFloor, worldTile, applyMapOverrides, customLevel } from '/shared/mapgen.js';
+import { computeWorld, regionAt, dungeonFloor, worldTile, applyMapOverrides, customLevel, castleLadders, castleKeepLadder } from '/shared/mapgen.js';
 import { QUESTS } from '/shared/data/quests.js';
-import { HOUSE } from '/shared/data/world.js';
+import { HOUSE, CASTLE } from '/shared/data/world.js';
 import { ITEMS, registerCustomItems } from '/shared/data/items.js';
 import { registerCustomAnims } from './media.js';
 import { MOBS } from '/shared/data/mobs.js';
@@ -376,6 +376,11 @@ function clickGround(e, menu) {
       }
       nodeType = type; nodeX = cx2; nodeY = cy2;
     }
+    // the great hall's up-ladder into the castle keep's upper floors
+    if (!nodeType) { const kl = castleKeepLadder(); if (Math.abs(x - kl.x) <= 1 && Math.abs(y - kl.y) <= 1) { nodeType = 'castle_stair'; nodeX = kl.x; nodeY = kl.y; } }
+  } else if (plane >= PLANE.CASTLE_BASE) {
+    const L = castleLadders(plane);
+    if (Math.hypot(x - L.down.x, y - L.down.y) < 2 || (L.up && Math.hypot(x - L.up.x, y - L.up.y) < 2)) nodeType = 'castle_ladder';
   } else if (plane <= -10) {
     // studio cave: click its placed nodes (same canopy-cover forgiveness)
     const lv = customLevel(-10 - plane);
@@ -505,6 +510,8 @@ function nodeDisplayName(type) {
 const SKILL_VERB = { woodcutting: ['🪓', 'Chop'], mining: ['⛏', 'Mine'], hunter: ['🪤', 'Trap'], archaeology: ['🗿', 'Excavate'], runecrafting: ['✨', 'Craft runes at'], farming: ['🌱', 'Tend'], agility: ['🤸', 'Traverse'] };
 function actionLabel(type) {
   if (type.startsWith('cave_gate:')) return '🕳 Enter ' + type.slice(10).replace(/_/g, ' ');
+  if (type === 'castle_stair') return '🪜 Climb into the keep';
+  if (type === 'castle_ladder') return '🪜 Climb the ladder';
   const n = NODES[type];
   if (!n) return '✋ Use';
   const name = nodeDisplayName(type);
@@ -570,6 +577,7 @@ function zoneName() {
   const plane = G.self.plane;
   if (plane <= -10) { const lv = customLevel(-10 - plane); return '🕳 ' + (lv?.name || 'a hidden cave'); }
   if (plane === PLANE.COLOSSEUM) return '🏟 The Colosseum';
+  if (plane >= PLANE.CASTLE_BASE) { const fl = plane - PLANE.CASTLE_BASE; return fl >= CASTLE.topFloor ? '🏰 Nottingham Castle — Roof' : `🏰 Nottingham Castle — Floor ${fl}`; }
   if (plane >= PLANE.DUNGEON_BASE) return `⚒ Abyssal Depths — Floor ${plane - PLANE.DUNGEON_BASE}`;
   if (plane >= PLANE.HOUSE_BASE) return '🏠 Your Hideout';
   const reg = regionAt(G.self.x | 0, G.self.y | 0);

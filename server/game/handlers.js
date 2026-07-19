@@ -9,8 +9,8 @@ import { MOBS } from '../../shared/data/mobs.js';
 import { NPCS } from '../../shared/data/npcs.js';
 import { QUESTS, TASKS } from '../../shared/data/quests.js';
 import { CROPS } from '../../shared/data/items.js';
-import { SHORTCUTS, ANCHORS, ARENA, HOUSE } from '../../shared/data/world.js';
-import { computeWorld, isBlocked, dungeonFloor, tileAtPlane, levelEntry, customLevel } from '../../shared/mapgen.js';
+import { SHORTCUTS, ANCHORS, ARENA, HOUSE, CASTLE } from '../../shared/data/world.js';
+import { computeWorld, isBlocked, dungeonFloor, tileAtPlane, levelEntry, customLevel, castleLadders, castleKeepLadder } from '../../shared/mapgen.js';
 import { TILE } from '../../shared/constants.js';
 import { Player } from './player.js';
 
@@ -408,6 +408,8 @@ function onAction(world, p, msg) {
     if (!node) return;
     return walkThen(world, p, x, y, () => doNode(world, p, type, node, x, y, msg));
   }
+  // castle keep floors: ladders climb between floor planes
+  if (p.plane >= PLANE.CASTLE_BASE) return castleAction(world, p, x, y, msg);
   // dungeon exit ladder
   if (p.plane >= PLANE.DUNGEON_BASE) return dungeonAction(world, p, x, y, msg);
   if (p.plane >= PLANE.HOUSE_BASE) {
@@ -418,6 +420,12 @@ function onAction(world, p, msg) {
     return;
   }
   if (p.plane === PLANE.COLOSSEUM) return;
+  // the great hall's up-ladder into the castle keep's upper floors
+  { const kl = castleKeepLadder(); if (Math.abs(x - kl.x) <= 1 && Math.abs(y - kl.y) <= 1) {
+    return walkThen(world, p, kl.x, kl.y, () => {
+      const to = PLANE.CASTLE_BASE + 2, d = castleLadders(to).down;
+      castleTravel(world, p, to, d.x, d.y, 'You climb the winding stair into the keep — ladders lead up and down.');
+    }); } }
   const type = nodeAtTile(world, x, y);
   if (!type) return;
   // studio cave gates: slip into the linked level at its entry pad
@@ -1422,6 +1430,31 @@ function exitDungeon(world, p) {
   p.path = null; p.target = null;
   world.gridMove(p);
   world.fx(p.plane, p.x, p.y, FX.TELEPORT, { id: p.id });
+}
+
+// ---------------- castle keep floors ----------------
+function castleTravel(world, p, toPlane, ax, ay, label) {
+  p.plane = toPlane; p.x = ax + 0.5; p.y = ay + 0.5;
+  p.path = null; p.target = null;
+  world.gridMove(p);
+  world.fx(p.plane, p.x, p.y, FX.TELEPORT, { id: p.id });
+  world.send(p, { t: MSG.RESPAWN, x: p.x, y: p.y, plane: p.plane });
+  if (label) world.send(p, { t: MSG.MSGBOX, m: label });
+}
+function castleAction(world, p, x, y, msg) {
+  const floor = p.plane - PLANE.CASTLE_BASE;
+  const L = castleLadders(p.plane);
+  const onDown = Math.hypot(x - L.down.x, y - L.down.y) < 2;
+  const onUp = L.up && Math.hypot(x - L.up.x, y - L.up.y) < 2;
+  if (!onDown && !onUp) return;
+  if (!near(p, x, y, 2.5)) return walkThen(world, p, x, y, () => castleAction(world, p, x, y, msg));
+  if (onDown) {
+    if (floor <= 2) { const kl = castleKeepLadder(); return castleTravel(world, p, PLANE.OVERWORLD, kl.x, kl.y, 'You climb back down into the great hall.'); }
+    const to = floor - 1, arr = castleLadders(PLANE.CASTLE_BASE + to).up;
+    return castleTravel(world, p, PLANE.CASTLE_BASE + to, arr.x, arr.y, `Nottingham Castle — floor ${to}.`);
+  }
+  const to = floor + 1, arr = castleLadders(PLANE.CASTLE_BASE + to).down;
+  castleTravel(world, p, PLANE.CASTLE_BASE + to, arr.x, arr.y, to >= CASTLE.topFloor ? 'You step out onto the castle battlements.' : `Nottingham Castle — floor ${to}.`);
 }
 
 // ---------------- pets ----------------

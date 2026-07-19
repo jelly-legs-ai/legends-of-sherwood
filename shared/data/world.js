@@ -523,6 +523,14 @@ garden: [
 // Dungeon floors: 48x48 seeded layouts on planes DUNGEON_BASE + floor
 export const DUNGEON_MAP = { size: 48 };
 
+// Nottingham Castle multi-floor keep. F1 is the overworld great hall; floors
+// 2..topFloor load as their own planes (PLANE.CASTLE_BASE + floor), each a
+// labyrinth generated to fill the keep footprint (cols x rows), so the floor
+// plan mirrors the building on the world map. topFloor is the open roof.
+// ox/oy (the keep's scaled origin) are filled in the scaling footer below;
+// keepLadder is the keep-local tile of the great hall's up-ladder to floor 2.
+export const CASTLE = { cols: 16, rows: 11, topFloor: 4, ox: 0, oy: 0, keepLadder: { x: 8, y: 8 } };
+
 // World events
 export const EVENTS = [
   { id: 'convoy', name: "The Sheriff's Convoy", desc: 'A tax convoy rolls north! Raid the strongbox on the North Road.', x: 318, y: 240, everyMin: 22, durMin: 6 },
@@ -566,3 +574,5 @@ if (K !== 1) {
   for (const a of Object.values(ANCHORS)) { a.x = Math.round(a.x * K); a.y = Math.round(a.y * K); }
   for (const ev of EVENTS) { ev.x = Math.round(ev.x * K); ev.y = Math.round(ev.y * K); }
 }
+// pin the castle floor-plane footprint to the (now-scaled) great-hall keep
+{ const keep = TOWNS.nottingham_castle.buildings[0]; CASTLE.ox = keep.x; CASTLE.oy = keep.y; }

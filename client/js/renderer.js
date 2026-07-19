@@ -2,7 +2,7 @@
 // LPC characters, procedural critters/nodes, day-night tint, northern snow.
 
 import { WORLD, TILE, PLANE, WILDERNESS_Y } from '/shared/constants.js';
-import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV, SHORTCUTS, wallStyleAt, customLevel, levelEntry } from '/shared/mapgen.js';
+import { tileAtPlane, computeWorld, dungeonFloor, regionAt, heightAt, MAX_ELEV, SHORTCUTS, wallStyleAt, customLevel, levelEntry, castleLadders } from '/shared/mapgen.js';
 import { dayPhase, weatherAt } from '/shared/daycycle.js';
 import { REGIONS } from '/shared/constants.js';
 import { HOUSE, TOWNS } from '/shared/data/world.js';
@@ -1155,6 +1155,10 @@ export class Renderer {
           drawables.push({ d: nx + ny + 0.5, node: { type: t, x: nx, y: ny, off: depletedNodes.has(k) } });
         }
       }
+    } else if (plane >= PLANE.CASTLE_BASE) {
+      const L = castleLadders(plane);
+      drawables.push({ d: L.down.x + L.down.y + 0.5, node: { type: 'dungeon_entrance', x: L.down.x, y: L.down.y } });
+      if (L.up) drawables.push({ d: L.up.x + L.up.y + 0.5, node: { type: 'dungeon_entrance', x: L.up.x, y: L.up.y } });
     } else if (plane >= PLANE.DUNGEON_BASE) {
       const f = dungeonFloor(plane - PLANE.DUNGEON_BASE);
       drawables.push({ d: f.entrance.x + f.entrance.y + 0.5, node: { type: 'dungeon_entrance', x: f.entrance.x, y: f.entrance.y } });

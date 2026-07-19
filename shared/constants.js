@@ -13,8 +13,11 @@ WORLD.WALK_SPEED = 3.6;       // tiles / second
 WORLD.RUN_SPEED = 4.2;        // was 5.6; tuned down 25%
 WORLD.EXHAUSTED_SPEED = WORLD.RUN_SPEED * 0.5;  // out of stamina: half the run speed
 
-// Planes (parallel coordinate spaces sharing the entity system)
-export const PLANE = { OVERWORLD: 0, COLOSSEUM: 1, HOUSE_BASE: 1000, DUNGEON_BASE: 2000 };
+// Planes (parallel coordinate spaces sharing the entity system).
+// CASTLE_BASE sits ABOVE DUNGEON_BASE; anywhere that tests `plane >= DUNGEON_BASE`
+// must test the castle range FIRST (or exclude it) so castle floors aren't taken
+// for dungeon floors. Castle floor N (2..4) lives on CASTLE_BASE + N.
+export const PLANE = { OVERWORLD: 0, COLOSSEUM: 1, HOUSE_BASE: 1000, DUNGEON_BASE: 2000, CASTLE_BASE: 3000 };
 
 export const MAX_LEVEL = 99;
 
