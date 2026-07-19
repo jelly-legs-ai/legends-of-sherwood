@@ -1481,6 +1481,25 @@ export class Renderer {
         return;
       }
     }
+    // teleport lodestone: a solid stone waystone ring with a blue portal that
+    // pulses through 5 frames (128x64 frames stacked vertically). Marks each
+    // town's teleport anchor (see mapgen). A soft additive bloom underneath sells
+    // the arcane light without washing the stone ring itself.
+    if (node.type === 'lodestone') {
+      const im = mimg('overhaul/lodestone.png');
+      if (im && im.complete && im.naturalWidth) {
+        const fr = Math.floor(now / 140) % 5;
+        const w = 92, h = 46, dy = sy - h * 0.6;
+        const glow = 0.25 + 0.22 * Math.sin(now / 320);        // gentle breathing bloom
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = `rgba(70,150,255,${glow.toFixed(3)})`;
+        ctx.beginPath(); ctx.ellipse(sx, dy + h * 0.45, w * 0.28, h * 0.28, 0, 0, 7); ctx.fill();
+        ctx.restore();
+        ctx.drawImage(im, 0, fr * 64, 128, 64, sx - w / 2, dy, w, h);
+        return;
+      }
+    }
     if (node.type === 'ge_counter') { this.drawGEcounter(ctx, sx, sy, false, node.x, node.y); return; }
     if (node.type === 'ge_window') { this.drawGEcounter(ctx, sx, sy, true, node.x, node.y); return; }
     if (node.type === 'ge_rope') { this.drawGErope(ctx, sx, sy, node.x, node.y); return; }

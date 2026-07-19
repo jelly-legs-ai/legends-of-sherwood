@@ -443,6 +443,7 @@ function ctxWithWalk(e, opts, examine) {
 const DECOR = {
   well: 'A stone village well. The water is cold and sweet.',
   fountain: 'A carved fountain — its waters catch the light.',
+  lodestone: 'An arcane teleport lodestone. Stand near it to attune, then call here with no magic requirement.',
   lamp_post: 'A wrought-iron lamp, lit against the dark.',
   park_bench: 'A sturdy bench, worn smooth by weary travellers.',
   flower_bed: 'A tended bed of wildflowers brightening the square.',

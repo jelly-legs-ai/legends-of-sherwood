@@ -3,7 +3,7 @@
 // the map never crosses the network. Region layout is authored; detail is noise.
 
 import { WORLD, TILE, TILE_WALKABLE, PLANE } from './constants.js';
-import { TOWNS, POIS, SHORTCUTS, ARENA, HOUSE, DUNGEON_MAP, CASTLE } from './data/world.js';
+import { TOWNS, POIS, SHORTCUTS, ARENA, HOUSE, DUNGEON_MAP, CASTLE, ANCHORS } from './data/world.js';
 
 const W = WORLD.W, H = WORLD.H;
 export const WORLD_W = W, WORLD_H = H;
@@ -715,6 +715,16 @@ export function computeWorld() {
     }
   for (const [type, x, y] of TOWN_PROPS) if (!inAnyBuilding(x, y)) _nodes.set(x + ',' + y, type); // town furniture
   for (const [type, x, y] of POIS) _nodes.set(x + ',' + y, type); // authored POIs win over furniture
+  // teleport lodestones: an animated waystone marks each town's teleport anchor.
+  // Placed a couple tiles off the exact anchor so the teleport landing tile stays
+  // clear (and it doesn't clobber the plaza fountain); first clear candidate wins.
+  for (const key of ['loxley', 'nottingham', 'bay', 'frosthollow']) {
+    const a = ANCHORS[key]; if (!a) continue;
+    for (const [dx, dy] of [[0, -2], [2, 0], [-2, 0], [0, 2], [0, 0]]) {
+      const k = (a.x + dx) + ',' + (a.y + dy);
+      if (!_nodes.has(k)) { _nodes.set(k, 'lodestone'); break; }
+    }
+  }
   // both ends of every agility shortcut are clickable nodes (previously only
   // endpoints that happened to be duplicated in POIS worked)
   for (const [type, x1, y1, x2, y2] of SHORTCUTS) {
