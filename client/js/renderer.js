@@ -452,6 +452,24 @@ function roofPattern(g, color) {
   return pat;
 }
 
+// The sbs stone-stairs sheet ships on an opaque black background; bake it once into
+// a canvas with the black keyed out to transparent so it sits cleanly on the floor.
+let _stairs = null;   // canvas | 'pending'
+function stairsSprite() {
+  if (_stairs && _stairs !== 'pending') return _stairs;
+  const im = mimg('overhaul/stairs_stone.png');
+  if (!im || !im.complete || !im.naturalWidth) { _stairs = 'pending'; return null; }
+  const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
+  const cx = c.getContext('2d'); cx.drawImage(im, 0, 0);
+  const d = cx.getImageData(0, 0, c.width, c.height), p = d.data;
+  for (let i = 0; i < p.length; i += 4) {
+    if (0.3 * p[i] + 0.59 * p[i + 1] + 0.11 * p[i + 2] < 18) p[i + 3] = 0;   // black bg → transparent
+  }
+  cx.putImageData(d, 0, 0);
+  _stairs = c;
+  return c;
+}
+
 // ---- waterfalls -------------------------------------------------------------------
 // A river tile standing above its downhill neighbour spills over the edge: the
 // cliff column below it is painted as falling water instead of earth, and the
@@ -1266,8 +1284,8 @@ export class Renderer {
       }
     } else if (plane >= PLANE.CASTLE_BASE) {
       const L = castleLadders(plane);
-      drawables.push({ d: L.down.x + L.down.y + 0.5, node: { type: 'dungeon_entrance', x: L.down.x, y: L.down.y } });
-      if (L.up) drawables.push({ d: L.up.x + L.up.y + 0.5, node: { type: 'dungeon_entrance', x: L.up.x, y: L.up.y } });
+      drawables.push({ d: L.down.x + L.down.y + 0.5, node: { type: 'castle_ladder', x: L.down.x, y: L.down.y } });
+      if (L.up) drawables.push({ d: L.up.x + L.up.y + 0.5, node: { type: 'castle_ladder', x: L.up.x, y: L.up.y } });
     } else if (plane >= PLANE.DUNGEON_BASE) {
       const f = dungeonFloor(plane - PLANE.DUNGEON_BASE);
       drawables.push({ d: f.entrance.x + f.entrance.y + 0.5, node: { type: 'dungeon_entrance', x: f.entrance.x, y: f.entrance.y } });
@@ -1585,6 +1603,16 @@ export class Renderer {
       }
     }
     // studio cave gates share the abyss-mouth art; the exit pad glows softly
+    // castle floor transitions: a solid stone staircase between floors (replaces
+    // the out-of-place abyss mouth); sits on the up/down ladder-trigger tile.
+    if (type === 'castle_ladder' || type === 'castle_stair') {
+      const im = stairsSprite();
+      if (im) {
+        const w = 118, h = w * 128 / 256;   // top-left cell = a double stone staircase
+        ctx.drawImage(im, 0, 0, 256, 128, sx - w / 2, sy - h * 0.78, w, h);
+        return;
+      }
+    }
     if (type.startsWith('cave_gate:')) { ctx.drawImage(nodeSprite('dungeon_entrance'), sx - 32, sy - 64); return; }
     if (type === 'cave_exit_pad') {
       const pulse = 0.35 + 0.2 * Math.sin(now / 400);

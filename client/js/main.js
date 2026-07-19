@@ -512,7 +512,7 @@ const SKILL_VERB = { woodcutting: ['🪓', 'Chop'], mining: ['⛏', 'Mine'], hun
 function actionLabel(type) {
   if (type.startsWith('cave_gate:')) return '🕳 Enter ' + type.slice(10).replace(/_/g, ' ');
   if (type === 'castle_stair') return '🪜 Climb into the keep';
-  if (type === 'castle_ladder') return '🪜 Climb the ladder';
+  if (type === 'castle_ladder') return '🪜 Climb the stairs';
   const n = NODES[type];
   if (!n) return '✋ Use';
   const name = nodeDisplayName(type);
