@@ -1633,6 +1633,13 @@ function renderCompAnims() {
 // ============================================================================
 const GS = {
   img: null, imgName: '', body: null, hair: null, gen: null, refs: {},
+  // THE ANCHOR — the two points the whole generator keys off. Marked on the input
+  // art (grip = where the hand holds it; axis/len = direction & distance to the
+  // blade tip). With these known, every frame is deterministic: art-grip lands on
+  // the template's traced grip, the art is rotated so its blade axis matches the
+  // template blade angle, and scaled so its blade length matches the template's.
+  // null = legacy centre-anchoring (pre-mark behaviour) for old imports.
+  anchor: null,      // { x, y, axis, len } in art-image pixels
   trackRot: true,
   sizeLock: true,    // keep the weapon a constant size across all frames/directions
   // Each facing owns a FULL, independent pose — screen offset px, rotation deg,
@@ -1680,6 +1687,59 @@ const GS_CARRY_ANIMS = ['walk', 'idle', 'spellcast', 'shoot', 'hurt'];
 function gsSeedPose(lift) {
   const mk = (layer) => ({ x: 0, y: lift, rot: 0, scale: 1, flipX: false, flipY: false, layer });
   GS.pose = { S: mk('over'), N: mk('under'), W: mk('under'), E: mk('under') };
+}
+// seed the anchor for a fresh import: assume an upright weapon — grip near the
+// bottom-centre of the art, blade running straight up. The user refines both by
+// clicking/dragging on the mark-the-grip canvas; everything regenerates live.
+function gsSeedAnchor() {
+  if (!GS.img) { GS.anchor = null; return; }
+  const w = GS.img.width, h = GS.img.height;
+  GS.anchor = { x: w / 2, y: h * 0.92, axis: -Math.PI / 2, len: Math.max(4, h * 0.84) };
+}
+// The auto transform for one template cell — THE formula. With the anchor marked,
+// rotation is ABSOLUTE (template blade angle − the art's own axis) and scale
+// normalises the art's blade length to the template's, so the art snaps onto the
+// guide in every frame of every animation with no manual dialing. trackRot off
+// holds each block's SOUTH orientation instead of following the swing. Without an
+// anchor (legacy import), fall back to centre-anchoring + relative rotation.
+// `align` is this target's alignment cell (its south reference blade).
+function gsAuto(cell, align, southAngle) {
+  const A = GS.anchor;
+  const rest = southAngle ?? (align ? align.angle : cell.angle);
+  if (!A) {
+    return {
+      rot: GS.trackRot ? cell.angle - rest : 0,
+      scale: GS.sizeLock ? 1 : cell.ext / ((align && align.ext) || 1),
+      ax: GS.img.width / 2, ay: GS.img.height / 2,
+    };
+  }
+  const ext = (align && align.ext) || A.len;
+  return {
+    rot: (GS.trackRot ? cell.angle : rest) - A.axis,
+    scale: (ext / (A.len || 1)) * (GS.sizeLock ? 1 : cell.ext / (ext || 1)),
+    ax: A.x, ay: A.y,
+  };
+}
+// draw the mark-the-grip canvas: your art with the GRIP point (gold) and the blade
+// axis out to the TIP (cyan) — the two points the whole generation keys off
+function gsDrawAnchor() {
+  const c = $('#gs-anchor'); if (!c || !GS.img) return;
+  if (!GS.anchor) gsSeedAnchor();
+  const w = GS.img.width, h = GS.img.height;
+  const zz = Math.min(220 / w, 170 / h, 4);
+  c.width = Math.max(48, Math.round(w * zz)); c.height = Math.max(48, Math.round(h * zz));
+  c._z = zz;   // screen px per art px, for the click/drag handlers
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = zz < 1;
+  g.clearRect(0, 0, c.width, c.height);
+  g.drawImage(GS.img, 0, 0, Math.round(w * zz), Math.round(h * zz));
+  const A = GS.anchor;
+  const gx = A.x * zz, gy = A.y * zz;
+  const tx = gx + Math.cos(A.axis) * A.len * zz, ty = gy + Math.sin(A.axis) * A.len * zz;
+  g.strokeStyle = '#39e6d0'; g.lineWidth = 1.6;
+  g.beginPath(); g.moveTo(gx, gy); g.lineTo(tx, ty); g.stroke();
+  g.fillStyle = '#39e6d0'; g.beginPath(); g.arc(tx, ty, 3, 0, 7); g.fill();       // blade tip
+  g.fillStyle = '#ffd94a'; g.strokeStyle = '#000a'; g.lineWidth = 1;
+  g.beginPath(); g.arc(gx, gy, 4.5, 0, 7); g.fill(); g.stroke();                  // grip
 }
 // push the current facing's pose values back onto the sliders (after a seed / facing switch)
 function gsSyncSliders() { const p = gsPose(); for (const k of ['x', 'y', 'scale', 'rot']) { const el = $(`#gs-${k}`); if (el) el.value = p[k]; } }
@@ -1774,10 +1834,13 @@ function gsImportWeapon(type) {
     const crop = document.createElement('canvas'); crop.width = w + pad * 2; crop.height = h + pad * 2;
     crop.getContext('2d').drawImage(cv, ox + mnx, oy + mny, w, h, pad, pad, w, h);
     GS.img = crop; GS.imgName = type;
-    // seat an upright blade's handle at the hand on every facing; user fine-tunes each
-    gsSeedPose(gsDefaultLift(crop.height));
+    // anchor-driven: seed the grip/tip marking (bottom-centre, blade up) — the user
+    // corrects it on the mark canvas and the whole sheet re-derives. Pose starts at
+    // zero; the anchor seats the grip so no default lift is needed.
+    gsSeedAnchor(); gsSeedPose(0);
     gsSyncSliders();
     gsGenerate(); gsCapture(); gsCaps();
+    renderGearSheet();   // show the mark-the-grip canvas for the fresh import
   };
   im.src = 'assets/lpc/' + file;
 }
@@ -1908,25 +1971,24 @@ function gsGenerate() {
   const iw = GS.img.width, ih = GS.img.height;
   for (const cell of ref.cells) {
     if (!cell) continue;
-    const rest = southRest(cell.row);
-    const dRot = GS.trackRot ? cell.angle - (rest ?? cell.angle) : 0;
-    // size-lock keeps a constant size across frames; unlocked, it matches the
-    // reference blade's per-frame length
-    const dScale = GS.sizeLock ? 1 : cell.ext / (align.ext || 1);
+    // THE formula (gsAuto): art-grip → template grip, art axis → template blade
+    // angle, art blade length → template blade length — absolute per frame when
+    // the anchor is marked, so the whole sheet derives from the one marking.
+    const auto = gsAuto(cell, align, southRest(cell.row));
     // block rows go N/W/S/E, so row%4 picks the facing; each facing applies its OWN
     // independent pose (offset/rotation/scale AND mirror/flip) on top of the auto
-    // turn, so tuning or flipping one never moves another
+    // fit as a fine-tune, so tuning or flipping one never moves another
     const pose = GS.pose[gsRowFacing(cell.row)] || GS.pose.S;
     g.save();
     // clip to THIS frame's exact cell so a stamp can't bleed onto a neighbour
     g.beginPath(); g.rect(cell.col * fs, cell.row * fs, fs, fs); g.clip();
-    // anchor at the reference HAND (grip), auto-turn to this facing, then apply the
-    // facing's own line-up (offset / rotation / scale); art is drawn centred
+    // anchor at the reference HAND (grip), auto-fit to this frame, then apply the
+    // facing's own fine-tune; art is drawn from its own marked grip
     g.translate(cell.col * fs + cell.gx, cell.row * fs + cell.gy);
-    g.rotate(dRot); g.scale(dScale, dScale);
+    g.rotate(auto.rot); g.scale(auto.scale, auto.scale);
     g.translate(pose.x, pose.y); g.rotate(pose.rot * Math.PI / 180); g.scale(pose.scale, pose.scale);
     g.scale(pose.flipX ? -1 : 1, pose.flipY ? -1 : 1);   // this facing's own mirror / flip
-    g.drawImage(GS.img, -iw / 2, -ih / 2);
+    g.drawImage(GS.img, -auto.ax, -auto.ay);
     g.restore();
   }
   // resolve the 2x supersample down to the sheet's real size (one clean downscale)
@@ -1954,15 +2016,14 @@ function gsGenerateOver() {
     const facing = ['N', 'W', 'S', 'E'][dir], pose = GS.pose[facing] || GS.pose.S;
     for (let f = 0; f < nf; f++) {
       const cell = ref.cells[(row0 + dir) * cols + f]; if (!cell) continue;
-      const dRot = GS.trackRot ? cell.angle - southAng : 0;
-      const dScale = GS.sizeLock ? 1 : cell.ext / southExt;
+      const auto = gsAuto(cell, align, southAng);   // same anchor formula as the base sheet
       g.save();
       g.beginPath(); g.rect(f * OV, dir * OV, OV, OV); g.clip();
       g.translate(f * OV + off + cell.gx, dir * OV + off + cell.gy);
-      g.rotate(dRot); g.scale(dScale, dScale);
+      g.rotate(auto.rot); g.scale(auto.scale, auto.scale);
       g.translate(pose.x, pose.y); g.rotate(pose.rot * Math.PI / 180); g.scale(pose.scale, pose.scale);
       g.scale(pose.flipX ? -1 : 1, pose.flipY ? -1 : 1);
-      g.drawImage(GS.img, -iw / 2, -ih / 2);
+      g.drawImage(GS.img, -auto.ax, -auto.ay);
       g.restore();
     }
   }
@@ -1978,18 +2039,21 @@ function renderGearSheet() {
     <div style="min-width:270px">
       <h3 style="color:var(--gold);font-size:12px">1 · Import equipment art</h3>
       <div class="ms-row"><input type="file" id="gs-file" accept="image/*"></div>
-      <div style="font-size:11px;color:var(--dim)">A single weapon image (PNG, transparent). Point the blade UP for best results.</div>
+      <div style="font-size:11px;color:var(--dim)">A single weapon image (PNG, transparent). Any orientation — you'll mark its grip &amp; tip next.</div>
       <div style="margin-top:5px;font-size:11px;color:var(--dim)">…or search &amp; edit any existing weapon:</div>
       <div class="ms-row" style="gap:4px">
         <input id="gs-import" list="gs-weapon-list" value="${GS.picked || ''}" placeholder="🔍 type to find a weapon…" style="flex:1" autocomplete="off">
         <datalist id="gs-weapon-list">${weaponList().map((w) => `<option value="${w}">${weaponImportable(w) ? '' : ' (no editable sheet)'}</option>`).join('')}</datalist>
         <button class="act" id="gs-import-go" style="padding:2px 9px">edit</button></div>
       <div id="gs-import-note" style="font-size:10.5px;color:var(--dim)"></div>
+      ${GS.img ? `<h3 style="color:var(--gold);font-size:12px;margin-top:12px">1b · Mark the grip &amp; blade tip</h3>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:4px"><b>Click the GRIP</b> (where the hand holds it), then <b>drag to the blade TIP</b>. These two points are the formula's whole input — the maker anchors, rotates and sizes your art from them, so every animation and facing derives from this one marking.</div>
+      <canvas id="gs-anchor" style="background:#20331f;border:1px solid var(--trim);border-radius:6px;cursor:crosshair;display:block"></canvas>` : ''}
       <h3 style="color:var(--gold);font-size:12px;margin-top:12px">2 · Choose the combat animation</h3>
       <div class="ms-row" style="flex-wrap:wrap;gap:4px">${tgtBtns}</div>
       <div style="font-size:11px;color:var(--dim)">Carry is the base walk/idle sheet; slash &amp; thrust are the attack overlays. Compile whichever your weapon needs.</div>
       <h3 style="color:var(--gold);font-size:12px;margin-top:12px">3 · Line up each facing (locks independently)</h3>
-      <div style="font-size:11px;color:var(--dim);margin-bottom:5px">Lay your weapon <b>right over the cyan guideline blade</b> — match its <b>angle and grip</b>. Pick a facing, drag the guide or use the sliders below, then move to the next. <b>Each facing keeps its own line-up</b>, so tuning one never shifts the others — dial S, then N, W, E and every one stays locked.</div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:5px">With the grip &amp; tip marked, your art <b>snaps onto the cyan guide blade automatically</b> in every facing — this stage is verification. If a facing needs a nudge, pick it and drag/use the sliders; <b>each facing keeps its own fine-tune</b>, so adjusting one never shifts another.</div>
       <div class="ms-row" style="gap:4px;margin-bottom:5px">${['S', 'N', 'W', 'E'].map((f) => `<button class="act ${GS.dir === f ? 'on' : ''}" data-gsdir="${f}" style="padding:2px 10px;font-size:11px">${{ S: 'South', N: 'North', W: 'West', E: 'East' }[f]}</button>`).join('')}</div>
       <canvas id="gs-align" width="256" height="256" style="background:#20331f;border:1px solid var(--trim);border-radius:6px;cursor:move"></canvas>
       <div style="font-size:10.5px;color:var(--gold);margin:3px 0 1px">Tuning <b>${{ S: 'South', N: 'North', W: 'West', E: 'East' }[GS.dir]}</b> — X/Y/rotate move only this facing; scale is shared across all four</div>
@@ -2040,7 +2104,7 @@ function renderGearSheet() {
   // body + a hair layer for the preview, so it's obvious which way the model faces
   if (!GS.body) { const b = new Image(); b.onload = () => { GS.body = b; }; b.src = 'assets/lpc/body_male_light.png'; }
   if (!GS.hair) { const h = new Image(); h.onload = () => { GS.hair = h; }; h.src = 'assets/lpc/hair_bangs_male_dark_brown.png'; }
-  $('#gs-file').onchange = (e) => { const f = e.target.files[0]; if (!f) return; const im = new Image(); im.onload = () => { GS.img = im; GS.imgName = f.name.replace(/\.\w+$/, ''); GS.picked = ''; gsSeedPose(gsDefaultLift(im.height)); gsSyncSliders(); gsGenerate(); }; im.src = URL.createObjectURL(f); };
+  $('#gs-file').onchange = (e) => { const f = e.target.files[0]; if (!f) return; const im = new Image(); im.onload = () => { GS.img = im; GS.imgName = f.name.replace(/\.\w+$/, ''); GS.picked = ''; gsSeedAnchor(); gsSeedPose(0); gsSyncSliders(); gsGenerate(); renderGearSheet(); }; im.src = URL.createObjectURL(f); };
   // search-to-edit any weapon: the datalist offers every weapon; edit on pick/Enter/button
   const gsDoImport = () => {
     const v = ($('#gs-import').value || '').trim(); const note = $('#gs-import-note');
@@ -2083,6 +2147,27 @@ function renderGearSheet() {
   $('#gs-deploy-toggle').onclick = () => { GS.deploy.open = !GS.deploy.open; renderDeploy(); };
   if (!state.dropTables) send({ t: 'dropTables' });
   gsCaps(); renderDeploy();
+  // mark-the-grip canvas: click sets the GRIP, drag sets the blade TIP (axis +
+  // length); the whole sheet re-derives live from the marking
+  gsDrawAnchor();
+  const anc = $('#gs-anchor');
+  if (anc && GS.img) {
+    let marking = false;
+    const artPt = (e) => { const zz = anc._z || 1; return [e.offsetX / zz, e.offsetY / zz]; };
+    anc.onmousedown = (e) => {
+      if (!GS.anchor) gsSeedAnchor();
+      marking = true; const [x, y] = artPt(e);
+      GS.anchor.x = x; GS.anchor.y = y;
+      gsDrawAnchor(); gsGenerate();
+    };
+    anc.onmousemove = (e) => {
+      if (!marking || !GS.anchor) return;
+      const [x, y] = artPt(e); const dx = x - GS.anchor.x, dy = y - GS.anchor.y;
+      const d = Math.hypot(dx, dy);
+      if (d > 3) { GS.anchor.axis = Math.atan2(dy, dx); GS.anchor.len = d; gsDrawAnchor(); gsGenerate(); }
+    };
+    anc.onmouseup = anc.onmouseleave = () => { if (marking) { marking = false; gsCapture(); } };
+  }
   // drag on the align canvas moves ONLY the selected facing's own line-up
   const ac = $('#gs-align'); let drag = null;
   ac.onmousedown = (e) => { const p = gsPose(); drag = { mx: e.offsetX, my: e.offsetY, x: p.x, y: p.y }; };
@@ -2231,14 +2316,16 @@ function gsLoop() {
     ag.drawImage(ref.canvas, guide.col * ref.fs, guide.row * ref.fs, ref.fs, ref.fs, offx, offy, 256, 256);
     ag.restore();
     if (GS.img) {
-      const dRot = GS.trackRot ? guide.angle - (align ? align.angle : guide.angle) : 0;   // auto turn vs south
-      const dScale = GS.sizeLock ? 1 : guide.ext / ((align && align.ext) || 1);
+      // identical transform chain to gsGenerate (via gsAuto), just magnified by the
+      // canvas zoom — what you see on the guide is exactly what stamps on the sheet
+      const auto = gsAuto(guide, align);
       ag.save();
       ag.translate(offx + guide.gx * z, offy + guide.gy * z);   // hand, re-centred, matching gsGenerate
-      ag.rotate(dRot); ag.scale(dScale, dScale);
-      ag.translate(pose.x * z, pose.y * z); ag.rotate(pose.rot * Math.PI / 180); ag.scale(pose.scale * z, pose.scale * z);
+      ag.scale(z, z);
+      ag.rotate(auto.rot); ag.scale(auto.scale, auto.scale);
+      ag.translate(pose.x, pose.y); ag.rotate(pose.rot * Math.PI / 180); ag.scale(pose.scale, pose.scale);
       ag.scale(pose.flipX ? -1 : 1, pose.flipY ? -1 : 1);
-      ag.drawImage(GS.img, -GS.img.width / 2, -GS.img.height / 2);
+      ag.drawImage(GS.img, -auto.ax, -auto.ay);
       ag.restore();
     }
   }
