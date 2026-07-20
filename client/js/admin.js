@@ -1696,6 +1696,33 @@ function gsSeedAnchor() {
   const w = GS.img.width, h = GS.img.height;
   GS.anchor = { x: w / 2, y: h * 0.92, axis: -Math.PI / 2, len: Math.max(4, h * 0.84) };
 }
+// AUTO-DETECT the anchor from the art itself: PCA over the opaque pixels gives the
+// blade axis (same math the template tracer uses); the grip is the extent end
+// FARTHER from the pixel-mass centroid — blades/heads carry the mass toward the
+// business end, so this holds for swords, maces, axes and spears alike. Falls back
+// to the upright seed for tiny/unreadable art; the 1b canvas corrects any miss.
+function gsAutoDetectAnchor() {
+  if (!GS.img) { GS.anchor = null; return; }
+  const w = GS.img.width, h = GS.img.height;
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const g = cv.getContext('2d'); g.drawImage(GS.img, 0, 0);
+  let d; try { d = g.getImageData(0, 0, w, h).data; } catch { gsSeedAnchor(); return; }
+  let n = 0, sx = 0, sy = 0; const pts = [];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 50) { n++; sx += x; sy += y; pts.push([x, y]); }
+  if (n < 20) { gsSeedAnchor(); return; }
+  const cx = sx / n, cy = sy / n; let mxx = 0, myy = 0, mxy = 0;
+  for (const [x, y] of pts) { const dx = x - cx, dy = y - cy; mxx += dx * dx; myy += dy * dy; mxy += dx * dy; }
+  const ang = 0.5 * Math.atan2(2 * mxy, mxx - myy), ux = Math.cos(ang), uy = Math.sin(ang);
+  let pmin = Infinity, pmax = -Infinity, eMin = pts[0], eMax = pts[0];
+  for (const [x, y] of pts) { const p = (x - cx) * ux + (y - cy) * uy; if (p < pmin) { pmin = p; eMin = [x, y]; } if (p > pmax) { pmax = p; eMax = [x, y]; } }
+  const dMin = Math.hypot(eMin[0] - cx, eMin[1] - cy), dMax = Math.hypot(eMax[0] - cx, eMax[1] - cy);
+  const grip = dMin >= dMax ? eMin : eMax, tip = dMin >= dMax ? eMax : eMin;
+  GS.anchor = {
+    x: grip[0], y: grip[1],
+    axis: Math.atan2(tip[1] - grip[1], tip[0] - grip[0]),
+    len: Math.max(4, Math.hypot(tip[0] - grip[0], tip[1] - grip[1])),
+  };
+}
 // The auto transform for one template cell — THE formula. With the anchor marked,
 // rotation is ABSOLUTE (template blade angle − the art's own axis) and scale
 // normalises the art's blade length to the template's, so the art snaps onto the
@@ -1834,10 +1861,10 @@ function gsImportWeapon(type) {
     const crop = document.createElement('canvas'); crop.width = w + pad * 2; crop.height = h + pad * 2;
     crop.getContext('2d').drawImage(cv, ox + mnx, oy + mny, w, h, pad, pad, w, h);
     GS.img = crop; GS.imgName = type;
-    // anchor-driven: seed the grip/tip marking (bottom-centre, blade up) — the user
-    // corrects it on the mark canvas and the whole sheet re-derives. Pose starts at
-    // zero; the anchor seats the grip so no default lift is needed.
-    gsSeedAnchor(); gsSeedPose(0);
+    // anchor-driven: auto-detect the grip/tip marking from the art's own pixels —
+    // the user corrects it on the mark canvas and the whole sheet re-derives. Pose
+    // starts at zero; the anchor seats the grip so no default lift is needed.
+    gsAutoDetectAnchor(); gsSeedPose(0);
     gsSyncSliders();
     gsGenerate(); gsCapture(); gsCaps();
     renderGearSheet();   // show the mark-the-grip canvas for the fresh import
@@ -1907,6 +1934,11 @@ function gsExtractCells(img, fs) {
       }
     }
   }
+  // (Orientation note: the near-body grip resolution above is CORRECT in absolute
+  // terms — measured on the stock sword's align cell, the wide crossguard sits at
+  // the traced grip end and the thin blade tip at the far end. Wrong-way-round
+  // renders come from the INPUT side — a mis-marked or mis-assumed art axis — which
+  // auto-detect + the 1b swap button address.)
   const rc = { cells, cols, rows, W, H, fs };
   return rc;
 }
@@ -2047,8 +2079,9 @@ function renderGearSheet() {
         <button class="act" id="gs-import-go" style="padding:2px 9px">edit</button></div>
       <div id="gs-import-note" style="font-size:10.5px;color:var(--dim)"></div>
       ${GS.img ? `<h3 style="color:var(--gold);font-size:12px;margin-top:12px">1b · Mark the grip &amp; blade tip</h3>
-      <div style="font-size:11px;color:var(--dim);margin-bottom:4px"><b>Click the GRIP</b> (where the hand holds it), then <b>drag to the blade TIP</b>. These two points are the formula's whole input — the maker anchors, rotates and sizes your art from them, so every animation and facing derives from this one marking.</div>
-      <canvas id="gs-anchor" style="background:#20331f;border:1px solid var(--trim);border-radius:6px;cursor:crosshair;display:block"></canvas>` : ''}
+      <div style="font-size:11px;color:var(--dim);margin-bottom:4px">The maker <b>auto-detects</b> both from your art — the <b>gold dot is the grip</b>, the cyan line runs to the blade tip. If it guessed wrong, <b>click the grip</b> and <b>drag to the tip</b> to correct it. These two points are the formula's whole input — every animation and facing derives from this one marking.</div>
+      <canvas id="gs-anchor" style="background:#20331f;border:1px solid var(--trim);border-radius:6px;cursor:crosshair;display:block"></canvas>
+      <div class="ms-row" style="margin-top:3px"><button class="act" id="gs-swap" style="padding:2px 9px;font-size:11px" title="If the weapon renders upside-down / back-to-front, the grip and tip are reversed — this swaps them and re-derives everything">↔ swap grip &amp; tip</button></div>` : ''}
       <h3 style="color:var(--gold);font-size:12px;margin-top:12px">2 · Choose the combat animation</h3>
       <div class="ms-row" style="flex-wrap:wrap;gap:4px">${tgtBtns}</div>
       <div style="font-size:11px;color:var(--dim)">Carry is the base walk/idle sheet; slash &amp; thrust are the attack overlays. Compile whichever your weapon needs.</div>
@@ -2079,6 +2112,7 @@ function renderGearSheet() {
       </details>
       <div class="ms-row"><button class="act" id="gs-gen" style="flex:1">⚙ Generate sheet</button>
         <button class="act" id="gs-dl">⬇ PNG</button></div>
+      <div class="ms-row"><button class="act on" id="gs-all" style="flex:1" title="Compile the walk/carry sheet AND both attack overlays (1H slash + thrust) from the current marking in one go — everything captured and ready to preview or deploy">🧵 Compile ALL animations</button></div>
     </div>
     <div style="min-width:270px">
       <h3 style="color:var(--gold);font-size:12px">4 · Preview on the character</h3>
@@ -2104,7 +2138,7 @@ function renderGearSheet() {
   // body + a hair layer for the preview, so it's obvious which way the model faces
   if (!GS.body) { const b = new Image(); b.onload = () => { GS.body = b; }; b.src = 'assets/lpc/body_male_light.png'; }
   if (!GS.hair) { const h = new Image(); h.onload = () => { GS.hair = h; }; h.src = 'assets/lpc/hair_bangs_male_dark_brown.png'; }
-  $('#gs-file').onchange = (e) => { const f = e.target.files[0]; if (!f) return; const im = new Image(); im.onload = () => { GS.img = im; GS.imgName = f.name.replace(/\.\w+$/, ''); GS.picked = ''; gsSeedAnchor(); gsSeedPose(0); gsSyncSliders(); gsGenerate(); renderGearSheet(); }; im.src = URL.createObjectURL(f); };
+  $('#gs-file').onchange = (e) => { const f = e.target.files[0]; if (!f) return; const im = new Image(); im.onload = () => { GS.img = im; GS.imgName = f.name.replace(/\.\w+$/, ''); GS.picked = ''; gsAutoDetectAnchor(); gsSeedPose(0); gsSyncSliders(); gsGenerate(); renderGearSheet(); }; im.src = URL.createObjectURL(f); };
   // search-to-edit any weapon: the datalist offers every weapon; edit on pick/Enter/button
   const gsDoImport = () => {
     const v = ($('#gs-import').value || '').trim(); const note = $('#gs-import-note');
@@ -2138,6 +2172,13 @@ function renderGearSheet() {
   $('#gs-preset-load').onclick = () => { const n = $('#gs-preset-sel').value; if (n && gsLoadPreset(n)) { gsSyncSliders(); renderGearSheet(); } };
   $('#gs-preset-del').onclick = () => { const n = $('#gs-preset-sel').value; if (n) { gsDeletePreset(n); renderGearSheet(); } };
   $('#gs-gen').onclick = () => { gsGenerate(); gsCapture(); gsCaps(); $('#gs-status').textContent = GS.gen ? 'sheet generated & captured — see the preview' : 'import an image first'; };
+  // one click compiles the WHOLE set (carry + slash + thrust) from the marking
+  $('#gs-all').onclick = async () => {
+    if (!GS.img) { $('#gs-status').textContent = 'import an image first'; return; }
+    $('#gs-status').textContent = 'compiling walk + slash + thrust…';
+    await gsCompileAll(); gsCaps();
+    $('#gs-status').innerHTML = '<span style="color:var(--good,#7ecb5a)">✓ all three animations compiled</span> — click the animation buttons (step 2) to preview each; deploy ships them all.';
+  };
   $('#gs-dl').onclick = () => { if (!GS.gen) return; gsCapture(); gsCaps(); const a = document.createElement('a'); a.download = (GS.imgName || 'weapon') + '_' + GS.target + '_lpc.png'; a.href = GS.gen.toDataURL(); a.click(); };
   // switching targets captures the outgoing sheet first, so a multi-animation
   // weapon (carry + slash, say) keeps every compiled sheet ready to deploy
@@ -2167,6 +2208,15 @@ function renderGearSheet() {
       if (d > 3) { GS.anchor.axis = Math.atan2(dy, dx); GS.anchor.len = d; gsDrawAnchor(); gsGenerate(); }
     };
     anc.onmouseup = anc.onmouseleave = () => { if (marking) { marking = false; gsCapture(); } };
+    // one-click 180° fix: move the anchor to the other end and reverse the axis
+    const swap = $('#gs-swap');
+    if (swap) swap.onclick = () => {
+      if (!GS.anchor) return;
+      const A = GS.anchor;
+      A.x += A.len * Math.cos(A.axis); A.y += A.len * Math.sin(A.axis);
+      A.axis += Math.PI;
+      gsDrawAnchor(); gsGenerate(); gsCapture();
+    };
   }
   // drag on the align canvas moves ONLY the selected facing's own line-up
   const ac = $('#gs-align'); let drag = null;
@@ -2364,6 +2414,11 @@ function gsLoop() {
   else { drawWeapon(); drawBody(); }
   raf = requestAnimationFrame(gsLoop);
 }
+
+// dev hooks: the gear maker's state + pipeline, reachable from the console for
+// numeric verification (e.g. regenerating and diffing against the stock sheets)
+window.GS = GS;
+window.gsDebug = { gsGenerate, gsCapture, gsCompileAll, gsAuto, gsAutoDetectAnchor, gsExtractCells, refs: () => GS.refs };
 
 connect();
 render();
