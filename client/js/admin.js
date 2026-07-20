@@ -1642,18 +1642,18 @@ const GS = {
   anchor: null,      // { x, y, axis, len } in art-image pixels
   trackRot: true,
   sizeLock: true,    // keep the weapon a constant size across all frames/directions
-  // Each facing owns a FULL, independent pose — screen offset px, rotation deg,
-  // scale, its OWN mirror/flip flags, and its OWN layer (whether the weapon draws
-  // over or under the body for that facing). Because S/N/W/E are separate objects,
-  // lining up / flipping / re-layering one facing never disturbs another. Default
-  // layers mirror how a held blade actually sits: SOUTH (facing camera) the weapon
-  // is in front of the body ('over'); N/W/E it's behind ('under').
-  pose: {
-    S: { x: 0, y: -12, rot: 0, scale: 1, flipX: false, flipY: false, layer: 'over' },
-    N: { x: 0, y: -12, rot: 0, scale: 1, flipX: false, flipY: false, layer: 'under' },
-    W: { x: 0, y: -12, rot: 0, scale: 1, flipX: false, flipY: false, layer: 'under' },
-    E: { x: 0, y: -12, rot: 0, scale: 1, flipX: false, flipY: false, layer: 'under' },
-  },
+  // EVERY ANIMATION × EVERY FACING owns a FULL, independent fine-tune pose —
+  // offset px, rotation deg, scale, mirror/flip flags, layer. carry, slash and
+  // thrust are stamped against DIFFERENT templates, so a tune that seats the
+  // carry sheet must not bleed into the attack overlays (and vice versa). The
+  // whole poses tree is what a "calibration run" records and replays. Default
+  // layers mirror how a held blade sits: SOUTH in front ('over'), N/W/E behind.
+  poses: (() => {
+    const mk = (layer) => ({ x: 0, y: -12, rot: 0, scale: 1, flipX: false, flipY: false, layer });
+    const set = () => ({ S: mk('over'), N: mk('under'), W: mk('under'), E: mk('under') });
+    return { carry: set(), slash: set(), thrust: set() };
+  })(),
+  swapped: false,    // grip/tip swap applied on top of auto-detect (recorded in calibrations)
   dir: 'S',          // which facing the guideline + preview are showing / tuning
   picked: '',        // the weapon chosen in the import dropdown (kept selected across re-renders)
   previewAnim: 'walk',  // preview animation for the carry sheet: 'walk' or 'idle'
@@ -1664,8 +1664,8 @@ const GS = {
   sheets: {},        // captured PNG dataURLs per target, for deploy
   deploy: { open: false, kind: 'sword', level: 10, drops: [] },   // deployment-table state
 };
-// the pose for the facing currently being tuned
-function gsPose() { return GS.pose[GS.dir] || GS.pose.S; }
+// the pose for the ANIMATION + facing currently being tuned
+function gsPose() { const set = GS.poses[GS.target] || GS.poses.carry; return set[GS.dir] || set.S; }
 // which facing a sheet row belongs to. LPC 4-row blocks run N, W, S, E and align to
 // row%4 for the classic anims (spellcast/thrust/walk/slash/shoot at rows 0/4/8/12/16).
 // But the expanded IDLE block starts at row 22 — OFF the 4-row grid (22%4===2) — so
@@ -1686,7 +1686,8 @@ const GS_CARRY_ANIMS = ['walk', 'idle', 'spellcast', 'shoot', 'hurt'];
 // their natural defaults (south over, the rest under)
 function gsSeedPose(lift) {
   const mk = (layer) => ({ x: 0, y: lift, rot: 0, scale: 1, flipX: false, flipY: false, layer });
-  GS.pose = { S: mk('over'), N: mk('under'), W: mk('under'), E: mk('under') };
+  const set = () => ({ S: mk('over'), N: mk('under'), W: mk('under'), E: mk('under') });
+  GS.poses = { carry: set(), slash: set(), thrust: set() };
 }
 // seed the anchor for a fresh import: assume an upright weapon — grip near the
 // bottom-centre of the art, blade running straight up. The user refines both by
@@ -1698,9 +1699,10 @@ function gsSeedAnchor() {
 }
 // AUTO-DETECT the anchor from the art itself: PCA over the opaque pixels gives the
 // blade axis (same math the template tracer uses); the grip is the extent end
-// FARTHER from the pixel-mass centroid — blades/heads carry the mass toward the
-// business end, so this holds for swords, maces, axes and spears alike. Falls back
-// to the upright seed for tiny/unreadable art; the 1b canvas corrects any miss.
+// NEARER the pixel-mass centroid (field-tested — the farther-end guess came out
+// backwards on real weapon art, forcing a swap every import). Falls back to the
+// upright seed for tiny/unreadable art; the 1b canvas + swap button correct any
+// miss, and the correction is RECORDED in the calibration so it replays.
 function gsAutoDetectAnchor() {
   if (!GS.img) { GS.anchor = null; return; }
   const w = GS.img.width, h = GS.img.height;
@@ -1716,12 +1718,13 @@ function gsAutoDetectAnchor() {
   let pmin = Infinity, pmax = -Infinity, eMin = pts[0], eMax = pts[0];
   for (const [x, y] of pts) { const p = (x - cx) * ux + (y - cy) * uy; if (p < pmin) { pmin = p; eMin = [x, y]; } if (p > pmax) { pmax = p; eMax = [x, y]; } }
   const dMin = Math.hypot(eMin[0] - cx, eMin[1] - cy), dMax = Math.hypot(eMax[0] - cx, eMax[1] - cy);
-  const grip = dMin >= dMax ? eMin : eMax, tip = dMin >= dMax ? eMax : eMin;
+  const grip = dMin <= dMax ? eMin : eMax, tip = dMin <= dMax ? eMax : eMin;
   GS.anchor = {
     x: grip[0], y: grip[1],
     axis: Math.atan2(tip[1] - grip[1], tip[0] - grip[0]),
     len: Math.max(4, Math.hypot(tip[0] - grip[0], tip[1] - grip[1])),
   };
+  GS.swapped = false;   // fresh detection = the calibration baseline
 }
 // The auto transform for one template cell — THE formula. With the anchor marked,
 // rotation is ABSOLUTE (template blade angle − the art's own axis) and scale
@@ -1781,7 +1784,7 @@ function gsSplitLayers(gen) {
   const fgg = fg.getContext('2d'), bgg = bg.getContext('2d');
   let anyBg = false;
   for (let r = 0; r < rows; r++) {
-    const over = (GS.pose[gsRowFacing(r)]?.layer || 'over') === 'over';
+    const over = (GS.poses.carry[gsRowFacing(r)]?.layer || 'over') === 'over';   // layering is a carry-sheet concern
     (over ? bgg : fgg).clearRect(0, r * fs, gen.width, fs);   // strip the row from the sheet it isn't in
     if (!over) anyBg = true;
   }
@@ -1806,31 +1809,64 @@ function gsCapture() {
     GS.sheets[GS.target] = GS.gen.toDataURL();
   }
 }
-// ---- tuning presets --------------------------------------------------------
-// A preset captures EVERY manipulation (all four facings' pose: offset, rotation,
-// scale, mirror/flip, layer) plus the track-swing / size-lock flags — but NOT the
-// image. Loading it onto a fresh import re-applies the exact same tuning, so a new
-// weapon of the SAME design/size/position as the preset's original input lines up
-// perfectly with no re-dialing. Stored in localStorage so they persist.
+// ---- calibration runs (recorded tuning) ------------------------------------
+// A calibration captures EVERY adjustment made during a tuning run: all three
+// ANIMATIONS' per-facing poses (offset/rotation/scale/mirror/flip/layer), the
+// track-swing / size-lock / oversize flags AND the grip-tip swap state — but NOT
+// the image. Every change auto-saves as the "last run", and named calibrations
+// persist in localStorage. Applying one onto a fresh import replays the whole run,
+// so Compile ALL then reproduces the exact same builds with no re-dialing.
+function gsCalibSnapshot() {
+  return {
+    poses: JSON.parse(JSON.stringify(GS.poses)),
+    trackRot: GS.trackRot, sizeLock: GS.sizeLock, oversizeHeld: GS.oversizeHeld,
+    swapped: GS.swapped,
+  };
+}
+function gsApplyCalib(p) {
+  const norm = (q) => {
+    for (const f of ['S', 'N', 'W', 'E']) {
+      const v = q[f] || (q[f] = {});
+      if (v.x == null) v.x = 0; if (v.y == null) v.y = 0; if (v.rot == null) v.rot = 0; if (v.scale == null) v.scale = 1;
+      if (v.flipX == null) v.flipX = false; if (v.flipY == null) v.flipY = false;
+      if (v.layer == null) v.layer = f === 'S' ? 'over' : 'under';
+    }
+    return q;
+  };
+  const clone = (o) => JSON.parse(JSON.stringify(o || {}));
+  if (p.poses) GS.poses = { carry: norm(clone(p.poses.carry)), slash: norm(clone(p.poses.slash)), thrust: norm(clone(p.poses.thrust)) };
+  else if (p.pose) { const one = norm(clone(p.pose)); GS.poses = { carry: one, slash: clone(one), thrust: clone(one) }; }   // legacy single-set preset
+  if (p.trackRot != null) GS.trackRot = p.trackRot;
+  if (p.sizeLock != null) GS.sizeLock = p.sizeLock;
+  if (p.oversizeHeld != null) GS.oversizeHeld = !!p.oversizeHeld;
+  if (p.swapped != null && GS.anchor && !!p.swapped !== !!GS.swapped) gsApplySwap();   // replay the recorded grip/tip swap
+  if (GS.img) { gsGenerate(); gsCapture(); }
+}
+// every adjustment records to the "last run" so a tuning session is never lost
+function gsAutosave() { try { localStorage.setItem('gs_last', JSON.stringify(gsCalibSnapshot())); } catch { /* storage full/blocked — non-fatal */ } }
+function gsApplyLast() { try { const p = JSON.parse(localStorage.getItem('gs_last') || 'null'); if (!p) return false; gsApplyCalib(p); return true; } catch { return false; } }
 function gsPresets() { try { return JSON.parse(localStorage.getItem('gs_presets') || '{}'); } catch { return {}; } }
 function gsSavePreset(name) {
   name = (name || '').trim(); if (!name) return false;
   const all = gsPresets();
-  all[name] = { pose: JSON.parse(JSON.stringify(GS.pose)), trackRot: GS.trackRot, sizeLock: GS.sizeLock };
+  all[name] = gsCalibSnapshot();
   localStorage.setItem('gs_presets', JSON.stringify(all));
   return true;
 }
 function gsLoadPreset(name) {
   const p = gsPresets()[name]; if (!p) return false;
-  GS.pose = JSON.parse(JSON.stringify(p.pose));
-  // tolerate presets saved before flip/layer existed
-  for (const f of ['S', 'N', 'W', 'E']) { const q = GS.pose[f] || (GS.pose[f] = { x: 0, y: -12, rot: 0, scale: 1 }); if (q.flipX == null) q.flipX = false; if (q.flipY == null) q.flipY = false; if (q.layer == null) q.layer = f === 'S' ? 'over' : 'under'; }
-  if (p.trackRot != null) GS.trackRot = p.trackRot;
-  if (p.sizeLock != null) GS.sizeLock = p.sizeLock;
-  if (GS.img) { gsGenerate(); gsCapture(); }
+  gsApplyCalib(p);
   return true;
 }
 function gsDeletePreset(name) { const all = gsPresets(); delete all[name]; localStorage.setItem('gs_presets', JSON.stringify(all)); }
+// flip the marked grip & tip (anchor moves to the other end, axis reverses) —
+// recorded in calibrations so a replayed run swaps the same way automatically
+function gsApplySwap() {
+  const A = GS.anchor; if (!A) return;
+  A.x += A.len * Math.cos(A.axis); A.y += A.len * Math.sin(A.axis);
+  A.axis += Math.PI;
+  GS.swapped = !GS.swapped;
+}
 // The maker anchors the weapon at the reference HAND and draws it centred, so an
 // upright blade wants a small upward lift to seat its handle at the hand. Seed
 // GS.y with that (~28% of the art height, clamped to the slider range); the user
@@ -2007,10 +2043,11 @@ function gsGenerate() {
     // angle, art blade length → template blade length — absolute per frame when
     // the anchor is marked, so the whole sheet derives from the one marking.
     const auto = gsAuto(cell, align, southRest(cell.row));
-    // block rows go N/W/S/E, so row%4 picks the facing; each facing applies its OWN
-    // independent pose (offset/rotation/scale AND mirror/flip) on top of the auto
-    // fit as a fine-tune, so tuning or flipping one never moves another
-    const pose = GS.pose[gsRowFacing(cell.row)] || GS.pose.S;
+    // block rows go N/W/S/E, so row%4 picks the facing; THIS TARGET's own facing
+    // pose applies on top of the auto fit as a fine-tune — per animation AND per
+    // facing, so tuning carry never bleeds into slash/thrust (or vice versa)
+    const pset = GS.poses[GS.target] || GS.poses.carry;
+    const pose = pset[gsRowFacing(cell.row)] || pset.S;
     g.save();
     // clip to THIS frame's exact cell so a stamp can't bleed onto a neighbour
     g.beginPath(); g.rect(cell.col * fs, cell.row * fs, fs, fs); g.clip();
@@ -2045,7 +2082,7 @@ function gsGenerateOver() {
   const out = document.createElement('canvas'); out.width = nf * OV * SS; out.height = 4 * OV * SS;
   const g = out.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.scale(SS, SS);
   for (let dir = 0; dir < 4; dir++) {
-    const facing = ['N', 'W', 'S', 'E'][dir], pose = GS.pose[facing] || GS.pose.S;
+    const facing = ['N', 'W', 'S', 'E'][dir], pose = GS.poses.carry[facing] || GS.poses.carry.S;   // oversize rides the carry tuning
     for (let f = 0; f < nf; f++) {
       const cell = ref.cells[(row0 + dir) * cols + f]; if (!cell) continue;
       const auto = gsAuto(cell, align, southAng);   // same anchor formula as the base sheet
@@ -2089,7 +2126,7 @@ function renderGearSheet() {
       <div style="font-size:11px;color:var(--dim);margin-bottom:5px">With the grip &amp; tip marked, your art <b>snaps onto the cyan guide blade automatically</b> in every facing — this stage is verification. If a facing needs a nudge, pick it and drag/use the sliders; <b>each facing keeps its own fine-tune</b>, so adjusting one never shifts another.</div>
       <div class="ms-row" style="gap:4px;margin-bottom:5px">${['S', 'N', 'W', 'E'].map((f) => `<button class="act ${GS.dir === f ? 'on' : ''}" data-gsdir="${f}" style="padding:2px 10px;font-size:11px">${{ S: 'South', N: 'North', W: 'West', E: 'East' }[f]}</button>`).join('')}</div>
       <canvas id="gs-align" width="256" height="256" style="background:#20331f;border:1px solid var(--trim);border-radius:6px;cursor:move"></canvas>
-      <div style="font-size:10.5px;color:var(--gold);margin:3px 0 1px">Tuning <b>${{ S: 'South', N: 'North', W: 'West', E: 'East' }[GS.dir]}</b> — X/Y/rotate move only this facing; scale is shared across all four</div>
+      <div style="font-size:10.5px;color:var(--gold);margin:3px 0 1px">Tuning <b>${{ S: 'South', N: 'North', W: 'West', E: 'East' }[GS.dir]}</b> of <b>${gsTpl().label}</b> — this animation × facing only; scale is shared across this animation's four facings</div>
       <div class="ms-row">X <input id="gs-x" type="range" min="-40" max="40" step="0.5" value="${gsPose().x}" style="flex:1"></div>
       <div class="ms-row">Y <input id="gs-y" type="range" min="-40" max="40" step="0.5" value="${gsPose().y}" style="flex:1"></div>
       <div class="ms-row" title="the weapon's size — shared across every facing">scale <input id="gs-scale" type="range" min="0.2" max="3" step="0.02" value="${gsPose().scale}" style="flex:1"><span style="font-size:9px;color:var(--dim)">all</span></div>
@@ -2102,9 +2139,9 @@ function renderGearSheet() {
         <label style="font-size:11.5px"><input type="checkbox" id="gs-track" ${GS.trackRot ? 'checked' : ''}> track swing</label>
         <label style="font-size:11.5px" title="keep the weapon the same size in every frame &amp; direction"><input type="checkbox" id="gs-lock" ${GS.sizeLock ? 'checked' : ''}> 🔒 size lock</label>
         <label style="font-size:11.5px" title="For BIG weapons: render the held walk/idle art as a 128px oversize overlay so a long blade isn't shaved off by the 64px body cell. (Drawn over the body — per-facing behind-body isn't applied to oversize.)"><input type="checkbox" id="gs-oversize" ${GS.oversizeHeld ? 'checked' : ''}> ⬛ oversize held</label></div>
-      <details style="margin:6px 0" title="Save every manipulation (all four facings' offset/rotation/scale/mirror/layer) as a reusable preset. Load it onto a new weapon of the SAME design, size and starting position to line it up instantly.">
-        <summary style="color:var(--gold);font-size:12px;cursor:pointer">💾 Tuning presets</summary>
-        <div style="font-size:10.5px;color:var(--dim);margin:4px 0">Presets copy ALL your per-facing tuning (not the image). Load one onto a new import that's the <b>same size &amp; position</b> as this preset's original art and it fits with no re-dialing.</div>
+      <details style="margin:6px 0" title="A calibration records EVERY adjustment of a tuning run — all three animations' per-facing poses, the grip/tip swap and the flags. Load it onto a new import and Compile ALL reproduces the exact same builds.">
+        <summary style="color:var(--gold);font-size:12px;cursor:pointer">💾 Calibration runs</summary>
+        <div style="font-size:10.5px;color:var(--dim);margin:4px 0">A calibration records <b>every adjustment</b> you make — each animation's per-facing tuning, the grip swap, the flags (not the image). Your current run also auto-saves as <b>↺ last run</b>. Load one onto a new import and <b>🧵 Compile ALL</b> replays it for identical builds.</div>
         <div class="ms-row" style="gap:4px"><input id="gs-preset-name" placeholder="name this tuning…" style="flex:1;font-size:11px"><button class="act" id="gs-preset-save" style="padding:2px 9px;font-size:11px">save</button></div>
         <div class="ms-row" style="gap:4px"><select id="gs-preset-sel" style="flex:1;font-size:11px"><option value="">— saved presets —</option>${Object.keys(gsPresets()).map((n) => `<option>${n}</option>`).join('')}</select>
           <button class="act" id="gs-preset-load" style="padding:2px 9px;font-size:11px">load</button>
@@ -2112,7 +2149,8 @@ function renderGearSheet() {
       </details>
       <div class="ms-row"><button class="act" id="gs-gen" style="flex:1">⚙ Generate sheet</button>
         <button class="act" id="gs-dl">⬇ PNG</button></div>
-      <div class="ms-row"><button class="act on" id="gs-all" style="flex:1" title="Compile the walk/carry sheet AND both attack overlays (1H slash + thrust) from the current marking in one go — everything captured and ready to preview or deploy">🧵 Compile ALL animations</button></div>
+      <div class="ms-row"><button class="act on" id="gs-all" style="flex:1" title="Compile the walk/carry sheet AND both attack overlays (1H slash + thrust), each with ITS OWN recorded per-facing tuning, in one go — everything captured and ready to preview or deploy">🧵 Compile ALL animations</button>
+        <button class="act" id="gs-lastrun" title="Re-apply every adjustment from your last tuning session (all animations × facings + grip swap) to this import">↺ last run</button></div>
     </div>
     <div style="min-width:270px">
       <h3 style="color:var(--gold);font-size:12px">4 · Preview on the character</h3>
@@ -2153,17 +2191,17 @@ function renderGearSheet() {
   // X / Y / rotate are per-facing (each side lines its grip up differently); SCALE is
   // the weapon's real size, so it's shared across ALL facings — set it once and every
   // viewpoint matches (a sword is one size whichever way you face)
-  for (const k of ['x', 'y', 'rot']) $(`#gs-${k}`).oninput = (e) => { gsPose()[k] = +e.target.value; gsGenerate(); };
-  $('#gs-scale').oninput = (e) => { const v = +e.target.value; for (const f of ['S', 'N', 'W', 'E']) GS.pose[f].scale = v; gsGenerate(); };
-  $('#gs-track').onchange = (e) => { GS.trackRot = e.target.checked; gsGenerate(); };
-  $('#gs-lock').onchange = (e) => { GS.sizeLock = e.target.checked; gsGenerate(); };
-  $('#gs-oversize').onchange = (e) => { GS.oversizeHeld = e.target.checked; gsGenerate(); gsCapture(); };
-  // mirror / flip / layer apply ONLY to the facing being tuned
-  $('#gs-flipx').onchange = (e) => { gsPose().flipX = e.target.checked; gsGenerate(); };
-  $('#gs-flipy').onchange = (e) => { gsPose().flipY = e.target.checked; gsGenerate(); };
+  for (const k of ['x', 'y', 'rot']) $(`#gs-${k}`).oninput = (e) => { gsPose()[k] = +e.target.value; gsGenerate(); gsAutosave(); };
+  $('#gs-scale').oninput = (e) => { const v = +e.target.value; const pset = GS.poses[GS.target] || GS.poses.carry; for (const f of ['S', 'N', 'W', 'E']) pset[f].scale = v; gsGenerate(); gsAutosave(); };
+  $('#gs-track').onchange = (e) => { GS.trackRot = e.target.checked; gsGenerate(); gsAutosave(); };
+  $('#gs-lock').onchange = (e) => { GS.sizeLock = e.target.checked; gsGenerate(); gsAutosave(); };
+  $('#gs-oversize').onchange = (e) => { GS.oversizeHeld = e.target.checked; gsGenerate(); gsCapture(); gsAutosave(); };
+  // mirror / flip / layer apply ONLY to the animation + facing being tuned
+  $('#gs-flipx').onchange = (e) => { gsPose().flipX = e.target.checked; gsGenerate(); gsAutosave(); };
+  $('#gs-flipy').onchange = (e) => { gsPose().flipY = e.target.checked; gsGenerate(); gsAutosave(); };
   // layer changes no pixels, but it DOES change the fg/bg split — re-capture so a
   // later deploy ships the current over/under choice
-  $('#gs-layer').onchange = (e) => { gsPose().layer = e.target.checked ? 'under' : 'over'; gsCapture(); };
+  $('#gs-layer').onchange = (e) => { gsPose().layer = e.target.checked ? 'under' : 'over'; gsCapture(); gsAutosave(); };
   // preview-only controls: walk↔idle animation + slow-motion for close inspection
   for (const b of body.querySelectorAll('[data-gsanim]')) b.onclick = () => { GS.previewAnim = b.dataset.gsanim; renderGearSheet(); };
   const slow = $('#gs-slow'); if (slow) slow.oninput = (e) => { GS.previewSlow = +e.target.value; };
@@ -2172,12 +2210,18 @@ function renderGearSheet() {
   $('#gs-preset-load').onclick = () => { const n = $('#gs-preset-sel').value; if (n && gsLoadPreset(n)) { gsSyncSliders(); renderGearSheet(); } };
   $('#gs-preset-del').onclick = () => { const n = $('#gs-preset-sel').value; if (n) { gsDeletePreset(n); renderGearSheet(); } };
   $('#gs-gen').onclick = () => { gsGenerate(); gsCapture(); gsCaps(); $('#gs-status').textContent = GS.gen ? 'sheet generated & captured — see the preview' : 'import an image first'; };
-  // one click compiles the WHOLE set (carry + slash + thrust) from the marking
+  // one click compiles the WHOLE set (carry + slash + thrust), each animation
+  // using its OWN recorded per-facing tuning
   $('#gs-all').onclick = async () => {
     if (!GS.img) { $('#gs-status').textContent = 'import an image first'; return; }
     $('#gs-status').textContent = 'compiling walk + slash + thrust…';
     await gsCompileAll(); gsCaps();
     $('#gs-status').innerHTML = '<span style="color:var(--good,#7ecb5a)">✓ all three animations compiled</span> — click the animation buttons (step 2) to preview each; deploy ships them all.';
+  };
+  // replay the auto-saved last tuning session onto this import
+  $('#gs-lastrun').onclick = () => {
+    if (!gsApplyLast()) { $('#gs-status').textContent = 'no recorded run yet — tune something first'; return; }
+    gsSyncSliders(); renderGearSheet();
   };
   $('#gs-dl').onclick = () => { if (!GS.gen) return; gsCapture(); gsCaps(); const a = document.createElement('a'); a.download = (GS.imgName || 'weapon') + '_' + GS.target + '_lpc.png'; a.href = GS.gen.toDataURL(); a.click(); };
   // switching targets captures the outgoing sheet first, so a multi-animation
@@ -2207,16 +2251,10 @@ function renderGearSheet() {
       const d = Math.hypot(dx, dy);
       if (d > 3) { GS.anchor.axis = Math.atan2(dy, dx); GS.anchor.len = d; gsDrawAnchor(); gsGenerate(); }
     };
-    anc.onmouseup = anc.onmouseleave = () => { if (marking) { marking = false; gsCapture(); } };
-    // one-click 180° fix: move the anchor to the other end and reverse the axis
+    anc.onmouseup = anc.onmouseleave = () => { if (marking) { marking = false; gsCapture(); gsAutosave(); } };
+    // one-click 180° fix — recorded (GS.swapped) so calibrations replay it
     const swap = $('#gs-swap');
-    if (swap) swap.onclick = () => {
-      if (!GS.anchor) return;
-      const A = GS.anchor;
-      A.x += A.len * Math.cos(A.axis); A.y += A.len * Math.sin(A.axis);
-      A.axis += Math.PI;
-      gsDrawAnchor(); gsGenerate(); gsCapture();
-    };
+    if (swap) swap.onclick = () => { gsApplySwap(); gsDrawAnchor(); gsGenerate(); gsCapture(); gsAutosave(); };
   }
   // drag on the align canvas moves ONLY the selected facing's own line-up
   const ac = $('#gs-align'); let drag = null;
@@ -2228,7 +2266,7 @@ function renderGearSheet() {
     const ex = $('#gs-x'), ey = $('#gs-y'); if (ex) ex.value = nx; if (ey) ey.value = ny;
     gsGenerate();
   });
-  window.addEventListener('mouseup', () => drag = null);
+  window.addEventListener('mouseup', () => { if (drag) { drag = null; gsAutosave(); } });
   gsLoop();
 }
 // which compiled sheets are captured & ready to deploy
